@@ -18,7 +18,7 @@ import {
   Menu,
   X,
 } from "lucide-react";
-import { useI18n, LOCALES, LOCALE_ORDER } from "@/lib/i18n";
+import { useI18n, LOCALE_LABELS, LOCALE_ORDER } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
 import { submitQuoteRequest } from "@/lib/quote.functions";
 
@@ -238,7 +238,7 @@ export default function OkaabLanding() {
             <span
               dir="ltr"
               className="font-hand text-base sm:text-lg -rotate-6 ms-1 mt-1 tracking-wide shrink-0 whitespace-nowrap lg:hidden xl:inline"
-              style={{ color: ACCENT }}
+              style={{ color: "var(--ok-accent-text)" }}
             >
               OKAAB
             </span>
@@ -266,7 +266,7 @@ export default function OkaabLanding() {
                 <button
                   key={code}
                   onClick={() => setLocale(code)}
-                  aria-label={LOCALES[code]!.label}
+                  aria-label={LOCALE_LABELS[code]}
                   aria-current={locale === code ? "true" : undefined}
                   className={`rounded-full border-2 border-[var(--ok-ink)] px-2.5 py-1 text-xs font-semibold transition-colors ${
                     locale === code
@@ -324,7 +324,7 @@ export default function OkaabLanding() {
                   <button
                     key={code}
                     onClick={() => setLocale(code)}
-                    aria-label={LOCALES[code]!.label}
+                    aria-label={LOCALE_LABELS[code]}
                     aria-current={locale === code ? "true" : undefined}
                     className={`rounded-full border-2 border-[var(--ok-ink)] px-2.5 py-1 text-xs font-semibold whitespace-nowrap transition-colors ${
                       locale === code
@@ -663,7 +663,7 @@ export default function OkaabLanding() {
 
       {/* ───── QUOTE CTA ───── */}
       <section id="quote" className="ok-container py-16 sm:py-20 md:py-28 lg:py-32 xl:py-36 2xl:py-40 text-center relative">
-        <div className="absolute left-1/2 -translate-x-1/2 top-8 sm:top-10 font-hand text-xl sm:text-2xl lg:text-3xl text-[#0A6B3F] rotate-3">
+        <div className="absolute left-1/2 -translate-x-1/2 top-8 sm:top-10 font-hand text-xl sm:text-2xl lg:text-3xl text-[var(--ok-success-text)] rotate-3">
           {t.quote.note}
         </div>
         <h2 className="font-display font-black text-3xl sm:text-4xl md:text-5xl lg:text-6xl 2xl:text-7xl tracking-tight mt-10 sm:mt-12 mb-4 sm:mb-6">
@@ -769,7 +769,7 @@ export default function OkaabLanding() {
             <button
               type="submit"
               disabled={sending}
-              className="group inline-flex items-center gap-3 text-[var(--ok-ink)] border-2 border-[var(--ok-ink)] font-semibold px-6 py-4 sm:px-8 sm:py-5 rounded-full text-base sm:text-lg shadow-[5px_5px_0_var(--ok-ink)] hover:shadow-[1px_1px_0_var(--ok-ink)] hover:translate-x-[4px] hover:translate-y-[4px] transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:translate-x-0 disabled:translate-y-0"
+              className="group inline-flex items-center gap-3 text-[#181511] border-2 border-[var(--ok-ink)] font-semibold px-6 py-4 sm:px-8 sm:py-5 rounded-full text-base sm:text-lg shadow-[5px_5px_0_var(--ok-ink)] hover:shadow-[1px_1px_0_var(--ok-ink)] hover:translate-x-[4px] hover:translate-y-[4px] transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:translate-x-0 disabled:translate-y-0"
               style={{ backgroundColor: ACCENT }}
               onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = ACCENT_HOVER)}
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = ACCENT)}
@@ -784,17 +784,17 @@ export default function OkaabLanding() {
               href={`https://wa.me/${WHATSAPP.replace(/[^0-9]/g, "")}`}
               target="_blank"
               rel="noreferrer"
-              className="group inline-flex items-center gap-3 bg-[#0A6B3F] text-[var(--ok-paper-2)] border-2 border-[var(--ok-ink)] font-semibold px-6 py-4 sm:px-8 sm:py-5 rounded-full text-base sm:text-lg shadow-[5px_5px_0_var(--ok-ink)] hover:shadow-[1px_1px_0_var(--ok-ink)] hover:translate-x-[4px] hover:translate-y-[4px] transition-all"
+              className="group inline-flex items-center gap-3 bg-[#0A6B3F] text-[#FFF8ED] border-2 border-[var(--ok-ink)] font-semibold px-6 py-4 sm:px-8 sm:py-5 rounded-full text-base sm:text-lg shadow-[5px_5px_0_var(--ok-ink)] hover:shadow-[1px_1px_0_var(--ok-ink)] hover:translate-x-[4px] hover:translate-y-[4px] transition-all"
             >
               <MessageCircle size={20} className="group-hover:rotate-12 transition-transform" />
               {t.quote.whatsapp}
-              <span dir="ltr" className="opacity-80 text-base">
+              <span dir="ltr" className="text-base">
                 {WHATSAPP}
               </span>
             </a>
           </div>
-          {sent && <p className="sm:col-span-2 text-center text-[#0A6B3F] font-semibold">{t.quote.sent}</p>}
-          {failed && <p className="sm:col-span-2 text-center text-[#C0392B] font-semibold">{t.quote.failed}</p>}
+          {sent && <p className="sm:col-span-2 text-center text-[var(--ok-success-text)] font-semibold">{t.quote.sent}</p>}
+          {failed && <p className="sm:col-span-2 text-center text-[var(--ok-error-text)] font-semibold">{t.quote.failed}</p>}
         </form>
       </section>
 

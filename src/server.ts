@@ -1,4 +1,5 @@
 import "./lib/error-capture";
+import appCssUrl from "./styles.css?url";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
@@ -44,12 +45,75 @@ function isH3SwallowedErrorBody(body: string): boolean {
   }
 }
 
+const COMPRESSIBLE_CONTENT_TYPES = [
+  "text/",
+  "application/javascript",
+  "application/json",
+  "application/ld+json",
+  "application/xml",
+  "image/svg+xml",
+];
+
+function appendVary(headers: Headers, value: string) {
+  const current = headers.get("vary");
+  const values = current ? current.split(",").map((item) => item.trim().toLowerCase()) : [];
+  if (!values.includes(value.toLowerCase())) {
+    headers.set("vary", current ? `${current}, ${value}` : value);
+  }
+}
+
+function withPerformanceHeaders(request: Request, response: Response): Response {
+  const headers = new Headers(response.headers);
+  const pathname = new URL(request.url).pathname;
+
+  if (/^\/(?:assets|fonts)\//.test(pathname)) {
+    headers.set("cache-control", "public, max-age=31536000, immutable");
+  } else if (/\.(?:avif|gif|ico|jpe?g|png|svg|webp)$/i.test(pathname)) {
+    headers.set("cache-control", "public, max-age=2592000");
+  }
+
+  const contentType = headers.get("content-type")?.toLowerCase() ?? "";
+  if (contentType.includes("text/html")) {
+    headers.append("link", `<${appCssUrl}>; rel=preload; as=style`);
+  }
+  const acceptsGzip = /(?:^|,)\s*gzip\s*(?:;|,|$)/i.test(
+    request.headers.get("accept-encoding") ?? "",
+  );
+  const canCompress =
+    request.method !== "HEAD" &&
+    response.body != null &&
+    response.status !== 204 &&
+    response.status !== 304 &&
+    !headers.has("content-encoding") &&
+    !headers.has("content-range") &&
+    acceptsGzip &&
+    COMPRESSIBLE_CONTENT_TYPES.some((type) => contentType.includes(type));
+
+  if (canCompress) {
+    headers.set("content-encoding", "gzip");
+    headers.delete("content-length");
+    appendVary(headers, "Accept-Encoding");
+    return new Response(response.body.pipeThrough(new CompressionStream("gzip")), {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
+  }
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
+      const normalized = await normalizeCatastrophicSsrResponse(response);
+      return withPerformanceHeaders(request, normalized);
     } catch (error) {
       console.error(error);
       return new Response(renderErrorPage(), {

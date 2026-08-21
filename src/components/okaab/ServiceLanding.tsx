@@ -203,7 +203,7 @@ export function ServiceLanding({ content: c }: { content: ServicePageContent }) 
                   href={`https://wa.me/${WHATSAPP.replace(/[^0-9]/g, "")}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="group inline-flex items-center gap-3 bg-[#0A6B3F] text-[var(--ok-paper-2)] border-2 border-[var(--ok-ink)] font-semibold px-5 py-3 sm:px-7 sm:py-4 rounded-full text-base sm:text-lg shadow-[4px_4px_0_var(--ok-ink)] hover:shadow-[1px_1px_0_var(--ok-ink)] hover:translate-x-[3px] hover:translate-y-[3px] transition-all"
+                  className="group inline-flex items-center gap-3 bg-[#0A6B3F] text-[#FFF8ED] border-2 border-[var(--ok-ink)] font-semibold px-5 py-3 sm:px-7 sm:py-4 rounded-full text-base sm:text-lg shadow-[4px_4px_0_var(--ok-ink)] hover:shadow-[1px_1px_0_var(--ok-ink)] hover:translate-x-[3px] hover:translate-y-[3px] transition-all"
                 >
                   <MessageCircle size={20} className="group-hover:rotate-12 transition-transform" />
                   {c.hero.ctaWhatsapp}

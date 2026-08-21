@@ -220,7 +220,7 @@ export function SiteHeader({
           <span
             dir="ltr"
             className="font-hand text-base sm:text-lg -rotate-6 ms-1 mt-1 tracking-wide shrink-0 whitespace-nowrap lg:hidden xl:inline"
-            style={{ color: ACCENT }}
+            style={{ color: "var(--ok-accent-text)" }}
           >
             OKAAB
           </span>

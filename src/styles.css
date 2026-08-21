@@ -1,6 +1,6 @@
 @import "tailwindcss" source(none);
-@source "../src";
-@import "tw-animate-css";
+@source "../src/components/okaab";
+@source "../src/routes";
 @import "./styles.fonts.css";
 
 
@@ -101,6 +101,9 @@
   --ok-paper-2: #fff8ed;
   --ok-ink: #181511;
   --ok-card: #ffffff;
+  --ok-accent-text: #9a5a00;
+  --ok-success-text: #0a6b3f;
+  --ok-error-text: #a52f23;
   --background: oklch(1 0 0);
 
   --foreground: oklch(0.129 0.042 264.695);
@@ -142,6 +145,9 @@
   --ok-paper-2: #1c1916;
   --ok-ink: #f2ece0;
   --ok-card: #211d19;
+  --ok-accent-text: #e8a33d;
+  --ok-success-text: #62dfa1;
+  --ok-error-text: #ff8a7d;
   --background: oklch(0.129 0.042 264.695);
 
   --foreground: oklch(0.984 0.003 247.858);
