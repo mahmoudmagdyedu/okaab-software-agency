@@ -16,12 +16,32 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const serverEnv = loadEnv(process.env['NODE_ENV'] || "development", process.cwd(), "");
 Object.assign(process.env, serverEnv);
 
+// Keep this as a variable so the wrapper's deliberately narrow public type still
+// forwards supported Nitro options to the installed Nitro runtime.
+const nitroPreset = process.env["NITRO_PRESET"];
+const nitroConfig = {
+  ...(nitroPreset ? { preset: nitroPreset } : {}),
+  compressPublicAssets: true,
+  routeRules: {
+    "/fonts/**": {
+      headers: { "cache-control": "public, max-age=31536000, immutable" },
+    },
+    "/logo-96.webp": {
+      headers: { "cache-control": "public, max-age=2592000" },
+    },
+    "/logo-192.webp": {
+      headers: { "cache-control": "public, max-age=2592000" },
+    },
+  },
+};
+
 export default defineConfig({
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  nitro: nitroConfig,
   vite: {
     plugins: [mcpPlugin()],
     resolve: {
