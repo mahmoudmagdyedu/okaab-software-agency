@@ -62,7 +62,7 @@ const WHATSAPP = "+201555317977";
 const EMAIL = "hello@okaab.org";
 const EMAIL_SALES = "sales@okaab.org";
 const EMAIL_SUPPORT = "support@okaab.org";
-const MAWID_URL = "https://okaab-mawid-ef3bbc493d4a.herokuapp.com/book/smile";
+const MAWID_URL = "/maw'id";
 
 function initials(name: string) {
   return name
@@ -535,8 +535,6 @@ export default function OkaabLanding() {
               </div>
               <a
                 href={MAWID_URL}
-                target="_blank"
-                rel="noreferrer"
                 className="mt-8 inline-flex w-fit items-center gap-2 rounded-full border-2 border-[#181511] bg-[#181511] px-5 py-3 font-semibold text-[#FFF8ED] transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#181511]"
               >
                 {t.projects.cta}
