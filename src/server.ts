@@ -22,7 +22,7 @@ async function proxyMawid(request: Request): Promise<Response | null> {
 
   const normalizedPath = incomingUrl.pathname.replace(/^\/maw%27id/i, "/maw'id");
   const upstreamPath = normalizedPath.replace(
-    /^\/maw'id(?=\/(?:assets\/|favicon\.ico$))/i,
+    /^\/maw'id(?=\/(?:assets\/|favicon\.(?:ico|png)$))/i,
     "",
   );
   const upstreamUrl = new URL(`${upstreamPath}${incomingUrl.search}`, MAWID_ORIGIN);
