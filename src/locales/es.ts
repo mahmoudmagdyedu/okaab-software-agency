@@ -144,7 +144,7 @@ const dict: Dict = {
     failed: "No se pudo enviar — abrimos WhatsApp y tu correo con los detalles, envíalo y te respondemos enseguida.",
   },
   footer: {
-    links: ["Servicios en detalle", "Cómo trabajamos", "Clientes", "Presupuesto"],
+    links: ["Servicios en detalle", "Cómo trabajamos", "Proyectos", "Presupuesto"],
     copyright: "© 2026 Okaab — Rendimiento. Visión. Velocidad.",
   },
   servicesIntro:

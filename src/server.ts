@@ -11,6 +11,44 @@ type ServerEntry = {
 
 const handler = serverEntry as ServerEntry;
 const MAWID_ORIGIN = "https://okaab-mawid-ef3bbc493d4a.herokuapp.com";
+const CANONICAL_HOST = "okaab.org";
+const SECURITY_POLICY = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "object-src 'none'",
+  "frame-ancestors 'none'",
+  "form-action 'self'",
+  "script-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob:",
+  "font-src 'self' data:",
+  "connect-src 'self' https://cqxloxfxxwuhdkppjcpr.supabase.co https://fuzkonswngdogylzvivw.supabase.co wss://cqxloxfxxwuhdkppjcpr.supabase.co wss://fuzkonswngdogylzvivw.supabase.co",
+  "worker-src 'self' blob:",
+  "manifest-src 'self'",
+  "upgrade-insecure-requests",
+].join("; ");
+
+function getForwardedProtocol(request: Request) {
+  return (
+    request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim().toLowerCase() ||
+    new URL(request.url).protocol.replace(":", "").toLowerCase()
+  );
+}
+
+function canonicalRedirect(request: Request): Response | null {
+  const url = new URL(request.url);
+  const protocol = getForwardedProtocol(request);
+  const isProductionHost = url.hostname === CANONICAL_HOST || url.hostname === `www.${CANONICAL_HOST}`;
+
+  if (!isProductionHost || (protocol === "https" && url.hostname === CANONICAL_HOST)) {
+    return null;
+  }
+
+  url.protocol = "https:";
+  url.hostname = CANONICAL_HOST;
+  url.port = "";
+  return Response.redirect(url, 308);
+}
 
 function isMawidPath(pathname: string) {
   return /^(?:\/maw'id|\/maw%27id)(?:\/|$)/i.test(pathname);
@@ -105,6 +143,18 @@ function appendVary(headers: Headers, value: string) {
 function withPerformanceHeaders(request: Request, response: Response): Response {
   const headers = new Headers(response.headers);
   const pathname = new URL(request.url).pathname;
+  const secureRequest = getForwardedProtocol(request) === "https";
+
+  if (secureRequest) {
+    headers.set("strict-transport-security", "max-age=31536000; includeSubDomains");
+  }
+  headers.set("x-content-type-options", "nosniff");
+  headers.set("x-frame-options", "DENY");
+  headers.set("referrer-policy", "strict-origin-when-cross-origin");
+  headers.set(
+    "permissions-policy",
+    "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+  );
 
   if (/^\/(?:assets|fonts)\//.test(pathname)) {
     headers.set("cache-control", "public, max-age=31536000, immutable");
@@ -114,6 +164,8 @@ function withPerformanceHeaders(request: Request, response: Response): Response 
 
   const contentType = headers.get("content-type")?.toLowerCase() ?? "";
   if (contentType.includes("text/html")) {
+    headers.set("content-security-policy", SECURITY_POLICY);
+    headers.set("cache-control", "no-cache, max-age=0, must-revalidate");
     headers.append("link", `<${appCssUrl}>; rel=preload; as=style`);
   }
   const acceptsGzip = /(?:^|,)\s*gzip\s*(?:;|,|$)/i.test(
@@ -150,17 +202,19 @@ function withPerformanceHeaders(request: Request, response: Response): Response 
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      const redirect = canonicalRedirect(request);
+      if (redirect) return withPerformanceHeaders(request, redirect);
       const mawIdResponse = await proxyMawid(request);
-      if (mawIdResponse) return mawIdResponse;
+      if (mawIdResponse) return withPerformanceHeaders(request, mawIdResponse);
       const response = await handler.fetch(request, env, ctx);
       const normalized = await normalizeCatastrophicSsrResponse(response);
       return withPerformanceHeaders(request, normalized);
     } catch (error) {
       console.error(error);
-      return new Response(renderErrorPage(), {
+      return withPerformanceHeaders(request, new Response(renderErrorPage(), {
         status: 500,
         headers: { "content-type": "text/html; charset=utf-8" },
-      });
+      }));
     }
   },
 };

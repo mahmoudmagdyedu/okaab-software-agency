@@ -1,0 +1,4 @@
+Contact: mailto:support@okaab.org
+Canonical: https://okaab.org/.well-known/security.txt
+Preferred-Languages: ar, en
+Expires: 2027-08-22T23:59:59.000Z

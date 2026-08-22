@@ -81,6 +81,7 @@ export default function OkaabLanding() {
   const [sending, setSending] = useState(false);
   const [failed, setFailed] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const quoteStartedAtRef = useRef(Date.now());
   const rtl = t.dir === "rtl";
 
   useEffect(() => {
@@ -772,6 +773,8 @@ export default function OkaabLanding() {
               details: get("details"),
               locale: t.code,
               pageUrl: typeof window !== "undefined" ? window.location.href : "",
+              website: get("website"),
+              formStartedAt: quoteStartedAtRef.current,
             };
             const lines = [
               `${t.quote.fields.name}: ${payload.name}`,
@@ -782,11 +785,14 @@ export default function OkaabLanding() {
             ].join("\n");
             const subject = `${t.quote.submit} — ${payload.name}`;
             setSending(true);
+            setSent(false);
             setFailed(false);
             try {
-              await submitQuoteRequest({ data: payload });
+              const result = await submitQuoteRequest({ data: payload });
+              if (!result.ok) throw new Error("Quote email was not sent");
               setSent(true);
               form.reset();
+              quoteStartedAtRef.current = Date.now();
             } catch {
               setFailed(true);
               window.open(
@@ -803,6 +809,14 @@ export default function OkaabLanding() {
           }}
           className="max-w-2xl xl:max-w-3xl mx-auto text-start grid grid-cols-1 sm:grid-cols-2 gap-4 xl:gap-5 mb-8"
         >
+          <input
+            type="text"
+            name="website"
+            tabIndex={-1}
+            autoComplete="off"
+            aria-hidden="true"
+            className="absolute -left-[10000px] h-px w-px overflow-hidden opacity-0"
+          />
           <input
             required
             name="name"
@@ -952,7 +966,7 @@ export default function OkaabLanding() {
             {t.footer.links.map((l, i) => (
               <a
                 key={l}
-                href={["#catalog", "#about", "#services", "#quote"][i]}
+                href={["#catalog", "#about", "#projects", "#quote"][i]}
                 className="text-[var(--ok-ink)]/75 accent-link transition-colors"
               >
                 {l}

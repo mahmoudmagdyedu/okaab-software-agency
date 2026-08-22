@@ -144,7 +144,7 @@ const dict: Dict = {
     failed: "Échec de l'envoi — nous avons ouvert WhatsApp et votre messagerie avec les détails, envoyez-le et nous répondrons aussitôt.",
   },
   footer: {
-    links: ["Services en détail", "Notre méthode", "Clients", "Devis"],
+    links: ["Services en détail", "Notre méthode", "Projets", "Devis"],
     copyright: "© 2026 Okaab — Performance. Vision. Rapidité.",
   },
   servicesIntro:
