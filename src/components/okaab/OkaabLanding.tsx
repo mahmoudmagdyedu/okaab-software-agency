@@ -62,6 +62,7 @@ const WHATSAPP = "+201555317977";
 const EMAIL = "hello@okaab.org";
 const EMAIL_SALES = "sales@okaab.org";
 const EMAIL_SUPPORT = "support@okaab.org";
+const MAWID_URL = "https://okaab-mawid-ef3bbc493d4a.herokuapp.com/book/smile";
 
 function initials(name: string) {
   return name
@@ -247,6 +248,9 @@ export default function OkaabLanding() {
             <a href="#catalog" className="accent-link transition-colors whitespace-nowrap">
               {t.nav.services}
             </a>
+            <a href="#projects" className="accent-link transition-colors whitespace-nowrap">
+              {t.nav.projects}
+            </a>
             <a href="#services" className="accent-link transition-colors whitespace-nowrap">
               {t.nav.why}
             </a>
@@ -310,6 +314,9 @@ export default function OkaabLanding() {
           >
             <a href="#catalog" onClick={() => setMenuOpen(false)} className="accent-link transition-colors py-1">
               {t.nav.services}
+            </a>
+            <a href="#projects" onClick={() => setMenuOpen(false)} className="accent-link transition-colors py-1">
+              {t.nav.projects}
             </a>
             <a href="#services" onClick={() => setMenuOpen(false)} className="accent-link transition-colors py-1">
               {t.nav.why}
@@ -490,6 +497,87 @@ export default function OkaabLanding() {
 
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* ───── PROJECTS ───── */}
+      <section
+        id="projects"
+        className="border-y-2 border-[var(--ok-ink)] bg-[#D25218] text-[#FFF8ED]"
+      >
+        <div className="ok-container py-16 sm:py-20 md:py-28 lg:py-32">
+          <div className="mb-10 max-w-4xl sm:mb-12">
+            <p className="mb-2 -rotate-1 font-hand text-xl text-[#FFD43B] sm:text-2xl lg:text-3xl">
+              {t.projects.kicker}
+            </p>
+            <h2 className="font-display text-3xl font-black tracking-tight sm:text-4xl md:text-5xl lg:text-6xl 2xl:text-7xl">
+              {t.projects.title}
+            </h2>
+          </div>
+
+          <article className="grid overflow-hidden rounded-3xl border-2 border-[#181511] bg-[#FFF8ED] text-[#181511] shadow-[8px_8px_0_#181511] lg:grid-cols-[1.1fr_0.9fr]">
+            <div className="flex flex-col justify-center p-6 sm:p-8 md:p-10 lg:p-12">
+              <span className="mb-5 w-fit rounded-full border-2 border-[#181511] bg-[#FFD43B] px-3 py-1 text-xs font-bold uppercase tracking-wide">
+                {t.projects.badge}
+              </span>
+              <h3 className="font-display text-4xl font-black tracking-tight sm:text-5xl lg:text-6xl">
+                {t.projects.name}
+              </h3>
+              <p className="mt-4 max-w-xl text-sm leading-relaxed text-[#181511]/75 sm:text-base lg:text-lg">
+                {t.projects.description}
+              </p>
+              <div className="mt-6 flex flex-wrap gap-2">
+                {t.projects.tags.map((tag) => (
+                  <span key={tag} dir="auto" className="rounded-full border border-[#181511]/35 px-3 py-1 text-xs font-semibold">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+              <a
+                href={MAWID_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-8 inline-flex w-fit items-center gap-2 rounded-full border-2 border-[#181511] bg-[#181511] px-5 py-3 font-semibold text-[#FFF8ED] transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#181511]"
+              >
+                {t.projects.cta}
+                <ArrowUpRight size={18} className="rtl:-scale-x-100" />
+              </a>
+            </div>
+
+            <div aria-hidden="true" className="min-h-[360px] border-t-2 border-[#181511] bg-[#F3EDE2] p-5 sm:p-8 lg:min-h-[520px] lg:border-s-2 lg:border-t-0">
+              <div className="mx-auto h-full max-w-xl overflow-hidden rounded-2xl border-2 border-[#181511] bg-white shadow-[5px_5px_0_#181511]">
+                <div className="flex h-11 items-center gap-2 border-b-2 border-[#181511] bg-[#181511] px-4">
+                  <span className="size-2.5 rounded-full bg-[#D25218]" />
+                  <span className="size-2.5 rounded-full bg-[#FFD43B]" />
+                  <span className="size-2.5 rounded-full bg-[#65B87A]" />
+                  <span className="ms-auto text-xs font-bold text-[#FFF8ED]">مَوعِد</span>
+                </div>
+                <div className="grid h-[calc(100%-44px)] grid-cols-[72px_1fr] sm:grid-cols-[108px_1fr]">
+                  <div className="space-y-3 bg-[#27221D] p-3">
+                    {Array.from({ length: 6 }, (_, index) => (
+                      <span key={index} className={`block h-7 rounded ${index === 1 ? "bg-[#D25218]" : "bg-white/10"}`} />
+                    ))}
+                  </div>
+                  <div className="p-4 sm:p-5">
+                    <div className="mb-4 flex items-center justify-between gap-3">
+                      <span className="h-7 w-28 rounded bg-[#27221D]" />
+                      <span className="h-8 w-20 rounded-full bg-[#D25218]" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                      {["#FFF1E9", "#EDF4FF", "#F2F8E9"].map((color) => (
+                        <span key={color} className="h-20 rounded-lg border border-[#181511]/20" style={{ backgroundColor: color }} />
+                      ))}
+                    </div>
+                    <div className="mt-4 grid grid-cols-3 gap-2 border-t border-[#181511]/20 pt-4">
+                      {Array.from({ length: 12 }, (_, index) => (
+                        <span key={index} className={`h-11 rounded border border-[#181511]/15 ${index === 2 || index === 7 ? "bg-[#D25218]/20" : "bg-[#F6F1E7]"}`} />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
         </div>
       </section>
 

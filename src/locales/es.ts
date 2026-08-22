@@ -7,6 +7,7 @@ const dict: Dict = {
   label: "Español",
   nav: {
     services: "Servicios",
+    projects: "Proyectos",
     why: "Por qué Okaab",
     process: "Cómo trabajamos",
     cta: "Explora nuestros servicios",
@@ -53,6 +54,16 @@ const dict: Dict = {
       tag: "App móvil",
     },
   ],
+  projects: {
+    kicker: "trabajos seleccionados",
+    title: "Productos que construimos y publicamos",
+    name: "Maw'id",
+    description:
+      "Una plataforma árabe de citas y reservas para clínicas y equipos de servicios, con reservas públicas, calendario semanal, clientes y roles de equipo.",
+    badge: "Demo interactiva",
+    cta: "Probar el proyecto",
+    tags: ["SaaS", "React", "Supabase", "Reservas"],
+  },
   servicesSection: {
     kicker: "lo que hacemos",
     titleA: "Servicios que entregamos",

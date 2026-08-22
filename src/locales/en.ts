@@ -7,6 +7,7 @@ const dict: Dict = {
   label: "English",
   nav: {
     services: "Services",
+    projects: "Projects",
     why: "Why Okaab",
     process: "How we work",
     cta: "Explore our services",
@@ -53,6 +54,16 @@ const dict: Dict = {
       tag: "Mobile app",
     },
   ],
+  projects: {
+    kicker: "selected work",
+    title: "Products we built and shipped",
+    name: "Maw'id",
+    description:
+      "An Arabic appointment and booking platform for clinics and service teams, with public booking, a weekly calendar, customer management and team roles.",
+    badge: "Interactive demo",
+    cta: "Try the project",
+    tags: ["SaaS", "React", "Supabase", "Scheduling"],
+  },
   servicesSection: {
     kicker: "what we do",
     titleA: "Services we deliver",
