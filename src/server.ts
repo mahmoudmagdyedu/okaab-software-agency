@@ -10,6 +10,54 @@ type ServerEntry = {
 };
 
 const handler = serverEntry as ServerEntry;
+const MAWID_ORIGIN = "https://okaab-mawid-ef3bbc493d4a.herokuapp.com";
+
+function isMawidPath(pathname: string) {
+  return /^(?:\/maw'id|\/maw%27id)(?:\/|$)/i.test(pathname);
+}
+
+async function proxyMawid(request: Request): Promise<Response | null> {
+  const incomingUrl = new URL(request.url);
+  if (!isMawidPath(incomingUrl.pathname)) return null;
+
+  const normalizedPath = incomingUrl.pathname.replace(/^\/maw%27id/i, "/maw'id");
+  const upstreamPath = normalizedPath.replace(
+    /^\/maw'id(?=\/(?:assets\/|favicon\.ico$))/i,
+    "",
+  );
+  const upstreamUrl = new URL(`${upstreamPath}${incomingUrl.search}`, MAWID_ORIGIN);
+  const headers = new Headers(request.headers);
+  headers.delete("host");
+  headers.delete("content-length");
+  headers.set("accept-encoding", "identity");
+  headers.set("x-forwarded-host", incomingUrl.host);
+  headers.set("x-forwarded-proto", incomingUrl.protocol.replace(":", ""));
+
+  const body =
+    request.method === "GET" || request.method === "HEAD"
+      ? undefined
+      : await request.arrayBuffer();
+  const upstreamResponse = await fetch(upstreamUrl, {
+    method: request.method,
+    headers,
+    body,
+    redirect: "manual",
+  });
+  const responseHeaders = new Headers(upstreamResponse.headers);
+  responseHeaders.delete("content-length");
+  responseHeaders.delete("content-encoding");
+
+  const location = responseHeaders.get("location");
+  if (location) {
+    responseHeaders.set("location", location.replace(MAWID_ORIGIN, incomingUrl.origin));
+  }
+
+  return new Response(upstreamResponse.body, {
+    status: upstreamResponse.status,
+    statusText: upstreamResponse.statusText,
+    headers: responseHeaders,
+  });
+}
 
 // h3 swallows in-handler throws into a normal 500 Response with body
 // {"unhandled":true,"message":"HTTPError"} — try/catch alone never fires for those.
@@ -102,6 +150,8 @@ function withPerformanceHeaders(request: Request, response: Response): Response 
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      const mawIdResponse = await proxyMawid(request);
+      if (mawIdResponse) return mawIdResponse;
       const response = await handler.fetch(request, env, ctx);
       const normalized = await normalizeCatastrophicSsrResponse(response);
       return withPerformanceHeaders(request, normalized);

@@ -1,6 +1,5 @@
 @import "tailwindcss" source(none);
 @source "../src/components/okaab";
-@source "../src/components/mawid";
 @source "../src/routes";
 @import "./styles.fonts.css";
 
@@ -252,24 +251,5 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
-  }
-}
-
-@layer components {
-  .mawid-input {
-    width: 100%;
-    min-height: 3rem;
-    border-radius: 0.75rem;
-    border: 1px solid rgb(203 213 225);
-    background: white;
-    padding: 0.75rem 1rem;
-    color: rgb(15 23 42);
-    font-weight: 500;
-    outline: none;
-  }
-
-  .mawid-input:focus {
-    border-color: #0f766e;
-    box-shadow: 0 0 0 3px rgb(15 118 110 / 14%);
   }
 }
