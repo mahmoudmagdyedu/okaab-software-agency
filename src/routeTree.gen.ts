@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as EcommerceDevelopmentEgyptRouteImport } from './routes/ecommerce-development-egypt'
 import { Route as McpRouteImport } from './routes/mcp'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SoftwareDevelopmentEgyptRouteImport } from './routes/software-development-egypt'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
@@ -41,6 +42,11 @@ const EcommerceDevelopmentEgyptRoute =
 const McpRoute = McpRouteImport.update({
   id: '/mcp',
   path: '/mcp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -129,6 +135,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/ecommerce-development-egypt': typeof EcommerceDevelopmentEgyptRoute
   '/mcp': typeof McpRoute
+  '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/software-development-egypt': typeof SoftwareDevelopmentEgyptRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
@@ -148,6 +155,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/ecommerce-development-egypt': typeof EcommerceDevelopmentEgyptRoute
   '/mcp': typeof McpRoute
+  '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/software-development-egypt': typeof SoftwareDevelopmentEgyptRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
@@ -168,6 +176,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/ecommerce-development-egypt': typeof EcommerceDevelopmentEgyptRoute
   '/mcp': typeof McpRoute
+  '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/software-development-egypt': typeof SoftwareDevelopmentEgyptRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
@@ -189,6 +198,7 @@ export interface FileRouteTypes {
     | '/'
     | '/ecommerce-development-egypt'
     | '/mcp'
+    | '/privacy'
     | '/sitemap.xml'
     | '/software-development-egypt'
     | '/.mcp/list-tools'
@@ -208,6 +218,7 @@ export interface FileRouteTypes {
     | '/'
     | '/ecommerce-development-egypt'
     | '/mcp'
+    | '/privacy'
     | '/sitemap.xml'
     | '/software-development-egypt'
     | '/.mcp/list-tools'
@@ -227,6 +238,7 @@ export interface FileRouteTypes {
     | '/'
     | '/ecommerce-development-egypt'
     | '/mcp'
+    | '/privacy'
     | '/sitemap.xml'
     | '/software-development-egypt'
     | '/.mcp/list-tools'
@@ -247,6 +259,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   EcommerceDevelopmentEgyptRoute: typeof EcommerceDevelopmentEgyptRoute
   McpRoute: typeof McpRoute
+  PrivacyRoute: typeof PrivacyRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SoftwareDevelopmentEgyptRoute: typeof SoftwareDevelopmentEgyptRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
@@ -284,6 +297,13 @@ declare module '@tanstack/react-router' {
       path: '/mcp'
       fullPath: '/mcp'
       preLoaderRoute: typeof McpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sitemap.xml': {
@@ -391,6 +411,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   EcommerceDevelopmentEgyptRoute: EcommerceDevelopmentEgyptRoute,
   McpRoute: McpRoute,
+  PrivacyRoute: PrivacyRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SoftwareDevelopmentEgyptRoute: SoftwareDevelopmentEgyptRoute,
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
