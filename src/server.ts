@@ -78,7 +78,7 @@ async function proxyMawid(request: Request): Promise<Response | null> {
   const upstreamResponse = await fetch(upstreamUrl, {
     method: request.method,
     headers,
-    body,
+    ...(body ? { body } : {}),
     redirect: "manual",
   });
   const responseHeaders = new Headers(upstreamResponse.headers);
