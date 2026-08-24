@@ -10,7 +10,8 @@ type ServerEntry = {
 };
 
 const handler = serverEntry as ServerEntry;
-const MAWID_ORIGIN = "https://okaab-mawid-ef3bbc493d4a.herokuapp.com";
+const MAWID_ORIGIN =
+  process.env["MAWID_ORIGIN"] ?? `http://127.0.0.1:${process.env["MAWID_INTERNAL_PORT"] ?? "3001"}`;
 const CANONICAL_HOST = "okaab.org";
 const SECURITY_POLICY = [
   "default-src 'self'",
@@ -38,7 +39,8 @@ function getForwardedProtocol(request: Request) {
 function canonicalRedirect(request: Request): Response | null {
   const url = new URL(request.url);
   const protocol = getForwardedProtocol(request);
-  const isProductionHost = url.hostname === CANONICAL_HOST || url.hostname === `www.${CANONICAL_HOST}`;
+  const isProductionHost =
+    url.hostname === CANONICAL_HOST || url.hostname === `www.${CANONICAL_HOST}`;
 
   if (!isProductionHost || (protocol === "https" && url.hostname === CANONICAL_HOST)) {
     return null;
@@ -72,9 +74,7 @@ async function proxyMawid(request: Request): Promise<Response | null> {
   headers.set("x-forwarded-proto", incomingUrl.protocol.replace(":", ""));
 
   const body =
-    request.method === "GET" || request.method === "HEAD"
-      ? undefined
-      : await request.arrayBuffer();
+    request.method === "GET" || request.method === "HEAD" ? undefined : await request.arrayBuffer();
   const upstreamResponse = await fetch(upstreamUrl, {
     method: request.method,
     headers,
@@ -151,10 +151,7 @@ function withPerformanceHeaders(request: Request, response: Response): Response 
   headers.set("x-content-type-options", "nosniff");
   headers.set("x-frame-options", "DENY");
   headers.set("referrer-policy", "strict-origin-when-cross-origin");
-  headers.set(
-    "permissions-policy",
-    "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
-  );
+  headers.set("permissions-policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()");
 
   if (/^\/(?:assets|fonts)\//.test(pathname)) {
     headers.set("cache-control", "public, max-age=31536000, immutable");
@@ -211,10 +208,13 @@ export default {
       return withPerformanceHeaders(request, normalized);
     } catch (error) {
       console.error(error);
-      return withPerformanceHeaders(request, new Response(renderErrorPage(), {
-        status: 500,
-        headers: { "content-type": "text/html; charset=utf-8" },
-      }));
+      return withPerformanceHeaders(
+        request,
+        new Response(renderErrorPage(), {
+          status: 500,
+          headers: { "content-type": "text/html; charset=utf-8" },
+        }),
+      );
     }
   },
 };

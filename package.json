@@ -1,13 +1,18 @@
 {
-  "name": "tanstack_start_ts",
+  "name": "okaab-software-agency",
   "private": true,
   "sideEffects": false,
   "type": "module",
+  "workspaces": [
+    "apps/mawid"
+  ],
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build",
+    "build": "node scripts/build-production.mjs",
+    "build:site": "vite build",
+    "build:mawid": "npm run build --workspace=okaab-mawid",
     "build:dev": "vite build --mode development",
-    "start": "node .output/server/index.mjs",
+    "start": "node scripts/start-production.mjs",
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write ."
