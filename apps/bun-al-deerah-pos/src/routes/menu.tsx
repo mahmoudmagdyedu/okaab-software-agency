@@ -56,7 +56,7 @@ function PublicMenu() {
 
       <nav
         aria-label="فئات المنيو"
-        className="sticky top-0 z-10 overflow-x-auto border-b border-border-subtle bg-bg-base/95 backdrop-blur"
+        className="no-scrollbar sticky top-0 z-10 overflow-x-auto border-b border-border-subtle bg-bg-base/95 backdrop-blur"
       >
         <div className="flex gap-1 bg-bg-subtle p-1.5">
           {categories.map((c) => (
@@ -64,7 +64,7 @@ function PublicMenu() {
               key={c.id}
               onClick={() => switchCat(c.id)}
               aria-pressed={cat === c.id}
-              className={`h-11 shrink-0 rounded-sm px-4 text-body-sm font-medium transition-colors ${focusRing} ${
+              className={`h-11 shrink-0 rounded-sm px-3 text-body-sm font-medium transition-colors sm:px-4 ${focusRing} ${
                 cat === c.id ? "bg-ink text-ink-foreground" : "text-text-secondary hover:bg-bg-base"
               }`}
             >

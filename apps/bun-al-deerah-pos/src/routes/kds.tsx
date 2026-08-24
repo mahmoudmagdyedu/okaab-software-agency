@@ -123,19 +123,19 @@ function KdsScreen() {
 
   return (
     <div className="dark min-h-dvh bg-bg-base text-text-primary">
-      <header className="flex h-14 items-center justify-between border-b border-border-subtle bg-bg-subtle px-5">
-        <div className="flex items-center gap-3">
+      <header className="flex min-h-14 flex-wrap items-center justify-between gap-2 border-b border-border-subtle bg-bg-subtle px-3 py-2 sm:flex-nowrap sm:px-5">
+        <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
           <BrandLogo compact />
-          <span className="text-h3 font-semibold">شاشة المطبخ</span>
-          <span className="rounded-md bg-bg-overlay px-2 py-0.5 text-caption text-text-secondary">
+          <span className="shrink-0 text-body font-semibold sm:text-h3">شاشة المطبخ</span>
+          <span className="hidden rounded-md bg-bg-overlay px-2 py-0.5 text-caption text-text-secondary md:inline-flex">
             الرياض — حي النرجس
           </span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-start">
           <span className="num text-body-sm text-text-secondary" dir="ltr">
             14:32
           </span>
-          <div className="flex overflow-hidden rounded-md border border-border-subtle text-caption">
+          <div className="flex min-w-0 overflow-hidden rounded-md border border-border-subtle text-caption">
             {(
               [
                 ["orders", "التذاكر"],
@@ -146,7 +146,7 @@ function KdsScreen() {
               <button
                 key={v}
                 onClick={() => setView(v)}
-                className={`px-3 py-1.5 transition-colors ${focusRing} ${
+                className={`px-2.5 py-1.5 transition-colors sm:px-3 ${focusRing} ${
                   view === v
                     ? "bg-bg-overlay font-medium text-text-primary"
                     : "text-text-muted hover:text-text-secondary"

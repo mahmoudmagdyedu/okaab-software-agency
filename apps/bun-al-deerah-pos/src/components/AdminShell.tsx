@@ -313,7 +313,7 @@ export function AdminShell({ children }: { children?: ReactNode }) {
       )}
       <aside
         className={`fixed inset-y-0 start-0 z-50 flex w-72 flex-col bg-[#123e32] transition-transform duration-200 lg:hidden ${
-          navOpen ? "translate-x-0" : "translate-x-full rtl:-translate-x-full"
+          navOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
         <div className="flex h-[76px] items-center justify-between border-b border-white/10 px-5">

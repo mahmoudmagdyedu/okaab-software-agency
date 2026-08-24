@@ -139,17 +139,17 @@ function PosCashier() {
   return (
     <div className="dark flex min-h-dvh flex-col bg-bg-base text-text-primary lg:h-screen lg:overflow-hidden">
       {/* الشريط العلوي — 56px */}
-      <header className="flex min-h-14 shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-border-subtle bg-bg-subtle px-4 py-2 lg:h-14 lg:py-0">
-        <div className="flex items-center gap-3">
+      <header className="flex min-h-14 shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-border-subtle bg-bg-subtle px-3 py-2 sm:px-4 lg:h-14 lg:py-0">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 sm:gap-3">
           <BrandLogo compact />
-          <span className="text-body-sm font-semibold">الرياض — حي النرجس</span>
-          <span className="h-4 w-px bg-border-subtle" />
-          <span className="text-body-sm text-text-secondary">سالم الدوسري</span>
-          <span className="bg-accent-100 px-2.5 py-1 text-micro text-accent-700">
+          <span className="hidden text-body-sm font-semibold sm:inline">الرياض — حي النرجس</span>
+          <span className="hidden h-4 w-px bg-border-subtle sm:block" />
+          <span className="truncate text-body-sm text-text-secondary">سالم الدوسري</span>
+          <span className="hidden bg-accent-100 px-2.5 py-1 text-micro text-accent-700 md:inline-flex">
             الشفت الصباحي
           </span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-start sm:gap-3">
           <span className="flex h-9 items-center gap-2 bg-success-bg px-3 text-caption font-medium text-success">
             <CloudCheck className="h-4 w-4" />
             متصل
@@ -180,7 +180,7 @@ function PosCashier() {
                 className="h-12 w-full border border-border-subtle bg-bg-overlay ps-11 pe-4 text-body text-text-primary placeholder:text-text-muted focus:border-ring focus:outline-none"
               />
             </div>
-            <div className="flex gap-2 overflow-x-auto pb-1">
+            <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
               {categories.map((cat) => {
                 const active = activeCategory === cat.id;
                 return (
@@ -201,7 +201,7 @@ function PosCashier() {
             </div>
           </div>
 
-          <div className="grid min-h-0 flex-1 grid-cols-2 content-start gap-3 p-4 sm:grid-cols-3 lg:grid-cols-4 lg:overflow-y-auto xl:grid-cols-5">
+          <div className="grid min-h-0 flex-1 grid-cols-2 content-start gap-2 p-3 sm:grid-cols-3 sm:gap-3 sm:p-4 lg:grid-cols-4 lg:overflow-y-auto xl:grid-cols-5">
             {visibleProducts.map((product) => (
               <button
                 key={product.id}
