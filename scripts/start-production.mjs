@@ -4,6 +4,9 @@ const publicPort = process.env["PORT"] ?? "3000";
 const mawIdPort = process.env["MAWID_INTERNAL_PORT"] ?? "3001";
 const mawIdOrigin = `http://127.0.0.1:${mawIdPort}`;
 const mawIdBasePath = process.env["MAWID_BASE_PATH"] ?? "/maw'id";
+const bunPosPort = process.env["BUN_POS_INTERNAL_PORT"] ?? "3002";
+const bunPosOrigin = `http://127.0.0.1:${bunPosPort}`;
+const bunPosBasePath = process.env["BUN_POS_BASE_PATH"] ?? "/bun-al-deerah";
 const children = new Set();
 let shuttingDown = false;
 
@@ -25,12 +28,10 @@ function stopAll(signal = "SIGTERM") {
   }
 }
 
-async function waitForMawId(child) {
-  const readyUrl = new URL(`${mawIdBasePath}/`, mawIdOrigin);
-
+async function waitForService(child, name, readyUrl) {
   for (let attempt = 0; attempt < 60; attempt += 1) {
     if (child.exitCode !== null) {
-      throw new Error(`Mawid stopped during startup with code ${child.exitCode}`);
+      throw new Error(`${name} stopped during startup with code ${child.exitCode}`);
     }
 
     try {
@@ -43,7 +44,7 @@ async function waitForMawId(child) {
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
 
-  throw new Error("Mawid did not become ready within 15 seconds");
+  throw new Error(`${name} did not become ready within 15 seconds`);
 }
 
 for (const signal of ["SIGINT", "SIGTERM"]) {
@@ -68,7 +69,26 @@ const mawIdEnv = {
 const mawId = startServer("apps/mawid/.output/server/index.mjs", mawIdEnv);
 
 try {
-  await waitForMawId(mawId);
+  await waitForService(mawId, "Mawid", new URL(`${mawIdBasePath}/`, mawIdOrigin));
+} catch (error) {
+  console.error(error);
+  stopAll();
+  process.exit(1);
+}
+
+const bunPos = startServer("apps/bun-al-deerah-pos/.output/server/index.mjs", {
+  ...process.env,
+  HOST: "127.0.0.1",
+  PORT: bunPosPort,
+  VITE_APP_BASE_PATH: bunPosBasePath,
+});
+
+try {
+  await waitForService(
+    bunPos,
+    "Bun Al Deerah POS",
+    new URL(`${bunPosBasePath}/health/live`, bunPosOrigin),
+  );
 } catch (error) {
   console.error(error);
   stopAll();
@@ -81,6 +101,8 @@ const site = startServer(".output/server/index.mjs", {
   PORT: publicPort,
   MAWID_INTERNAL_PORT: mawIdPort,
   MAWID_ORIGIN: mawIdOrigin,
+  BUN_POS_INTERNAL_PORT: bunPosPort,
+  BUN_POS_ORIGIN: bunPosOrigin,
 });
 
 site.once("exit", (code, signal) => {
@@ -91,6 +113,13 @@ site.once("exit", (code, signal) => {
 mawId.once("exit", (code, signal) => {
   if (shuttingDown) return;
   console.error(`Mawid stopped unexpectedly (${signal ?? code ?? "unknown"})`);
+  stopAll(signal ?? "SIGTERM");
+  process.exit(code ?? 1);
+});
+
+bunPos.once("exit", (code, signal) => {
+  if (shuttingDown) return;
+  console.error(`Bun Al Deerah POS stopped unexpectedly (${signal ?? code ?? "unknown"})`);
   stopAll(signal ?? "SIGTERM");
   process.exit(code ?? 1);
 });

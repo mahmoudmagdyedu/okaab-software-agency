@@ -4,13 +4,15 @@
   "sideEffects": false,
   "type": "module",
   "workspaces": [
-    "apps/mawid"
+    "apps/mawid",
+    "apps/bun-al-deerah-pos"
   ],
   "scripts": {
     "dev": "vite dev",
     "build": "node scripts/build-production.mjs",
     "build:site": "vite build",
     "build:mawid": "npm run build --workspace=okaab-mawid",
+    "build:bun-pos": "npm run build --workspace=okaab-bun-al-deerah-pos",
     "build:dev": "vite build --mode development",
     "start": "node scripts/start-production.mjs",
     "preview": "vite preview",

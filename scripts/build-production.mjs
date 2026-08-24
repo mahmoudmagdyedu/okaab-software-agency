@@ -29,3 +29,10 @@ const mawIdEnv = {
 };
 
 run(["run", "build:mawid"], mawIdEnv);
+
+const bunPosEnv = {
+  ...process.env,
+  VITE_APP_BASE_PATH: process.env["BUN_POS_BASE_PATH"] ?? "/bun-al-deerah",
+};
+
+run(["run", "build:bun-pos"], bunPosEnv);

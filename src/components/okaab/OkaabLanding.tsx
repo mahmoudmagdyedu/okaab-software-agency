@@ -63,7 +63,7 @@ const EMAIL = "hello@okaab.org";
 const EMAIL_SALES = "sales@okaab.org";
 const EMAIL_SUPPORT = "support@okaab.org";
 const MAWID_URL = "/maw'id";
-const POS_URL = "https://pos.okaab.org";
+const POS_URL = "/bun-al-deerah";
 
 function initials(name: string) {
   return name
