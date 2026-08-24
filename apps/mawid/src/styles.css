@@ -1,0 +1,252 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+/*
+ * مَوعِد — مصدر الحقيقة الوحيد للتوكنز (Figma Variables).
+ * ممنوع أي قيمة hex خارج هذا الملف.
+ * الهوية: كريمي دافئ + بنّي داكن + برتقالي طوبي، حدود صريحة 2px بلا ظلال.
+ */
+
+:root {
+  /* الأسطح والحدود */
+  --bg-base: #fff9ec;
+  --bg-subtle: #f7ecd2;
+  --bg-strong: #ead9b6;
+  --bg-dark: #28221a;
+  --border-subtle: #3a332a;
+
+  /* النص */
+  --text-primary: #28221a;
+  --text-secondary: #62594d;
+  --text-muted: #a79b85;
+  --text-on-dark: #fff9ec;
+  --text-on-dark-soft: #c8bda6;
+
+  /* اللون المميّز — برتقالي طوبي */
+  --accent-50: #fbe6d8;
+  --accent-100: #f2c4a6;
+  --accent-600: #c94818;
+  --accent-700: #a83a12;
+
+  /* ألوان شرائح المواعيد */
+  --tint-teal: #2b665e;
+  --tint-green: #4e8b78;
+  --tint-amber: #e4a626;
+  --tint-red: #c94a3f;
+  --tint-purple: #7b61a8;
+  --tint-pink: #b35c78;
+
+  /* الحالات */
+  --success-fg: #2b665e;
+  --success-bg: #e2efea;
+  --warning-fg: #8a5b0b;
+  --warning-bg: #fbefd2;
+  --danger-fg: #9b3226;
+  --danger-bg: #f7e1dc;
+  --info-fg: #4e4276;
+  --info-bg: #ece6f6;
+
+  /* الحواف — طابع تحريري شبه مستقيم */
+  --radius: 4px;
+  --radius-lg-token: 6px;
+  --radius-xl-token: 8px;
+
+  /* لا ظلال ناعمة — الحدود هي التي تفصل */
+  --shadow-pop: 0 0 0 2px var(--border-subtle);
+  --shadow-modal: 0 0 0 2px var(--border-subtle);
+
+  /* ربط ثيم shadcn بالتوكنز نفسها */
+  --background: var(--bg-base);
+  --foreground: var(--text-primary);
+  --card: var(--bg-base);
+  --card-foreground: var(--text-primary);
+  --popover: var(--bg-base);
+  --popover-foreground: var(--text-primary);
+  --primary: var(--accent-600);
+  --primary-foreground: var(--text-on-dark);
+  --secondary: var(--bg-subtle);
+  --secondary-foreground: var(--text-primary);
+  --muted: var(--bg-subtle);
+  --muted-foreground: var(--text-secondary);
+  --accent: var(--accent-50);
+  --accent-foreground: var(--accent-700);
+  --destructive: var(--danger-fg);
+  --destructive-foreground: var(--text-on-dark);
+  --border: var(--border-subtle);
+  --input: var(--border-subtle);
+  --ring: var(--accent-600);
+  --sidebar: var(--bg-dark);
+  --sidebar-foreground: var(--text-on-dark);
+  --sidebar-primary: var(--accent-600);
+  --sidebar-primary-foreground: var(--text-on-dark);
+  --sidebar-accent: var(--accent-600);
+  --sidebar-accent-foreground: var(--text-on-dark);
+  --sidebar-border: var(--border-subtle);
+  --sidebar-ring: var(--accent-600);
+  --chart-1: var(--accent-600);
+  --chart-2: var(--tint-teal);
+  --chart-3: var(--tint-amber);
+  --chart-4: var(--tint-green);
+  --chart-5: var(--tint-purple);
+}
+
+@theme inline {
+  /* الحواف */
+  --radius-sm: 2px;
+  --radius-md: var(--radius);
+  --radius-lg: var(--radius-lg-token);
+  --radius-xl: var(--radius-xl-token);
+
+  /* الخطوط */
+  --font-sans: "IBM Plex Sans Arabic", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* المقياس الطباعي */
+  --text-hero: 64px;
+  --text-hero--line-height: 72px;
+  --text-display: 32px;
+  --text-display--line-height: 40px;
+  --text-h1: 24px;
+  --text-h1--line-height: 32px;
+  --text-h2: 20px;
+  --text-h2--line-height: 28px;
+  --text-h3: 16px;
+  --text-h3--line-height: 24px;
+  --text-body: 15px;
+  --text-body--line-height: 1.7;
+  --text-body-sm: 13px;
+  --text-body-sm--line-height: 20px;
+  --text-caption: 12px;
+  --text-caption--line-height: 18px;
+
+  /* الظلال */
+  --shadow-pop: var(--shadow-pop);
+  --shadow-modal: var(--shadow-modal);
+
+  /* الألوان */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface-subtle: var(--bg-subtle);
+  --color-surface-strong: var(--bg-strong);
+  --color-surface-dark: var(--bg-dark);
+  --color-on-dark: var(--text-on-dark);
+  --color-on-dark-soft: var(--text-on-dark-soft);
+  --color-faint: var(--text-muted);
+  --color-ink: var(--text-primary);
+  --color-ink-soft: var(--text-secondary);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--accent-700);
+  --color-accent-50: var(--accent-50);
+  --color-accent-100: var(--accent-100);
+  --color-accent-600: var(--accent-600);
+  --color-accent-700: var(--accent-700);
+  --color-tint-teal: var(--tint-teal);
+  --color-tint-green: var(--tint-green);
+  --color-tint-amber: var(--tint-amber);
+  --color-tint-red: var(--tint-red);
+  --color-tint-purple: var(--tint-purple);
+  --color-tint-pink: var(--tint-pink);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+  --color-success-fg: var(--success-fg);
+  --color-success-bg: var(--success-bg);
+  --color-warning-fg: var(--warning-fg);
+  --color-warning-bg: var(--warning-bg);
+  --color-danger-fg: var(--danger-fg);
+  --color-danger-bg: var(--danger-bg);
+  --color-info-fg: var(--info-fg);
+  --color-info-bg: var(--info-bg);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    font-family: var(--font-sans);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-size: var(--text-body);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-weight: 600;
+    line-height: 1.3;
+  }
+}
+
+/* الفريم يستخدم حدودًا صريحة بسماكة 2px في كل مكان */
+@layer utilities {
+  .border {
+    border-width: 2px;
+  }
+  .border-t {
+    border-top-width: 2px;
+  }
+  .border-b {
+    border-bottom-width: 2px;
+  }
+  .border-s {
+    border-inline-start-width: 2px;
+  }
+  .border-e {
+    border-inline-end-width: 2px;
+  }
+  .border-l {
+    border-left-width: 2px;
+  }
+  .border-r {
+    border-right-width: 2px;
+  }
+  .border-x {
+    border-inline-width: 2px;
+  }
+  .border-y {
+    border-block-width: 2px;
+  }
+}
+
+/* جزيرة LTR داخل الإطار العربي: الأوقات والمبالغ والأرقام والجوال */
+@utility mono-ltr {
+  direction: ltr;
+  unicode-bidi: isolate;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
