@@ -197,11 +197,29 @@ function AdminFrame({ title, children }: { title: string; children: ReactNode })
   return (
     <div dir="rtl" lang="ar" className="min-h-screen bg-[var(--ok-paper)] text-[var(--ok-ink)]">
       <OkaabStyles />
+      <style>{`
+        @media (min-width: 1024px) {
+          .okaab-admin-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 18rem;
+          }
+
+          .okaab-admin-sidebar {
+            grid-column: 2;
+            grid-row: 1;
+          }
+
+          .okaab-admin-content {
+            grid-column: 1;
+            grid-row: 1;
+          }
+        }
+      `}</style>
       <AdminToaster />
-      <div dir="ltr" className="min-h-screen lg:grid lg:grid-cols-[minmax(0,1fr)_18rem]">
+      <div dir="ltr" className="okaab-admin-grid min-h-screen">
         <aside
           dir="rtl"
-          className="sticky top-0 z-40 hidden h-dvh min-h-0 self-start flex-col overflow-hidden bg-[#181511] text-white lg:col-start-2 lg:row-start-1 lg:flex"
+          className="okaab-admin-sidebar sticky top-0 z-40 hidden h-dvh min-h-0 self-start flex-col overflow-hidden bg-[#181511] text-white lg:flex"
         >
           {sidebar}
         </aside>
@@ -231,7 +249,7 @@ function AdminFrame({ title, children }: { title: string; children: ReactNode })
           </div>
         )}
 
-        <div dir="rtl" className="min-w-0 overflow-x-hidden lg:col-start-1 lg:row-start-1">
+        <div dir="rtl" className="okaab-admin-content min-w-0 overflow-x-hidden">
           <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b-2 border-[var(--ok-ink)] bg-[var(--ok-paper)]/92 px-4 backdrop-blur sm:px-6 lg:px-8">
             <div className="flex min-w-0 items-center gap-3">
               <button
