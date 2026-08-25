@@ -17,6 +17,14 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SoftwareDevelopmentEgyptRouteImport } from './routes/software-development-egypt'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as AdminCoursesRouteImport } from './routes/admin/courses'
+import { Route as AdminHealthRouteImport } from './routes/admin/health'
+import { Route as AdminLoginRouteImport } from './routes/admin/login'
+import { Route as AdminTasksRouteImport } from './routes/admin/tasks'
+import { Route as AdminTeamRouteImport } from './routes/admin/team'
+import { Route as ApiHealthRouteImport } from './routes/api/health'
+import { Route as CoursesIndexRouteImport } from './routes/courses/index'
 import { Route as EnEcommerceDevelopmentEgyptRouteImport } from './routes/en.ecommerce-development-egypt'
 import { Route as EnSoftwareDevelopmentEgyptRouteImport } from './routes/en.software-development-egypt'
 import { Route as EsEcommerceDevelopmentEgyptRouteImport } from './routes/es.ecommerce-development-egypt'
@@ -24,6 +32,14 @@ import { Route as EsSoftwareDevelopmentEgyptRouteImport } from './routes/es.soft
 import { Route as FrEcommerceDevelopmentEgyptRouteImport } from './routes/fr.ecommerce-development-egypt'
 import { Route as FrSoftwareDevelopmentEgyptRouteImport } from './routes/fr.software-development-egypt'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
+import { Route as ApiAdminInviteRouteImport } from './routes/api/admin/invite'
+import { Route as ApiYoutubeWebhookRouteImport } from './routes/api/youtube/webhook'
+import { Route as CoursesCourseSlugIndexRouteImport } from './routes/courses/$courseSlug/index'
+import { Route as CoursesCourseSlugLessonSlugRouteImport } from './routes/courses/$courseSlug/$lessonSlug'
+import { Route as ApiAdminHealthRunRouteImport } from './routes/api/admin/health/run'
+import { Route as ApiAdminYoutubeSyncRouteImport } from './routes/api/admin/youtube/sync'
+import { Route as ApiInternalHealthDeepRouteImport } from './routes/api/internal/health/deep'
+import { Route as ApiInternalYoutubeSyncRouteImport } from './routes/api/internal/youtube/sync'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
@@ -72,6 +88,46 @@ const Char91DotwellKnownChar93OauthProtectedResourceRoute =
     path: '/.well-known/oauth-protected-resource',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminCoursesRoute = AdminCoursesRouteImport.update({
+  id: '/admin/courses',
+  path: '/admin/courses',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminHealthRoute = AdminHealthRouteImport.update({
+  id: '/admin/health',
+  path: '/admin/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminLoginRoute = AdminLoginRouteImport.update({
+  id: '/admin/login',
+  path: '/admin/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminTasksRoute = AdminTasksRouteImport.update({
+  id: '/admin/tasks',
+  path: '/admin/tasks',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminTeamRoute = AdminTeamRouteImport.update({
+  id: '/admin/team',
+  path: '/admin/team',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiHealthRoute = ApiHealthRouteImport.update({
+  id: '/api/health',
+  path: '/api/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CoursesIndexRoute = CoursesIndexRouteImport.update({
+  id: '/courses/',
+  path: '/courses/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EnEcommerceDevelopmentEgyptRoute =
   EnEcommerceDevelopmentEgyptRouteImport.update({
     id: '/en/ecommerce-development-egypt',
@@ -114,6 +170,47 @@ const Char91DotmcpChar93InvokeToolToolRoute =
     path: '/.mcp/invoke-tool/$tool',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiAdminInviteRoute = ApiAdminInviteRouteImport.update({
+  id: '/api/admin/invite',
+  path: '/api/admin/invite',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiYoutubeWebhookRoute = ApiYoutubeWebhookRouteImport.update({
+  id: '/api/youtube/webhook',
+  path: '/api/youtube/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CoursesCourseSlugIndexRoute = CoursesCourseSlugIndexRouteImport.update({
+  id: '/courses/$courseSlug/',
+  path: '/courses/$courseSlug/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CoursesCourseSlugLessonSlugRoute =
+  CoursesCourseSlugLessonSlugRouteImport.update({
+    id: '/courses/$courseSlug/$lessonSlug',
+    path: '/courses/$courseSlug/$lessonSlug',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAdminHealthRunRoute = ApiAdminHealthRunRouteImport.update({
+  id: '/api/admin/health/run',
+  path: '/api/admin/health/run',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminYoutubeSyncRoute = ApiAdminYoutubeSyncRouteImport.update({
+  id: '/api/admin/youtube/sync',
+  path: '/api/admin/youtube/sync',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiInternalHealthDeepRoute = ApiInternalHealthDeepRouteImport.update({
+  id: '/api/internal/health/deep',
+  path: '/api/internal/health/deep',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiInternalYoutubeSyncRoute = ApiInternalYoutubeSyncRouteImport.update({
+  id: '/api/internal/youtube/sync',
+  path: '/api/internal/youtube/sync',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
   id: '/lovable/email/auth/preview',
   path: '/lovable/email/auth/preview',
@@ -140,13 +237,29 @@ export interface FileRoutesByFullPath {
   '/software-development-egypt': typeof SoftwareDevelopmentEgyptRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  '/admin/courses': typeof AdminCoursesRoute
+  '/admin/health': typeof AdminHealthRoute
+  '/admin/login': typeof AdminLoginRoute
+  '/admin/tasks': typeof AdminTasksRoute
+  '/admin/team': typeof AdminTeamRoute
+  '/api/health': typeof ApiHealthRoute
   '/en/ecommerce-development-egypt': typeof EnEcommerceDevelopmentEgyptRoute
   '/en/software-development-egypt': typeof EnSoftwareDevelopmentEgyptRoute
   '/es/ecommerce-development-egypt': typeof EsEcommerceDevelopmentEgyptRoute
   '/es/software-development-egypt': typeof EsSoftwareDevelopmentEgyptRoute
   '/fr/ecommerce-development-egypt': typeof FrEcommerceDevelopmentEgyptRoute
   '/fr/software-development-egypt': typeof FrSoftwareDevelopmentEgyptRoute
+  '/admin/': typeof AdminIndexRoute
+  '/courses/': typeof CoursesIndexRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/api/admin/invite': typeof ApiAdminInviteRoute
+  '/api/youtube/webhook': typeof ApiYoutubeWebhookRoute
+  '/courses/$courseSlug/$lessonSlug': typeof CoursesCourseSlugLessonSlugRoute
+  '/courses/$courseSlug/': typeof CoursesCourseSlugIndexRoute
+  '/api/admin/health/run': typeof ApiAdminHealthRunRoute
+  '/api/admin/youtube/sync': typeof ApiAdminYoutubeSyncRoute
+  '/api/internal/health/deep': typeof ApiInternalHealthDeepRoute
+  '/api/internal/youtube/sync': typeof ApiInternalYoutubeSyncRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -160,13 +273,29 @@ export interface FileRoutesByTo {
   '/software-development-egypt': typeof SoftwareDevelopmentEgyptRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  '/admin/courses': typeof AdminCoursesRoute
+  '/admin/health': typeof AdminHealthRoute
+  '/admin/login': typeof AdminLoginRoute
+  '/admin/tasks': typeof AdminTasksRoute
+  '/admin/team': typeof AdminTeamRoute
+  '/api/health': typeof ApiHealthRoute
   '/en/ecommerce-development-egypt': typeof EnEcommerceDevelopmentEgyptRoute
   '/en/software-development-egypt': typeof EnSoftwareDevelopmentEgyptRoute
   '/es/ecommerce-development-egypt': typeof EsEcommerceDevelopmentEgyptRoute
   '/es/software-development-egypt': typeof EsSoftwareDevelopmentEgyptRoute
   '/fr/ecommerce-development-egypt': typeof FrEcommerceDevelopmentEgyptRoute
   '/fr/software-development-egypt': typeof FrSoftwareDevelopmentEgyptRoute
+  '/admin': typeof AdminIndexRoute
+  '/courses': typeof CoursesIndexRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/api/admin/invite': typeof ApiAdminInviteRoute
+  '/api/youtube/webhook': typeof ApiYoutubeWebhookRoute
+  '/courses/$courseSlug/$lessonSlug': typeof CoursesCourseSlugLessonSlugRoute
+  '/courses/$courseSlug': typeof CoursesCourseSlugIndexRoute
+  '/api/admin/health/run': typeof ApiAdminHealthRunRoute
+  '/api/admin/youtube/sync': typeof ApiAdminYoutubeSyncRoute
+  '/api/internal/health/deep': typeof ApiInternalHealthDeepRoute
+  '/api/internal/youtube/sync': typeof ApiInternalYoutubeSyncRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -181,13 +310,29 @@ export interface FileRoutesById {
   '/software-development-egypt': typeof SoftwareDevelopmentEgyptRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  '/admin/courses': typeof AdminCoursesRoute
+  '/admin/health': typeof AdminHealthRoute
+  '/admin/login': typeof AdminLoginRoute
+  '/admin/tasks': typeof AdminTasksRoute
+  '/admin/team': typeof AdminTeamRoute
+  '/api/health': typeof ApiHealthRoute
   '/en/ecommerce-development-egypt': typeof EnEcommerceDevelopmentEgyptRoute
   '/en/software-development-egypt': typeof EnSoftwareDevelopmentEgyptRoute
   '/es/ecommerce-development-egypt': typeof EsEcommerceDevelopmentEgyptRoute
   '/es/software-development-egypt': typeof EsSoftwareDevelopmentEgyptRoute
   '/fr/ecommerce-development-egypt': typeof FrEcommerceDevelopmentEgyptRoute
   '/fr/software-development-egypt': typeof FrSoftwareDevelopmentEgyptRoute
+  '/admin/': typeof AdminIndexRoute
+  '/courses/': typeof CoursesIndexRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/api/admin/invite': typeof ApiAdminInviteRoute
+  '/api/youtube/webhook': typeof ApiYoutubeWebhookRoute
+  '/courses/$courseSlug/$lessonSlug': typeof CoursesCourseSlugLessonSlugRoute
+  '/courses/$courseSlug/': typeof CoursesCourseSlugIndexRoute
+  '/api/admin/health/run': typeof ApiAdminHealthRunRoute
+  '/api/admin/youtube/sync': typeof ApiAdminYoutubeSyncRoute
+  '/api/internal/health/deep': typeof ApiInternalHealthDeepRoute
+  '/api/internal/youtube/sync': typeof ApiInternalYoutubeSyncRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -203,13 +348,29 @@ export interface FileRouteTypes {
     | '/software-development-egypt'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
+    | '/admin/courses'
+    | '/admin/health'
+    | '/admin/login'
+    | '/admin/tasks'
+    | '/admin/team'
+    | '/api/health'
     | '/en/ecommerce-development-egypt'
     | '/en/software-development-egypt'
     | '/es/ecommerce-development-egypt'
     | '/es/software-development-egypt'
     | '/fr/ecommerce-development-egypt'
     | '/fr/software-development-egypt'
+    | '/admin/'
+    | '/courses/'
     | '/.mcp/invoke-tool/$tool'
+    | '/api/admin/invite'
+    | '/api/youtube/webhook'
+    | '/courses/$courseSlug/$lessonSlug'
+    | '/courses/$courseSlug/'
+    | '/api/admin/health/run'
+    | '/api/admin/youtube/sync'
+    | '/api/internal/health/deep'
+    | '/api/internal/youtube/sync'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/transactional/preview'
@@ -223,13 +384,29 @@ export interface FileRouteTypes {
     | '/software-development-egypt'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
+    | '/admin/courses'
+    | '/admin/health'
+    | '/admin/login'
+    | '/admin/tasks'
+    | '/admin/team'
+    | '/api/health'
     | '/en/ecommerce-development-egypt'
     | '/en/software-development-egypt'
     | '/es/ecommerce-development-egypt'
     | '/es/software-development-egypt'
     | '/fr/ecommerce-development-egypt'
     | '/fr/software-development-egypt'
+    | '/admin'
+    | '/courses'
     | '/.mcp/invoke-tool/$tool'
+    | '/api/admin/invite'
+    | '/api/youtube/webhook'
+    | '/courses/$courseSlug/$lessonSlug'
+    | '/courses/$courseSlug'
+    | '/api/admin/health/run'
+    | '/api/admin/youtube/sync'
+    | '/api/internal/health/deep'
+    | '/api/internal/youtube/sync'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/transactional/preview'
@@ -243,13 +420,29 @@ export interface FileRouteTypes {
     | '/software-development-egypt'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
+    | '/admin/courses'
+    | '/admin/health'
+    | '/admin/login'
+    | '/admin/tasks'
+    | '/admin/team'
+    | '/api/health'
     | '/en/ecommerce-development-egypt'
     | '/en/software-development-egypt'
     | '/es/ecommerce-development-egypt'
     | '/es/software-development-egypt'
     | '/fr/ecommerce-development-egypt'
     | '/fr/software-development-egypt'
+    | '/admin/'
+    | '/courses/'
     | '/.mcp/invoke-tool/$tool'
+    | '/api/admin/invite'
+    | '/api/youtube/webhook'
+    | '/courses/$courseSlug/$lessonSlug'
+    | '/courses/$courseSlug/'
+    | '/api/admin/health/run'
+    | '/api/admin/youtube/sync'
+    | '/api/internal/health/deep'
+    | '/api/internal/youtube/sync'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/transactional/preview'
@@ -264,13 +457,29 @@ export interface RootRouteChildren {
   SoftwareDevelopmentEgyptRoute: typeof SoftwareDevelopmentEgyptRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  AdminCoursesRoute: typeof AdminCoursesRoute
+  AdminHealthRoute: typeof AdminHealthRoute
+  AdminLoginRoute: typeof AdminLoginRoute
+  AdminTasksRoute: typeof AdminTasksRoute
+  AdminTeamRoute: typeof AdminTeamRoute
+  ApiHealthRoute: typeof ApiHealthRoute
   EnEcommerceDevelopmentEgyptRoute: typeof EnEcommerceDevelopmentEgyptRoute
   EnSoftwareDevelopmentEgyptRoute: typeof EnSoftwareDevelopmentEgyptRoute
   EsEcommerceDevelopmentEgyptRoute: typeof EsEcommerceDevelopmentEgyptRoute
   EsSoftwareDevelopmentEgyptRoute: typeof EsSoftwareDevelopmentEgyptRoute
   FrEcommerceDevelopmentEgyptRoute: typeof FrEcommerceDevelopmentEgyptRoute
   FrSoftwareDevelopmentEgyptRoute: typeof FrSoftwareDevelopmentEgyptRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+  CoursesIndexRoute: typeof CoursesIndexRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
+  ApiAdminInviteRoute: typeof ApiAdminInviteRoute
+  ApiYoutubeWebhookRoute: typeof ApiYoutubeWebhookRoute
+  CoursesCourseSlugLessonSlugRoute: typeof CoursesCourseSlugLessonSlugRoute
+  CoursesCourseSlugIndexRoute: typeof CoursesCourseSlugIndexRoute
+  ApiAdminHealthRunRoute: typeof ApiAdminHealthRunRoute
+  ApiAdminYoutubeSyncRoute: typeof ApiAdminYoutubeSyncRoute
+  ApiInternalHealthDeepRoute: typeof ApiInternalHealthDeepRoute
+  ApiInternalYoutubeSyncRoute: typeof ApiInternalYoutubeSyncRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
@@ -334,6 +543,62 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/courses': {
+      id: '/admin/courses'
+      path: '/admin/courses'
+      fullPath: '/admin/courses'
+      preLoaderRoute: typeof AdminCoursesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/health': {
+      id: '/admin/health'
+      path: '/admin/health'
+      fullPath: '/admin/health'
+      preLoaderRoute: typeof AdminHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/login': {
+      id: '/admin/login'
+      path: '/admin/login'
+      fullPath: '/admin/login'
+      preLoaderRoute: typeof AdminLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/tasks': {
+      id: '/admin/tasks'
+      path: '/admin/tasks'
+      fullPath: '/admin/tasks'
+      preLoaderRoute: typeof AdminTasksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/team': {
+      id: '/admin/team'
+      path: '/admin/team'
+      fullPath: '/admin/team'
+      preLoaderRoute: typeof AdminTeamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/health': {
+      id: '/api/health'
+      path: '/api/health'
+      fullPath: '/api/health'
+      preLoaderRoute: typeof ApiHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/courses/': {
+      id: '/courses/'
+      path: '/courses'
+      fullPath: '/courses/'
+      preLoaderRoute: typeof CoursesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/en/ecommerce-development-egypt': {
       id: '/en/ecommerce-development-egypt'
       path: '/en/ecommerce-development-egypt'
@@ -383,6 +648,62 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char91DotmcpChar93InvokeToolToolRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/invite': {
+      id: '/api/admin/invite'
+      path: '/api/admin/invite'
+      fullPath: '/api/admin/invite'
+      preLoaderRoute: typeof ApiAdminInviteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/youtube/webhook': {
+      id: '/api/youtube/webhook'
+      path: '/api/youtube/webhook'
+      fullPath: '/api/youtube/webhook'
+      preLoaderRoute: typeof ApiYoutubeWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/courses/$courseSlug/': {
+      id: '/courses/$courseSlug/'
+      path: '/courses/$courseSlug'
+      fullPath: '/courses/$courseSlug/'
+      preLoaderRoute: typeof CoursesCourseSlugIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/courses/$courseSlug/$lessonSlug': {
+      id: '/courses/$courseSlug/$lessonSlug'
+      path: '/courses/$courseSlug/$lessonSlug'
+      fullPath: '/courses/$courseSlug/$lessonSlug'
+      preLoaderRoute: typeof CoursesCourseSlugLessonSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/health/run': {
+      id: '/api/admin/health/run'
+      path: '/api/admin/health/run'
+      fullPath: '/api/admin/health/run'
+      preLoaderRoute: typeof ApiAdminHealthRunRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/youtube/sync': {
+      id: '/api/admin/youtube/sync'
+      path: '/api/admin/youtube/sync'
+      fullPath: '/api/admin/youtube/sync'
+      preLoaderRoute: typeof ApiAdminYoutubeSyncRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/internal/health/deep': {
+      id: '/api/internal/health/deep'
+      path: '/api/internal/health/deep'
+      fullPath: '/api/internal/health/deep'
+      preLoaderRoute: typeof ApiInternalHealthDeepRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/internal/youtube/sync': {
+      id: '/api/internal/youtube/sync'
+      path: '/api/internal/youtube/sync'
+      fullPath: '/api/internal/youtube/sync'
+      preLoaderRoute: typeof ApiInternalYoutubeSyncRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/lovable/email/auth/preview': {
       id: '/lovable/email/auth/preview'
       path: '/lovable/email/auth/preview'
@@ -417,13 +738,29 @@ const rootRouteChildren: RootRouteChildren = {
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
+  AdminCoursesRoute: AdminCoursesRoute,
+  AdminHealthRoute: AdminHealthRoute,
+  AdminLoginRoute: AdminLoginRoute,
+  AdminTasksRoute: AdminTasksRoute,
+  AdminTeamRoute: AdminTeamRoute,
+  ApiHealthRoute: ApiHealthRoute,
   EnEcommerceDevelopmentEgyptRoute: EnEcommerceDevelopmentEgyptRoute,
   EnSoftwareDevelopmentEgyptRoute: EnSoftwareDevelopmentEgyptRoute,
   EsEcommerceDevelopmentEgyptRoute: EsEcommerceDevelopmentEgyptRoute,
   EsSoftwareDevelopmentEgyptRoute: EsSoftwareDevelopmentEgyptRoute,
   FrEcommerceDevelopmentEgyptRoute: FrEcommerceDevelopmentEgyptRoute,
   FrSoftwareDevelopmentEgyptRoute: FrSoftwareDevelopmentEgyptRoute,
+  AdminIndexRoute: AdminIndexRoute,
+  CoursesIndexRoute: CoursesIndexRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
+  ApiAdminInviteRoute: ApiAdminInviteRoute,
+  ApiYoutubeWebhookRoute: ApiYoutubeWebhookRoute,
+  CoursesCourseSlugLessonSlugRoute: CoursesCourseSlugLessonSlugRoute,
+  CoursesCourseSlugIndexRoute: CoursesCourseSlugIndexRoute,
+  ApiAdminHealthRunRoute: ApiAdminHealthRunRoute,
+  ApiAdminYoutubeSyncRoute: ApiAdminYoutubeSyncRoute,
+  ApiInternalHealthDeepRoute: ApiInternalHealthDeepRoute,
+  ApiInternalYoutubeSyncRoute: ApiInternalYoutubeSyncRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,

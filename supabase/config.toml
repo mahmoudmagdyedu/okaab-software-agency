@@ -1,1 +1,29 @@
 project_id = "cqxloxfxxwuhdkppjcpr"
+
+[api]
+port = 56521
+
+[db]
+port = 56522
+shadow_port = 56520
+
+[studio]
+port = 56523
+
+[local_smtp]
+port = 56524
+
+[analytics]
+port = 56527
+
+[functions.health-monitor]
+verify_jwt = false
+
+[functions.youtube-reconcile]
+verify_jwt = false
+
+[functions.okaab-admin]
+verify_jwt = false
+
+[functions.youtube-webhook]
+verify_jwt = false

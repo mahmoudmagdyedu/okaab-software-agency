@@ -21,6 +21,8 @@ type ChromeCopy = {
   closeMenu: string;
   brandTagline: string;
   footerLinks: { label: string; hash: string }[];
+  courses: string;
+  projects: string;
 };
 
 export const CHROME: Record<ChromeLang, ChromeCopy> = {
@@ -32,6 +34,8 @@ export const CHROME: Record<ChromeLang, ChromeCopy> = {
     openMenu: "افتح القائمة",
     closeMenu: "اقفل القائمة",
     brandTagline: "— تطوير مواقع وتطبيقات في مصر والخليج",
+    courses: "الكورسات",
+    projects: "المشاريع",
     footerLinks: [
       { label: "الخدمات", hash: "catalog" },
       { label: "طريقة شغلنا", hash: "about" },
@@ -47,6 +51,8 @@ export const CHROME: Record<ChromeLang, ChromeCopy> = {
     openMenu: "Open menu",
     closeMenu: "Close menu",
     brandTagline: "— Web & mobile development in Egypt and the Gulf",
+    courses: "Courses",
+    projects: "Projects",
     footerLinks: [
       { label: "Services", hash: "catalog" },
       { label: "How we work", hash: "about" },
@@ -62,6 +68,8 @@ export const CHROME: Record<ChromeLang, ChromeCopy> = {
     openMenu: "Ouvrir le menu",
     closeMenu: "Fermer le menu",
     brandTagline: "— Développement web et mobile en Égypte et dans le Golfe",
+    courses: "Cours",
+    projects: "Projets",
     footerLinks: [
       { label: "Services", hash: "catalog" },
       { label: "Notre méthode", hash: "about" },
@@ -77,6 +85,8 @@ export const CHROME: Record<ChromeLang, ChromeCopy> = {
     openMenu: "Abrir menú",
     closeMenu: "Cerrar menú",
     brandTagline: "— Desarrollo web y móvil en Egipto y el Golfo",
+    courses: "Cursos",
+    projects: "Proyectos",
     footerLinks: [
       { label: "Servicios", hash: "catalog" },
       { label: "Cómo trabajamos", hash: "about" },
@@ -216,7 +226,9 @@ export function SiteHeader({
             fetchPriority="high"
             className="w-8 h-8 shrink-0 object-contain"
           />
-          <span className="font-display font-bold text-lg sm:text-xl tracking-tight truncate">عُقاب</span>
+          <span className="font-display font-bold text-lg sm:text-xl tracking-tight truncate">
+            عُقاب
+          </span>
           <span
             dir="ltr"
             className="font-hand text-base sm:text-lg -rotate-6 ms-1 mt-1 tracking-wide shrink-0 whitespace-nowrap lg:hidden xl:inline"
@@ -227,8 +239,16 @@ export function SiteHeader({
         </Link>
 
         <div className="hidden lg:flex items-center gap-4 xl:gap-7 text-[13px] xl:text-sm font-medium">
+          <Link to="/courses" className="accent-link transition-colors whitespace-nowrap">
+            {c.courses}
+          </Link>
           {navLinks.map((l) => (
-            <Link key={l.hash} to="/" hash={l.hash} className="accent-link transition-colors whitespace-nowrap">
+            <Link
+              key={l.hash}
+              to="/"
+              hash={l.hash}
+              className="accent-link transition-colors whitespace-nowrap"
+            >
               {l.label}
             </Link>
           ))}
@@ -279,6 +299,13 @@ export function SiteHeader({
               {l.label}
             </Link>
           ))}
+          <Link
+            to="/courses"
+            onClick={() => setMenuOpen(false)}
+            className="accent-link transition-colors py-1"
+          >
+            {c.courses}
+          </Link>
           {alternates && path && (
             <div className="flex items-center justify-between pt-3 mt-1 border-t border-[var(--ok-ink)]/20">
               <span className="text-sm opacity-70">{LANG_SWITCH_LABEL[lang]}</span>
@@ -343,6 +370,16 @@ export function SiteFooter({ lang = "ar" }: { lang?: ChromeLang }) {
           ))}
         </div>
         <div className="flex flex-wrap items-center justify-center gap-4">
+          <Link to="/courses" className="text-[var(--ok-ink)]/75 accent-link transition-colors">
+            {c.courses}
+          </Link>
+          <Link
+            to="/"
+            hash="projects"
+            className="text-[var(--ok-ink)]/75 accent-link transition-colors"
+          >
+            {c.projects}
+          </Link>
           {c.footerLinks.map((l) => (
             <Link
               key={l.hash}

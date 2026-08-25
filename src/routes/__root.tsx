@@ -179,7 +179,7 @@ export const Route = createRootRoute({
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="ar-EG" dir="rtl">
+    <html lang="ar-EG" dir="rtl" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>

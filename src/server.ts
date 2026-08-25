@@ -21,9 +21,10 @@ const SECURITY_POLICY = [
   "form-action 'self'",
   "script-src 'self' 'unsafe-inline'",
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
+  "img-src 'self' data: blob: https://i.ytimg.com https://*.supabase.co",
   "font-src 'self' data:",
   "connect-src 'self' https://cqxloxfxxwuhdkppjcpr.supabase.co https://fuzkonswngdogylzvivw.supabase.co wss://cqxloxfxxwuhdkppjcpr.supabase.co wss://fuzkonswngdogylzvivw.supabase.co",
+  "frame-src 'self' https://www.youtube-nocookie.com https://*.supabase.co",
   "worker-src 'self' blob:",
   "manifest-src 'self'",
   "upgrade-insecure-requests",
@@ -78,7 +79,7 @@ async function proxyMawid(request: Request): Promise<Response | null> {
   const upstreamResponse = await fetch(upstreamUrl, {
     method: request.method,
     headers,
-    body,
+    ...(body ? { body } : {}),
     redirect: "manual",
   });
   const responseHeaders = new Headers(upstreamResponse.headers);

@@ -19,6 +19,13 @@ Object.assign(process.env, serverEnv);
 // Keep this as a variable so the wrapper's deliberately narrow public type still
 // forwards supported Nitro options to the installed Nitro runtime.
 const nitroPreset = process.env["NITRO_PRESET"];
+const nativeRootPlugin = {
+  name: "okaab-native-root-path",
+  enforce: "pre" as const,
+  configResolved(config: { root: string }) {
+    config.root = path.resolve(config.root);
+  },
+};
 const nitroConfig = {
   ...(nitroPreset ? { preset: nitroPreset } : {}),
   compressPublicAssets: true,
@@ -43,7 +50,10 @@ export default defineConfig({
   },
   nitro: nitroConfig,
   vite: {
-    plugins: [mcpPlugin()],
+    // Keep the Vite root in the platform-native path format. The Lovable MCP
+    // plugin validates generated route paths against this value on Windows.
+    root: __dirname,
+    plugins: [nativeRootPlugin, mcpPlugin()],
     resolve: {
       alias: {
         "entities/lib/decode.js": path.resolve(__dirname, "node_modules/entities/lib/decode.js"),

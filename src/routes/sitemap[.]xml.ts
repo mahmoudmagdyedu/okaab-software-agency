@@ -16,6 +16,7 @@ export const Route = createFileRoute("/sitemap.xml")({
         const entries: SitemapEntry[] = [
           { path: "/", changefreq: "weekly", priority: "1.0" },
           { path: "/privacy", changefreq: "yearly", priority: "0.4" },
+          { path: "/courses", changefreq: "daily", priority: "0.9" },
           { path: "/ecommerce-development-egypt", changefreq: "monthly", priority: "0.8" },
           { path: "/software-development-egypt", changefreq: "monthly", priority: "0.8" },
           { path: "/en/ecommerce-development-egypt", changefreq: "monthly", priority: "0.7" },
@@ -25,6 +26,34 @@ export const Route = createFileRoute("/sitemap.xml")({
           { path: "/fr/software-development-egypt", changefreq: "monthly", priority: "0.7" },
           { path: "/es/software-development-egypt", changefreq: "monthly", priority: "0.7" },
         ];
+
+        try {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const courses = await supabaseAdmin
+            .from("courses")
+            .select("id,slug")
+            .eq("is_published", true);
+          for (const course of courses.data ?? []) {
+            entries.push({
+              path: `/courses/${course.slug}`,
+              changefreq: "weekly",
+              priority: "0.8",
+            });
+            const lessons = await supabaseAdmin
+              .from("lessons")
+              .select("slug")
+              .eq("course_id", course.id)
+              .eq("is_published", true);
+            for (const lesson of lessons.data ?? [])
+              entries.push({
+                path: `/courses/${course.slug}/${lesson.slug}`,
+                changefreq: "weekly",
+                priority: "0.7",
+              });
+          }
+        } catch (error) {
+          console.error("Dynamic course sitemap entries unavailable", error);
+        }
 
         const urls = entries.map((e) =>
           [
