@@ -41,6 +41,7 @@ function HealthContent() {
   const [checks, setChecks] = useState<HealthCheck[]>([]);
   const [incidents, setIncidents] = useState<HealthIncident[]>([]);
   const [running, setRunning] = useState(false);
+  const [runError, setRunError] = useState<string | null>(null);
 
   async function load() {
     const [serviceResult, checkResult, incidentResult] = await Promise.all([
@@ -74,29 +75,62 @@ function HealthContent() {
       ),
     [services, checks],
   );
+  const hasMissingChecks =
+    services.length === 0 || services.some((service) => !latest.get(service.id));
   const overall: HealthStatus = services.some(
     (service) => latest.get(service.id)?.status === "down",
   )
     ? "down"
     : services.some((service) => latest.get(service.id)?.status === "degraded")
       ? "degraded"
-      : checks.length
-        ? "healthy"
-        : "unknown";
+      : hasMissingChecks
+        ? "unknown"
+        : "healthy";
   const overallStyle = STATUS[overall];
 
   async function runNow() {
     setRunning(true);
-    const session = await supabase.auth.getSession();
-    const response = await fetch("/api/admin/health/run", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${session.data.session?.access_token ?? ""}` },
-    });
-    const payload = await response.json();
-    if (!response.ok) toast.error("لم يكتمل الفحص", { description: payload.error });
-    else toast.success("اكتمل الفحص وتحديث النتائج");
-    setRunning(false);
-    await load();
+    setRunError(null);
+    try {
+      const session = await supabase.auth.getSession();
+      const accessToken = session.data.session?.access_token;
+      if (!accessToken) throw new Error("انتهت جلسة الدخول. سجّل الدخول مرة أخرى ثم أعد المحاولة.");
+
+      const response = await fetch("/api/admin/health/run", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const responseText = await response.text();
+      let payload: { error?: string; message?: string } = {};
+      try {
+        payload = responseText ? (JSON.parse(responseText) as typeof payload) : {};
+      } catch {
+        payload = {};
+      }
+
+      if (!response.ok) {
+        const description =
+          response.status === 404
+            ? "خدمة الفحص الخلفية لم تُنشر بعد على Supabase. انشر Edge Functions ثم أعد الفحص."
+            : response.status === 401
+              ? "جلسة الدخول غير صالحة أو انتهت. سجّل الدخول مرة أخرى."
+              : payload.error ||
+                payload.message ||
+                `تعذّر تشغيل خدمة الفحص (HTTP ${response.status}).`;
+        setRunError(description);
+        toast.error("لم يكتمل الفحص", { description });
+        return;
+      }
+
+      toast.success("اكتمل الفحص وتحديث النتائج");
+      await load();
+    } catch (error) {
+      const description = error instanceof Error ? error.message : "تعذّر الاتصال بخدمة الفحص.";
+      setRunError(description);
+      toast.error("لم يكتمل الفحص", { description });
+    } finally {
+      setRunning(false);
+    }
   }
 
   if (!profile || !["super_admin", "admin"].includes(profile.role))
@@ -111,7 +145,7 @@ function HealthContent() {
 
   return (
     <div className="space-y-6">
-      <Toaster position="top-center" richColors />
+      <Toaster position="top-center" richColors dir="rtl" />
       <section
         className="flex flex-col gap-5 rounded-[2rem] border-2 border-[var(--ok-ink)] p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8"
         style={{ background: `color-mix(in srgb, ${overallStyle.color} 18%, var(--ok-card))` }}
@@ -141,6 +175,28 @@ function HealthContent() {
           {running ? "يفحص الآن…" : "تشغيل فحص كامل"}
         </button>
       </section>
+
+      {runError && (
+        <section
+          role="alert"
+          className="flex flex-col gap-4 rounded-2xl border-2 border-[#d65d4a] bg-red-500/10 p-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div className="flex min-w-0 items-start gap-3">
+            <AlertTriangle className="mt-0.5 shrink-0 text-[#d65d4a]" size={22} />
+            <div className="min-w-0">
+              <h3 className="font-display text-lg font-bold">لم يكتمل الفحص</h3>
+              <p className="mt-1 break-words text-sm leading-6 opacity-75">{runError}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setRunError(null)}
+            className="shrink-0 self-start rounded-full border border-current px-4 py-2 text-sm font-bold sm:self-center"
+          >
+            إخفاء
+          </button>
+        </section>
+      )}
 
       <section className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
         {services.map((service) => {

@@ -120,6 +120,15 @@ function AdminFrame({ title, children }: { title: string; children: ReactNode })
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const previousOverflow = document.documentElement.style.overflow;
+    document.documentElement.style.overflow = "hidden";
+    return () => {
+      document.documentElement.style.overflow = previousOverflow;
+    };
+  }, [mobileOpen]);
+
   const sidebar = (
     <>
       <div className="flex items-center gap-3 border-b border-white/15 px-5 py-5">
@@ -129,7 +138,7 @@ function AdminFrame({ title, children }: { title: string; children: ReactNode })
           <p className="text-xs text-white/55">مركز إدارة العمل</p>
         </div>
       </div>
-      <nav aria-label="أقسام الإدارة" className="flex-1 space-y-1 p-3">
+      <nav aria-label="أقسام الإدارة" className="min-h-0 flex-1 space-y-1 overflow-y-auto p-3">
         {navItems.map(({ to, label, icon: Icon }) => {
           const active = to === "/admin" ? pathname === to : pathname.startsWith(to);
           if (to === "/admin/health" && !["super_admin", "admin"].includes(profile!.role))
@@ -154,7 +163,7 @@ function AdminFrame({ title, children }: { title: string; children: ReactNode })
           );
         })}
       </nav>
-      <div className="border-t border-white/15 p-4">
+      <div className="mt-auto shrink-0 border-t border-white/15 p-4">
         <div className="mb-3 flex items-center gap-3 rounded-xl bg-white/7 p-3">
           <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[#E8A33D] font-bold text-[#181511]">
             {(profile?.display_name || profile?.email || "ع").slice(0, 1).toUpperCase()}
@@ -182,13 +191,13 @@ function AdminFrame({ title, children }: { title: string; children: ReactNode })
         {sidebar}
       </aside>
       {mobileOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
+        <div className="fixed inset-0 z-50 h-dvh overflow-hidden overscroll-contain lg:hidden">
           <button
             aria-label="إغلاق القائمة"
             className="absolute inset-0 bg-black/55"
             onClick={() => setMobileOpen(false)}
           />
-          <aside className="absolute inset-y-0 right-0 flex w-[min(86vw,320px)] flex-col bg-[#181511] text-white">
+          <aside className="absolute inset-y-0 right-0 flex h-dvh w-[min(84vw,19rem)] max-w-[calc(100vw-2.5rem)] flex-col overflow-hidden bg-[#181511] text-white shadow-2xl">
             <button
               aria-label="إغلاق القائمة"
               className="absolute left-3 top-3 rounded-full p-2 hover:bg-white/10"
@@ -201,7 +210,7 @@ function AdminFrame({ title, children }: { title: string; children: ReactNode })
         </div>
       )}
 
-      <div className="lg:mr-72">
+      <div className="min-w-0 overflow-x-hidden lg:mr-72">
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b-2 border-[var(--ok-ink)] bg-[var(--ok-paper)]/92 px-4 backdrop-blur sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
             <button
@@ -223,7 +232,7 @@ function AdminFrame({ title, children }: { title: string; children: ReactNode })
             {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
           </button>
         </header>
-        <main className="p-4 sm:p-6 lg:p-8">{children}</main>
+        <main className="min-w-0 p-3 sm:p-6 lg:p-8">{children}</main>
       </div>
     </div>
   );
