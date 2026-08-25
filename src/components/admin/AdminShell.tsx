@@ -207,6 +207,7 @@ function AdminFrame({ title, children }: { title: string; children: ReactNode })
           .okaab-admin-sidebar {
             grid-column: 2;
             grid-row: 1;
+            height: 100dvh;
           }
 
           .okaab-admin-content {
