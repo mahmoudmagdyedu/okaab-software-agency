@@ -1,3 +1,4 @@
+import { ClerkProvider } from "@clerk/tanstack-react-start";
 import {
   Outlet,
   Link,
@@ -184,10 +185,12 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        <ClerkProvider>
+          <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
 
-        {children}
-        <Scripts />
+          {children}
+          <Scripts />
+        </ClerkProvider>
       </body>
     </html>
   );

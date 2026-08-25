@@ -13,7 +13,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { AdminLayout, useAdminAuth } from "@/components/admin/AdminShell";
-import { supabase } from "@/integrations/supabase/client";
+import { okaab as supabase } from "@/integrations/okaab/client";
 import type {
   HealthCheck,
   HealthIncident,
@@ -92,13 +92,8 @@ function HealthContent() {
     setRunning(true);
     setRunError(null);
     try {
-      const session = await supabase.auth.getSession();
-      const accessToken = session.data.session?.access_token;
-      if (!accessToken) throw new Error("انتهت جلسة الدخول. سجّل الدخول مرة أخرى ثم أعد المحاولة.");
-
       const response = await fetch("/api/admin/health/run", {
         method: "POST",
-        headers: { Authorization: `Bearer ${accessToken}` },
       });
       const responseText = await response.text();
       let payload: { error?: string; message?: string } = {};
@@ -111,7 +106,7 @@ function HealthContent() {
       if (!response.ok) {
         const description =
           response.status === 404
-            ? "خدمة الفحص الخلفية لم تُنشر بعد على Supabase. انشر Edge Functions ثم أعد الفحص."
+            ? "مسار الفحص غير متاح على خادم Heroku."
             : response.status === 401
               ? "جلسة الدخول غير صالحة أو انتهت. سجّل الدخول مرة أخرى."
               : payload.error ||

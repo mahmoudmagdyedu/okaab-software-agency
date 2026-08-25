@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useState, type DragEvent, type FormEve
 import { toast } from "sonner";
 
 import { AdminLayout, ROLE_LABELS, useAdminAuth } from "@/components/admin/AdminShell";
-import { supabase } from "@/integrations/supabase/client";
+import { okaab as supabase } from "@/integrations/okaab/client";
 import type { Profile, Task, TaskAssignee, TaskStatus, Team } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/admin/tasks")({
@@ -105,11 +105,12 @@ function TaskComposer({
       setSaving(false);
       return;
     }
+    const createdTask = inserted.data as Task;
 
     if (assignees.length) {
       const assignment = await supabase.from("task_assignees").insert(
         assignees.map((profileId) => ({
-          task_id: inserted.data.id,
+          task_id: createdTask.id,
           profile_id: profileId,
           assigned_by: profile.id,
           status: "scheduled" as TaskStatus,

@@ -29,23 +29,27 @@ export const Route = createFileRoute("/sitemap.xml")({
         ];
 
         try {
-          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-          const courses = await supabaseAdmin
-            .from("courses")
-            .select("id,slug")
-            .eq("is_published", true);
-          for (const course of courses.data ?? []) {
+          const { getDb } = await import("@/lib/db.server");
+          const database = await getDb();
+          const courses = await database
+            .request()
+            .query<{ id: string; slug: string }>(
+              "select id,slug from okaab.courses where is_published=1",
+            );
+          for (const course of courses.recordset) {
             entries.push({
               path: `/courses/${course.slug}`,
               changefreq: "weekly",
               priority: "0.8",
             });
-            const lessons = await supabaseAdmin
-              .from("lessons")
-              .select("slug")
-              .eq("course_id", course.id)
-              .eq("is_published", true);
-            for (const lesson of lessons.data ?? [])
+            const { sql } = await import("@/lib/db.server");
+            const lessons = await database
+              .request()
+              .input("course_id", sql.NVarChar(64), course.id)
+              .query<{ slug: string }>(
+                "select slug from okaab.lessons where course_id=@course_id and is_published=1",
+              );
+            for (const lesson of lessons.recordset)
               entries.push({
                 path: `/courses/${course.slug}/${lesson.slug}`,
                 changefreq: "weekly",

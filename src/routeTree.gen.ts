@@ -31,15 +31,22 @@ import { Route as EsEcommerceDevelopmentEgyptRouteImport } from './routes/es.eco
 import { Route as EsSoftwareDevelopmentEgyptRouteImport } from './routes/es.software-development-egypt'
 import { Route as FrEcommerceDevelopmentEgyptRouteImport } from './routes/fr.ecommerce-development-egypt'
 import { Route as FrSoftwareDevelopmentEgyptRouteImport } from './routes/fr.software-development-egypt'
+import { Route as SignInSplatRouteImport } from './routes/sign-in.$'
+import { Route as SignUpSplatRouteImport } from './routes/sign-up.$'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as ApiAdminInviteRouteImport } from './routes/api/admin/invite'
+import { Route as ApiAdminMeRouteImport } from './routes/api/admin/me'
+import { Route as ApiDataTableRouteImport } from './routes/api/data/$table'
 import { Route as ApiYoutubeWebhookRouteImport } from './routes/api/youtube/webhook'
 import { Route as CoursesCourseSlugIndexRouteImport } from './routes/courses/$courseSlug/index'
 import { Route as CoursesCourseSlugLessonSlugRouteImport } from './routes/courses/$courseSlug/$lessonSlug'
+import { Route as SlidesDeckIdSplatRouteImport } from './routes/slides/$deckId/$'
 import { Route as ApiAdminHealthRunRouteImport } from './routes/api/admin/health/run'
+import { Route as ApiAdminSlidesUploadRouteImport } from './routes/api/admin/slides/upload'
 import { Route as ApiAdminYoutubeSyncRouteImport } from './routes/api/admin/youtube/sync'
 import { Route as ApiInternalHealthDeepRouteImport } from './routes/api/internal/health/deep'
 import { Route as ApiInternalYoutubeSyncRouteImport } from './routes/api/internal/youtube/sync'
+import { Route as ApiSlidesDeckIdDownloadRouteImport } from './routes/api/slides/$deckId/download'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
@@ -164,6 +171,16 @@ const FrSoftwareDevelopmentEgyptRoute =
     path: '/fr/software-development-egypt',
     getParentRoute: () => rootRouteImport,
   } as any)
+const SignInSplatRoute = SignInSplatRouteImport.update({
+  id: '/sign-in/$',
+  path: '/sign-in/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignUpSplatRoute = SignUpSplatRouteImport.update({
+  id: '/sign-up/$',
+  path: '/sign-up/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const Char91DotmcpChar93InvokeToolToolRoute =
   Char91DotmcpChar93InvokeToolToolRouteImport.update({
     id: '/.mcp/invoke-tool/$tool',
@@ -173,6 +190,16 @@ const Char91DotmcpChar93InvokeToolToolRoute =
 const ApiAdminInviteRoute = ApiAdminInviteRouteImport.update({
   id: '/api/admin/invite',
   path: '/api/admin/invite',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminMeRoute = ApiAdminMeRouteImport.update({
+  id: '/api/admin/me',
+  path: '/api/admin/me',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiDataTableRoute = ApiDataTableRouteImport.update({
+  id: '/api/data/$table',
+  path: '/api/data/$table',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiYoutubeWebhookRoute = ApiYoutubeWebhookRouteImport.update({
@@ -191,9 +218,19 @@ const CoursesCourseSlugLessonSlugRoute =
     path: '/courses/$courseSlug/$lessonSlug',
     getParentRoute: () => rootRouteImport,
   } as any)
+const SlidesDeckIdSplatRoute = SlidesDeckIdSplatRouteImport.update({
+  id: '/slides/$deckId/$',
+  path: '/slides/$deckId/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminHealthRunRoute = ApiAdminHealthRunRouteImport.update({
   id: '/api/admin/health/run',
   path: '/api/admin/health/run',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminSlidesUploadRoute = ApiAdminSlidesUploadRouteImport.update({
+  id: '/api/admin/slides/upload',
+  path: '/api/admin/slides/upload',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAdminYoutubeSyncRoute = ApiAdminYoutubeSyncRouteImport.update({
@@ -209,6 +246,11 @@ const ApiInternalHealthDeepRoute = ApiInternalHealthDeepRouteImport.update({
 const ApiInternalYoutubeSyncRoute = ApiInternalYoutubeSyncRouteImport.update({
   id: '/api/internal/youtube/sync',
   path: '/api/internal/youtube/sync',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSlidesDeckIdDownloadRoute = ApiSlidesDeckIdDownloadRouteImport.update({
+  id: '/api/slides/$deckId/download',
+  path: '/api/slides/$deckId/download',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
@@ -249,17 +291,24 @@ export interface FileRoutesByFullPath {
   '/es/software-development-egypt': typeof EsSoftwareDevelopmentEgyptRoute
   '/fr/ecommerce-development-egypt': typeof FrEcommerceDevelopmentEgyptRoute
   '/fr/software-development-egypt': typeof FrSoftwareDevelopmentEgyptRoute
+  '/sign-in/$': typeof SignInSplatRoute
+  '/sign-up/$': typeof SignUpSplatRoute
   '/admin/': typeof AdminIndexRoute
   '/courses/': typeof CoursesIndexRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/admin/invite': typeof ApiAdminInviteRoute
+  '/api/admin/me': typeof ApiAdminMeRoute
+  '/api/data/$table': typeof ApiDataTableRoute
   '/api/youtube/webhook': typeof ApiYoutubeWebhookRoute
   '/courses/$courseSlug/$lessonSlug': typeof CoursesCourseSlugLessonSlugRoute
+  '/slides/$deckId/$': typeof SlidesDeckIdSplatRoute
   '/courses/$courseSlug/': typeof CoursesCourseSlugIndexRoute
   '/api/admin/health/run': typeof ApiAdminHealthRunRoute
+  '/api/admin/slides/upload': typeof ApiAdminSlidesUploadRoute
   '/api/admin/youtube/sync': typeof ApiAdminYoutubeSyncRoute
   '/api/internal/health/deep': typeof ApiInternalHealthDeepRoute
   '/api/internal/youtube/sync': typeof ApiInternalYoutubeSyncRoute
+  '/api/slides/$deckId/download': typeof ApiSlidesDeckIdDownloadRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -285,17 +334,24 @@ export interface FileRoutesByTo {
   '/es/software-development-egypt': typeof EsSoftwareDevelopmentEgyptRoute
   '/fr/ecommerce-development-egypt': typeof FrEcommerceDevelopmentEgyptRoute
   '/fr/software-development-egypt': typeof FrSoftwareDevelopmentEgyptRoute
+  '/sign-in/$': typeof SignInSplatRoute
+  '/sign-up/$': typeof SignUpSplatRoute
   '/admin': typeof AdminIndexRoute
   '/courses': typeof CoursesIndexRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/admin/invite': typeof ApiAdminInviteRoute
+  '/api/admin/me': typeof ApiAdminMeRoute
+  '/api/data/$table': typeof ApiDataTableRoute
   '/api/youtube/webhook': typeof ApiYoutubeWebhookRoute
   '/courses/$courseSlug/$lessonSlug': typeof CoursesCourseSlugLessonSlugRoute
+  '/slides/$deckId/$': typeof SlidesDeckIdSplatRoute
   '/courses/$courseSlug': typeof CoursesCourseSlugIndexRoute
   '/api/admin/health/run': typeof ApiAdminHealthRunRoute
+  '/api/admin/slides/upload': typeof ApiAdminSlidesUploadRoute
   '/api/admin/youtube/sync': typeof ApiAdminYoutubeSyncRoute
   '/api/internal/health/deep': typeof ApiInternalHealthDeepRoute
   '/api/internal/youtube/sync': typeof ApiInternalYoutubeSyncRoute
+  '/api/slides/$deckId/download': typeof ApiSlidesDeckIdDownloadRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -322,17 +378,24 @@ export interface FileRoutesById {
   '/es/software-development-egypt': typeof EsSoftwareDevelopmentEgyptRoute
   '/fr/ecommerce-development-egypt': typeof FrEcommerceDevelopmentEgyptRoute
   '/fr/software-development-egypt': typeof FrSoftwareDevelopmentEgyptRoute
+  '/sign-in/$': typeof SignInSplatRoute
+  '/sign-up/$': typeof SignUpSplatRoute
   '/admin/': typeof AdminIndexRoute
   '/courses/': typeof CoursesIndexRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/admin/invite': typeof ApiAdminInviteRoute
+  '/api/admin/me': typeof ApiAdminMeRoute
+  '/api/data/$table': typeof ApiDataTableRoute
   '/api/youtube/webhook': typeof ApiYoutubeWebhookRoute
   '/courses/$courseSlug/$lessonSlug': typeof CoursesCourseSlugLessonSlugRoute
+  '/slides/$deckId/$': typeof SlidesDeckIdSplatRoute
   '/courses/$courseSlug/': typeof CoursesCourseSlugIndexRoute
   '/api/admin/health/run': typeof ApiAdminHealthRunRoute
+  '/api/admin/slides/upload': typeof ApiAdminSlidesUploadRoute
   '/api/admin/youtube/sync': typeof ApiAdminYoutubeSyncRoute
   '/api/internal/health/deep': typeof ApiInternalHealthDeepRoute
   '/api/internal/youtube/sync': typeof ApiInternalYoutubeSyncRoute
+  '/api/slides/$deckId/download': typeof ApiSlidesDeckIdDownloadRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -360,17 +423,24 @@ export interface FileRouteTypes {
     | '/es/software-development-egypt'
     | '/fr/ecommerce-development-egypt'
     | '/fr/software-development-egypt'
+    | '/sign-in/$'
+    | '/sign-up/$'
     | '/admin/'
     | '/courses/'
     | '/.mcp/invoke-tool/$tool'
     | '/api/admin/invite'
+    | '/api/admin/me'
+    | '/api/data/$table'
     | '/api/youtube/webhook'
     | '/courses/$courseSlug/$lessonSlug'
+    | '/slides/$deckId/$'
     | '/courses/$courseSlug/'
     | '/api/admin/health/run'
+    | '/api/admin/slides/upload'
     | '/api/admin/youtube/sync'
     | '/api/internal/health/deep'
     | '/api/internal/youtube/sync'
+    | '/api/slides/$deckId/download'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/transactional/preview'
@@ -396,17 +466,24 @@ export interface FileRouteTypes {
     | '/es/software-development-egypt'
     | '/fr/ecommerce-development-egypt'
     | '/fr/software-development-egypt'
+    | '/sign-in/$'
+    | '/sign-up/$'
     | '/admin'
     | '/courses'
     | '/.mcp/invoke-tool/$tool'
     | '/api/admin/invite'
+    | '/api/admin/me'
+    | '/api/data/$table'
     | '/api/youtube/webhook'
     | '/courses/$courseSlug/$lessonSlug'
+    | '/slides/$deckId/$'
     | '/courses/$courseSlug'
     | '/api/admin/health/run'
+    | '/api/admin/slides/upload'
     | '/api/admin/youtube/sync'
     | '/api/internal/health/deep'
     | '/api/internal/youtube/sync'
+    | '/api/slides/$deckId/download'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/transactional/preview'
@@ -432,17 +509,24 @@ export interface FileRouteTypes {
     | '/es/software-development-egypt'
     | '/fr/ecommerce-development-egypt'
     | '/fr/software-development-egypt'
+    | '/sign-in/$'
+    | '/sign-up/$'
     | '/admin/'
     | '/courses/'
     | '/.mcp/invoke-tool/$tool'
     | '/api/admin/invite'
+    | '/api/admin/me'
+    | '/api/data/$table'
     | '/api/youtube/webhook'
     | '/courses/$courseSlug/$lessonSlug'
+    | '/slides/$deckId/$'
     | '/courses/$courseSlug/'
     | '/api/admin/health/run'
+    | '/api/admin/slides/upload'
     | '/api/admin/youtube/sync'
     | '/api/internal/health/deep'
     | '/api/internal/youtube/sync'
+    | '/api/slides/$deckId/download'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/transactional/preview'
@@ -469,17 +553,24 @@ export interface RootRouteChildren {
   EsSoftwareDevelopmentEgyptRoute: typeof EsSoftwareDevelopmentEgyptRoute
   FrEcommerceDevelopmentEgyptRoute: typeof FrEcommerceDevelopmentEgyptRoute
   FrSoftwareDevelopmentEgyptRoute: typeof FrSoftwareDevelopmentEgyptRoute
+  SignInSplatRoute: typeof SignInSplatRoute
+  SignUpSplatRoute: typeof SignUpSplatRoute
   AdminIndexRoute: typeof AdminIndexRoute
   CoursesIndexRoute: typeof CoursesIndexRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   ApiAdminInviteRoute: typeof ApiAdminInviteRoute
+  ApiAdminMeRoute: typeof ApiAdminMeRoute
+  ApiDataTableRoute: typeof ApiDataTableRoute
   ApiYoutubeWebhookRoute: typeof ApiYoutubeWebhookRoute
   CoursesCourseSlugLessonSlugRoute: typeof CoursesCourseSlugLessonSlugRoute
+  SlidesDeckIdSplatRoute: typeof SlidesDeckIdSplatRoute
   CoursesCourseSlugIndexRoute: typeof CoursesCourseSlugIndexRoute
   ApiAdminHealthRunRoute: typeof ApiAdminHealthRunRoute
+  ApiAdminSlidesUploadRoute: typeof ApiAdminSlidesUploadRoute
   ApiAdminYoutubeSyncRoute: typeof ApiAdminYoutubeSyncRoute
   ApiInternalHealthDeepRoute: typeof ApiInternalHealthDeepRoute
   ApiInternalYoutubeSyncRoute: typeof ApiInternalYoutubeSyncRoute
+  ApiSlidesDeckIdDownloadRoute: typeof ApiSlidesDeckIdDownloadRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
@@ -641,6 +732,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FrSoftwareDevelopmentEgyptRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/sign-in/$': {
+      id: '/sign-in/$'
+      path: '/sign-in/$'
+      fullPath: '/sign-in/$'
+      preLoaderRoute: typeof SignInSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sign-up/$': {
+      id: '/sign-up/$'
+      path: '/sign-up/$'
+      fullPath: '/sign-up/$'
+      preLoaderRoute: typeof SignUpSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/.mcp/invoke-tool/$tool': {
       id: '/.mcp/invoke-tool/$tool'
       path: '/.mcp/invoke-tool/$tool'
@@ -653,6 +758,20 @@ declare module '@tanstack/react-router' {
       path: '/api/admin/invite'
       fullPath: '/api/admin/invite'
       preLoaderRoute: typeof ApiAdminInviteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/me': {
+      id: '/api/admin/me'
+      path: '/api/admin/me'
+      fullPath: '/api/admin/me'
+      preLoaderRoute: typeof ApiAdminMeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/data/$table': {
+      id: '/api/data/$table'
+      path: '/api/data/$table'
+      fullPath: '/api/data/$table'
+      preLoaderRoute: typeof ApiDataTableRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/youtube/webhook': {
@@ -676,11 +795,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CoursesCourseSlugLessonSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/slides/$deckId/$': {
+      id: '/slides/$deckId/$'
+      path: '/slides/$deckId/$'
+      fullPath: '/slides/$deckId/$'
+      preLoaderRoute: typeof SlidesDeckIdSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/health/run': {
       id: '/api/admin/health/run'
       path: '/api/admin/health/run'
       fullPath: '/api/admin/health/run'
       preLoaderRoute: typeof ApiAdminHealthRunRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/slides/upload': {
+      id: '/api/admin/slides/upload'
+      path: '/api/admin/slides/upload'
+      fullPath: '/api/admin/slides/upload'
+      preLoaderRoute: typeof ApiAdminSlidesUploadRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/admin/youtube/sync': {
@@ -702,6 +835,13 @@ declare module '@tanstack/react-router' {
       path: '/api/internal/youtube/sync'
       fullPath: '/api/internal/youtube/sync'
       preLoaderRoute: typeof ApiInternalYoutubeSyncRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/slides/$deckId/download': {
+      id: '/api/slides/$deckId/download'
+      path: '/api/slides/$deckId/download'
+      fullPath: '/api/slides/$deckId/download'
+      preLoaderRoute: typeof ApiSlidesDeckIdDownloadRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/lovable/email/auth/preview': {
@@ -750,17 +890,24 @@ const rootRouteChildren: RootRouteChildren = {
   EsSoftwareDevelopmentEgyptRoute: EsSoftwareDevelopmentEgyptRoute,
   FrEcommerceDevelopmentEgyptRoute: FrEcommerceDevelopmentEgyptRoute,
   FrSoftwareDevelopmentEgyptRoute: FrSoftwareDevelopmentEgyptRoute,
+  SignInSplatRoute: SignInSplatRoute,
+  SignUpSplatRoute: SignUpSplatRoute,
   AdminIndexRoute: AdminIndexRoute,
   CoursesIndexRoute: CoursesIndexRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   ApiAdminInviteRoute: ApiAdminInviteRoute,
+  ApiAdminMeRoute: ApiAdminMeRoute,
+  ApiDataTableRoute: ApiDataTableRoute,
   ApiYoutubeWebhookRoute: ApiYoutubeWebhookRoute,
   CoursesCourseSlugLessonSlugRoute: CoursesCourseSlugLessonSlugRoute,
+  SlidesDeckIdSplatRoute: SlidesDeckIdSplatRoute,
   CoursesCourseSlugIndexRoute: CoursesCourseSlugIndexRoute,
   ApiAdminHealthRunRoute: ApiAdminHealthRunRoute,
+  ApiAdminSlidesUploadRoute: ApiAdminSlidesUploadRoute,
   ApiAdminYoutubeSyncRoute: ApiAdminYoutubeSyncRoute,
   ApiInternalHealthDeepRoute: ApiInternalHealthDeepRoute,
   ApiInternalYoutubeSyncRoute: ApiInternalYoutubeSyncRoute,
+  ApiSlidesDeckIdDownloadRoute: ApiSlidesDeckIdDownloadRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,

@@ -1,11 +1,24 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { copyEdgeResponse, invokeEdge } from "@/lib/edge-proxy.server";
+
+import { requireAdminProfile } from "@/lib/admin-auth.server";
+import { syncYouTubeChannel } from "@/lib/youtube-sync.server";
 
 export const Route = createFileRoute("/api/admin/youtube/sync")({
   server: {
     handlers: {
-      POST: async ({ request }) =>
-        copyEdgeResponse(await invokeEdge("okaab-admin", request, { action: "youtube_sync" })),
+      POST: async () => {
+        try {
+          await requireAdminProfile(["super_admin", "admin"]);
+          return Response.json(await syncYouTubeChannel());
+        } catch (error) {
+          if (error instanceof Response) return error;
+          console.error("YouTube sync failed", error);
+          return Response.json(
+            { error: error instanceof Error ? error.message : "تعذّرت مزامنة YouTube" },
+            { status: 500 },
+          );
+        }
+      },
     },
   },
 });

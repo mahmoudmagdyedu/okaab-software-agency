@@ -3,7 +3,6 @@ import { FileArchive, LoaderCircle, UploadCloud } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
-import { supabase } from "@/integrations/supabase/client";
 import type { Lesson, Profile, YouTubeVideo } from "@/integrations/supabase/types";
 
 const MAX_ARCHIVE = 100 * 1024 * 1024;
@@ -155,11 +154,6 @@ async function prepare(
   };
 }
 
-async function batches<T>(items: T[], worker: (item: T) => Promise<void>, size = 6) {
-  for (let index = 0; index < items.length; index += size)
-    await Promise.all(items.slice(index, index + size).map(worker));
-}
-
 export function SlideUploader({
   lessons,
   videos,
@@ -184,42 +178,37 @@ export function SlideUploader({
     }
     setUploading(true);
     setProgress(2);
-    const uploadedPaths: string[] = [];
     try {
       const prepared = await prepare(file);
       const lessonId = String(form.get("lessonId"));
-      const storageRoot = `${lessonId}/${crypto.randomUUID()}`;
-      let completed = 0;
       const allowDownload = form.get("allowDownload") === "on";
       const uploadList = allowDownload ? [...prepared.files, prepared.source] : prepared.files;
-      await batches(uploadList, async (item) => {
-        const path = `${storageRoot}/${item.path}`;
-        const result = await supabase.storage.from("course-slides").upload(path, item.bytes, {
-          contentType: item.contentType,
-          cacheControl: "31536000",
-          upsert: false,
-        });
-        if (result.error) throw result.error;
-        uploadedPaths.push(path);
-        completed += 1;
-        setProgress(Math.round((completed / uploadList.length) * 92));
-      });
-
-      const inserted = await supabase.from("slide_decks").insert({
-        lesson_id: lessonId,
-        video_id: String(form.get("videoId") || "") || null,
-        title: String(form.get("title")),
-        storage_root: storageRoot,
-        entry_path: "index.html",
-        archive_name: allowDownload ? prepared.source.path : null,
-        archive_size_bytes: allowDownload ? file.size : null,
-        file_count: prepared.files.length,
-        allow_download: allowDownload,
-        is_published: form.get("published") === "on",
-        sort_order: Number(form.get("sortOrder") || 0),
-        uploaded_by: profile.id,
-      });
-      if (inserted.error) throw inserted.error;
+      const upload = new FormData();
+      upload.set(
+        "metadata",
+        JSON.stringify({
+          lessonId,
+          videoId: String(form.get("videoId") || "") || null,
+          title: String(form.get("title")),
+          archiveName: allowDownload ? prepared.sourceName : null,
+          archiveSizeBytes: allowDownload ? file.size : null,
+          fileCount: prepared.files.length,
+          allowDownload,
+          isPublished: form.get("published") === "on",
+          sortOrder: Number(form.get("sortOrder") || 0),
+        }),
+      );
+      uploadList.forEach((item) =>
+        upload.append(
+          `asset:${encodeURIComponent(item.path)}`,
+          new Blob([item.bytes.slice().buffer as ArrayBuffer], { type: item.contentType }),
+          item.path.split("/").pop(),
+        ),
+      );
+      setProgress(35);
+      const response = await fetch("/api/admin/slides/upload", { method: "POST", body: upload });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "تعذّر رفع الحزمة");
       setProgress(100);
       toast.success("تم رفع الـSlides وفحصها بنجاح", {
         description: `${prepared.files.length} ملف — ${prepared.sourceName}`,
@@ -227,7 +216,6 @@ export function SlideUploader({
       event.currentTarget.reset();
       await onUploaded();
     } catch (error) {
-      if (uploadedPaths.length) await supabase.storage.from("course-slides").remove(uploadedPaths);
       toast.error("لم يكتمل رفع الـSlides", {
         description: error instanceof Error ? error.message : "خطأ غير متوقع",
       });

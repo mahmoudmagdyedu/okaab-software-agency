@@ -3,7 +3,7 @@ import { Activity, ArrowUpLeft, BookOpen, CalendarCheck, Users } from "lucide-re
 import { useEffect, useState } from "react";
 
 import { AdminLayout, useAdminAuth } from "@/components/admin/AdminShell";
-import { supabase } from "@/integrations/supabase/client";
+import { okaab as supabase } from "@/integrations/okaab/client";
 
 export const Route = createFileRoute("/admin/")({
   head: () => ({

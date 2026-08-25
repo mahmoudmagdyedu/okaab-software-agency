@@ -1,0 +1,40 @@
+name: Okaab external monitor
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: okaab-external-monitor
+  cancel-in-progress: false
+
+jobs:
+  health:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '*/5 * * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Check public endpoint
+        run: curl --fail-with-body --silent --show-error --max-time 20 --retry 2 https://okaab.org/api/health
+      - name: Run deep checks on Heroku
+        env:
+          HEALTH_MONITOR_SECRET: ${{ secrets.HEALTH_MONITOR_SECRET }}
+        run: |
+          curl --fail-with-body --silent --show-error --max-time 150 --retry 1 \
+            -X POST -H "x-health-secret: ${HEALTH_MONITOR_SECRET}" \
+            https://okaab.org/api/internal/health/deep
+
+  youtube-reconcile:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '17 */6 * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Reconcile every six hours
+        env:
+          HEALTH_MONITOR_SECRET: ${{ secrets.HEALTH_MONITOR_SECRET }}
+        run: |
+          curl --fail-with-body --silent --show-error --max-time 500 \
+            -X POST -H "Authorization: Bearer ${HEALTH_MONITOR_SECRET}" \
+            https://okaab.org/api/internal/youtube/sync

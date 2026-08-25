@@ -1,4 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
+import { useClerk, useUser } from "@clerk/tanstack-react-start";
 import {
   Activity,
   BookOpen,
@@ -11,11 +12,18 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import { Toaster } from "sonner";
 
 import { OkaabStyles } from "@/components/okaab/SiteChrome";
-import { supabase } from "@/integrations/supabase/client";
 import type { AppRole, Profile } from "@/integrations/supabase/types";
 import { ThemeProvider, useTheme } from "@/lib/theme";
 
@@ -35,31 +43,31 @@ type AdminAuthValue = {
 const AdminAuthContext = createContext<AdminAuthValue | null>(null);
 
 function AdminAuthProvider({ children }: { children: ReactNode }) {
+  const { isLoaded, isSignedIn, user } = useUser();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
 
-  async function reload() {
+  const reload = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase.auth.getSession();
-    const userId = data.session?.user.id;
-    if (!userId) {
+    if (!isLoaded || !isSignedIn) {
       setProfile(null);
-      setLoading(false);
+      setLoading(!isLoaded);
       return;
     }
-
-    const result = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
-    setProfile(result.data?.is_active ? result.data : null);
+    const response = await fetch("/api/admin/me", {
+      credentials: "same-origin",
+      cache: "no-store",
+    });
+    const result = await response.json().catch(() => ({ profile: null }));
+    setProfile(response.ok && result.profile?.is_active ? result.profile : null);
     setLoading(false);
-  }
+  }, [isLoaded, isSignedIn]);
 
   useEffect(() => {
     void reload();
-    const { data } = supabase.auth.onAuthStateChange(() => void reload());
-    return () => data.subscription.unsubscribe();
-  }, []);
+  }, [reload, user?.id]);
 
-  const value = useMemo(() => ({ loading, profile, reload }), [loading, profile]);
+  const value = useMemo(() => ({ loading, profile, reload }), [loading, profile, reload]);
   return <AdminAuthContext.Provider value={value}>{children}</AdminAuthContext.Provider>;
 }
 
@@ -117,6 +125,7 @@ function AdminGate({ children }: { children: ReactNode }) {
 
 function AdminFrame({ title, children }: { title: string; children: ReactNode }) {
   const { profile } = useAdminAuth();
+  const { signOut } = useClerk();
   const { theme, toggleTheme } = useTheme();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -185,7 +194,7 @@ function AdminFrame({ title, children }: { title: string; children: ReactNode })
         </div>
         <button
           type="button"
-          onClick={() => void supabase.auth.signOut()}
+          onClick={() => void signOut({ redirectUrl: "/admin/login" })}
           className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/20 px-3 py-2 text-sm text-white/70 hover:bg-white/8"
         >
           <LogOut size={16} /> تسجيل الخروج
