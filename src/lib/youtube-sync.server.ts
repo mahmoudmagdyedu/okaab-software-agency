@@ -29,6 +29,16 @@ async function youtube<T>(path: string, params: Record<string, string>) {
   const response = await fetch(url, { signal: AbortSignal.timeout(20_000) });
   if (!response.ok) {
     const body = await response.text().catch(() => "");
+    // A brand-new channel can expose an uploads playlist ID before YouTube has
+    // created the playlist itself. Treat that documented 404 as an empty page
+    // so the sync still records a successful, zero-video result.
+    if (
+      response.status === 404 &&
+      path === "playlistItems" &&
+      body.includes("playlistNotFound")
+    ) {
+      return { items: [] };
+    }
     throw new Error(
       `YouTube API ${response.status}${body.includes("quota") ? " — انتهت الحصة اليومية" : ""}`,
     );
