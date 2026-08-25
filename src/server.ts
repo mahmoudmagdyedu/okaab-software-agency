@@ -12,6 +12,9 @@ type ServerEntry = {
 const handler = serverEntry as ServerEntry;
 const MAWID_ORIGIN =
   process.env["MAWID_ORIGIN"] ?? `http://127.0.0.1:${process.env["MAWID_INTERNAL_PORT"] ?? "3001"}`;
+const BUN_POS_ORIGIN =
+  process.env["BUN_POS_ORIGIN"] ??
+  `http://127.0.0.1:${process.env["BUN_POS_INTERNAL_PORT"] ?? "3002"}`;
 const CANONICAL_HOST = "okaab.org";
 const SECURITY_POLICY = [
   "default-src 'self'",
@@ -20,9 +23,9 @@ const SECURITY_POLICY = [
   "frame-ancestors 'none'",
   "form-action 'self'",
   "script-src 'self' 'unsafe-inline'",
-  "style-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "img-src 'self' data: blob: https://i.ytimg.com https://*.supabase.co",
-  "font-src 'self' data:",
+  "font-src 'self' data: https://fonts.gstatic.com",
   "connect-src 'self' https://cqxloxfxxwuhdkppjcpr.supabase.co https://fuzkonswngdogylzvivw.supabase.co wss://cqxloxfxxwuhdkppjcpr.supabase.co wss://fuzkonswngdogylzvivw.supabase.co",
   "frame-src 'self' https://www.youtube-nocookie.com https://*.supabase.co",
   "worker-src 'self' blob:",
@@ -98,6 +101,50 @@ async function proxyMawid(request: Request): Promise<Response | null> {
   });
 }
 
+function isBunPosPath(pathname: string) {
+  return /^\/bun-al-deerah(?:\/|$)/i.test(pathname);
+}
+
+async function proxyBunPos(request: Request): Promise<Response | null> {
+  const incomingUrl = new URL(request.url);
+  if (!isBunPosPath(incomingUrl.pathname)) return null;
+
+  const upstreamPath = incomingUrl.pathname.replace(
+    /^\/bun-al-deerah(?=\/(?:assets\/|brand\/|favicon\.(?:ico|png)$|og\.png$))/i,
+    "",
+  );
+  const upstreamUrl = new URL(`${upstreamPath}${incomingUrl.search}`, BUN_POS_ORIGIN);
+  const headers = new Headers(request.headers);
+  headers.delete("host");
+  headers.delete("content-length");
+  headers.set("accept-encoding", "identity");
+  headers.set("x-forwarded-host", incomingUrl.host);
+  headers.set("x-forwarded-proto", incomingUrl.protocol.replace(":", ""));
+
+  const body =
+    request.method === "GET" || request.method === "HEAD" ? undefined : await request.arrayBuffer();
+  const upstreamResponse = await fetch(upstreamUrl, {
+    method: request.method,
+    headers,
+    ...(body ? { body } : {}),
+    redirect: "manual",
+  });
+  const responseHeaders = new Headers(upstreamResponse.headers);
+  responseHeaders.delete("content-length");
+  responseHeaders.delete("content-encoding");
+
+  const location = responseHeaders.get("location");
+  if (location) {
+    responseHeaders.set("location", location.replace(BUN_POS_ORIGIN, incomingUrl.origin));
+  }
+
+  return new Response(upstreamResponse.body, {
+    status: upstreamResponse.status,
+    statusText: upstreamResponse.statusText,
+    headers: responseHeaders,
+  });
+}
+
 // h3 swallows in-handler throws into a normal 500 Response with body
 // {"unhandled":true,"message":"HTTPError"} — try/catch alone never fires for those.
 async function normalizeCatastrophicSsrResponse(response: Response): Promise<Response> {
@@ -154,7 +201,7 @@ function withPerformanceHeaders(request: Request, response: Response): Response 
   headers.set("referrer-policy", "strict-origin-when-cross-origin");
   headers.set("permissions-policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()");
 
-  if (/^\/(?:assets|fonts)\//.test(pathname)) {
+  if (/^\/(?:assets|fonts)\//.test(pathname) || /^\/bun-al-deerah\/assets\//.test(pathname)) {
     headers.set("cache-control", "public, max-age=31536000, immutable");
   } else if (/\.(?:avif|gif|ico|jpe?g|png|svg|webp)$/i.test(pathname)) {
     headers.set("cache-control", "public, max-age=2592000");
@@ -204,6 +251,8 @@ export default {
       if (redirect) return withPerformanceHeaders(request, redirect);
       const mawIdResponse = await proxyMawid(request);
       if (mawIdResponse) return withPerformanceHeaders(request, mawIdResponse);
+      const bunPosResponse = await proxyBunPos(request);
+      if (bunPosResponse) return withPerformanceHeaders(request, bunPosResponse);
       const response = await handler.fetch(request, env, ctx);
       const normalized = await normalizeCatastrophicSsrResponse(response);
       return withPerformanceHeaders(request, normalized);

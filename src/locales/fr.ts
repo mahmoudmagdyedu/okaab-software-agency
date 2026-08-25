@@ -63,6 +63,14 @@ const dict: Dict = {
     badge: "Démo interactive",
     cta: "Essayer le projet",
     tags: ["SaaS", "React", "Supabase", "Rendez-vous"],
+    pos: {
+      name: "Bun Al Deerah POS",
+      description:
+        "Une plateforme arabe de point de vente et d’opérations avec factures, stock, équipes, succursales et accès par rôle, plus des simulations interactives super admin, admin et employé.",
+      badge: "Nouveau projet interactif",
+      cta: "Tester la simulation",
+      tags: ["POS", "React", "SQL Server", "Heroku"],
+    },
   },
   servicesSection: {
     kicker: "ce que nous faisons",

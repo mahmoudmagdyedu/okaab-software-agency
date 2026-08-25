@@ -63,6 +63,7 @@ const EMAIL = "hello@okaab.org";
 const EMAIL_SALES = "sales@okaab.org";
 const EMAIL_SUPPORT = "support@okaab.org";
 const MAWID_URL = "/maw'id";
+const POS_URL = "/bun-al-deerah";
 
 function initials(name: string) {
   return name
@@ -575,6 +576,81 @@ export default function OkaabLanding() {
                   </div>
                 </div>
               </div>
+            </div>
+          </article>
+
+          <article className="mt-10 grid overflow-hidden rounded-3xl border-2 border-[#181511] bg-[#FFF8ED] text-[#181511] shadow-[8px_8px_0_#181511] lg:grid-cols-[0.9fr_1.1fr]">
+            <div
+              aria-hidden="true"
+              className="min-h-[360px] border-b-2 border-[#181511] bg-[#F3EDE2] p-5 sm:p-8 lg:min-h-[520px] lg:border-b-0 lg:border-e-2"
+            >
+              <div className="mx-auto flex h-full max-w-xl overflow-hidden rounded-2xl border-2 border-[#181511] bg-[#FFFDF8] shadow-[5px_5px_0_#181511]">
+                <div className="w-20 shrink-0 bg-[#123E32] p-3 sm:w-28">
+                  <div className="mb-8 flex items-center gap-2">
+                    <span className="size-7 rounded-full bg-[#D3A73F]" />
+                    <span className="hidden h-3 w-12 rounded bg-[#F8F2E2] sm:block" />
+                  </div>
+                  <div className="space-y-3">
+                    {Array.from({ length: 6 }, (_, index) => (
+                      <span
+                        key={index}
+                        className={`block h-7 rounded ${index === 0 ? "bg-white/15" : "bg-white/5"}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <div className="flex-1 p-4 sm:p-5">
+                  <div className="mb-5 flex items-center justify-between gap-3">
+                    <span className="h-6 w-32 rounded bg-[#123E32]" />
+                    <span className="h-8 w-20 rounded-full bg-[#123E32]" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {["#F4ECD5", "#E5EFE8", "#F3E1DF"].map((color) => (
+                      <span
+                        key={color}
+                        className="h-20 rounded-lg border border-[#DED5C3]"
+                        style={{ backgroundColor: color }}
+                      />
+                    ))}
+                  </div>
+                  <div className="mt-4 h-28 rounded-lg border border-[#DED5C3] bg-[linear-gradient(145deg,transparent_48%,#3E745D_49%,#3E745D_51%,transparent_52%)] sm:h-40" />
+                  <div className="mt-4 space-y-2">
+                    {Array.from({ length: 4 }, (_, index) => (
+                      <span key={index} className="block h-7 rounded border border-[#DED5C3] bg-white" />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col justify-center p-6 sm:p-8 md:p-10 lg:p-12">
+              <span className="mb-5 w-fit rounded-full border-2 border-[#181511] bg-[#65B87A] px-3 py-1 text-xs font-bold uppercase tracking-wide">
+                {t.projects.pos.badge}
+              </span>
+              <h3 className="font-display text-4xl font-black tracking-tight sm:text-5xl lg:text-6xl">
+                {t.projects.pos.name}
+              </h3>
+              <p className="mt-4 max-w-xl text-sm leading-relaxed text-[#181511]/75 sm:text-base lg:text-lg">
+                {t.projects.pos.description}
+              </p>
+              <div className="mt-6 flex flex-wrap gap-2">
+                {t.projects.pos.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    dir="auto"
+                    className="rounded-full border border-[#181511]/35 px-3 py-1 text-xs font-semibold"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+              <a
+                href={POS_URL}
+                className="mt-8 inline-flex w-fit items-center gap-2 rounded-full border-2 border-[#181511] bg-[#181511] px-5 py-3 font-semibold text-[#FFF8ED] transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#181511]"
+              >
+                {t.projects.pos.cta}
+                <ArrowUpRight size={18} className="rtl:-scale-x-100" />
+              </a>
             </div>
           </article>
         </div>

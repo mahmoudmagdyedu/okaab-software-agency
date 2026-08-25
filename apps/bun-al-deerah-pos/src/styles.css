@@ -1,0 +1,293 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * هوية «بُنّ الديرة» — دافئة، عربية، وهادئة.
+ * لوحة الإدارة عاجية بعمق أخضر نخيل ولمسات ذهب القهوة، بينما تبقى شاشات
+ * التشغيل داكنة وعالية التباين لتناسب بيئة الكاشير والمطبخ.
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) + 10px);
+
+  --font-sans: "IBM Plex Sans Arabic", "Segoe UI", system-ui, sans-serif;
+  --font-serif: "Noto Naskh Arabic", "Georgia", serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
+
+  /* أساسيات السطح */
+  --color-bg-base: var(--bg-base);
+  --color-bg-subtle: var(--bg-subtle);
+  --color-bg-overlay: var(--bg-overlay);
+  --color-border-subtle: var(--border-subtle);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+
+  /* عائلة البرتقالي — لون البطل */
+  --color-accent-50: var(--accent-50);
+  --color-accent-100: var(--accent-100);
+  --color-accent-400: var(--accent-400);
+  --color-accent-600: var(--accent-600);
+  --color-accent-700: var(--accent-700);
+
+  /* البطل البرتقالي واللوحات الحبرية */
+  --color-hero: var(--hero);
+  --color-hero-foreground: var(--hero-foreground);
+  --color-hero-hover: var(--hero-hover);
+  --color-ink: var(--ink);
+  --color-ink-foreground: var(--ink-foreground);
+
+  /* الدلالية */
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-error: var(--error);
+  --color-error-bg: var(--error-bg);
+  --color-info: var(--info);
+  --color-info-bg: var(--info-bg);
+
+  /* أسماء shadcn المتوافقة */
+  --color-background: var(--bg-base);
+  --color-foreground: var(--text-primary);
+  --color-card: var(--bg-overlay);
+  --color-card-foreground: var(--text-primary);
+  --color-popover: var(--bg-overlay);
+  --color-popover-foreground: var(--text-primary);
+  --color-primary: var(--btn-primary);
+  --color-primary-foreground: var(--btn-primary-foreground);
+  --color-primary-hover: var(--btn-primary-hover);
+  --color-secondary: var(--bg-subtle);
+  --color-secondary-foreground: var(--text-secondary);
+  --color-muted: var(--bg-subtle);
+  --color-muted-foreground: var(--text-muted);
+  --color-accent: var(--accent-50);
+  --color-accent-foreground: var(--accent-700);
+  --color-destructive: var(--error);
+  --color-destructive-foreground: #ffffff;
+  --color-border: var(--border-subtle);
+  --color-input: var(--border-subtle);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--bg-base);
+  --color-sidebar: var(--bg-subtle);
+  --color-sidebar-foreground: var(--text-primary);
+  --color-sidebar-primary: var(--btn-primary);
+  --color-sidebar-primary-foreground: var(--btn-primary-foreground);
+  --color-sidebar-accent: var(--bg-subtle);
+  --color-sidebar-accent-foreground: var(--text-primary);
+  --color-sidebar-border: var(--border-subtle);
+  --color-sidebar-ring: var(--ring);
+}
+
+/* نمط Light — عاجي دافئ + أخضر نخيل + ذهبي معتّق */
+:root {
+  --radius: 8px;
+  --bg-base: #fffdf8;
+  --bg-subtle: #f6f2e9;
+  --bg-overlay: #fffdf8;
+  --border-subtle: #ded5c3;
+  --text-primary: #173d32;
+  --text-secondary: #60766d;
+  --text-muted: #91a099;
+
+  --accent-50: #f4ecd5;
+  --accent-100: #eadbb2;
+  --accent-400: #d3a73f;
+  --accent-600: #b98c28;
+  --accent-700: #806019;
+
+  --hero: #d3a73f;
+  --hero-foreground: #123e32;
+  --hero-hover: #bd922e;
+  --ink: #123e32;
+  --ink-foreground: #f8f2e2;
+
+  --btn-primary: #123e32;
+  --btn-primary-foreground: #f8f2e2;
+  --btn-primary-hover: #1b5243;
+  --ring: #d3a73f;
+
+  --success: #3e745d;
+  --success-bg: #e5efe8;
+  --warning: #9a721f;
+  --warning-bg: #f5ecd4;
+  --error: #a84e4b;
+  --error-bg: #f3e1df;
+  --info: #4d7180;
+  --info-bg: #e4edf0;
+}
+
+/* نمط Dark — الكاشير والمطبخ: فحمي + برتقالي بطل */
+.dark {
+  --bg-base: #0c2f27;
+  --bg-subtle: #10382e;
+  --bg-overlay: #17483b;
+  --border-subtle: #2d5d4f;
+  --text-primary: #f8f2e2;
+  --text-secondary: #bfd0c8;
+  --text-muted: #78988a;
+
+  --accent-50: rgb(211 167 63 / 0.1);
+  --accent-100: rgb(211 167 63 / 0.18);
+  --accent-400: #e0b750;
+  --accent-600: #e5bd58;
+  --accent-700: #f0d58f;
+
+  --hero: #d3a73f;
+  --hero-foreground: #123e32;
+  --hero-hover: #e0b750;
+  --ink: #08241e;
+  --ink-foreground: #f8f2e2;
+
+  --btn-primary: var(--hero);
+  --btn-primary-foreground: var(--hero-foreground);
+  --btn-primary-hover: var(--hero-hover);
+  --ring: #d3a73f;
+
+  --success: #34c77b;
+  --success-bg: rgb(52 199 123 / 0.14);
+  --warning: #f5a524;
+  --warning-bg: rgb(245 165 36 / 0.14);
+  --error: #ff6a5a;
+  --error-bg: rgb(255 106 90 / 0.14);
+  --info: #6ba3d8;
+  --info-bg: rgb(107 163 216 / 0.14);
+}
+
+/* مقياس الخط */
+@utility text-display {
+  font-size: 32px;
+  line-height: 40px;
+}
+@utility text-h1 {
+  font-size: 24px;
+  line-height: 32px;
+}
+@utility text-h2 {
+  font-size: 20px;
+  line-height: 28px;
+}
+@utility text-h3 {
+  font-size: 16px;
+  line-height: 24px;
+}
+@utility text-body {
+  font-size: 15px;
+  line-height: 1.7;
+}
+@utility text-body-sm {
+  font-size: 13px;
+  line-height: 20px;
+}
+@utility text-caption {
+  font-size: 12px;
+  line-height: 18px;
+}
+
+/* تسمية ميكرو سويسرية: 11px بتباعد واسع — uppercase للاتيني عند الاستخدام */
+@utility text-micro {
+  font-size: 11px;
+  line-height: 16px;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+}
+
+/* الأرقام: JetBrains Mono باتجاه LTR دائمًا داخل إطارها العربي */
+@utility num {
+  font-family: var(--font-mono);
+  direction: ltr;
+  unicode-bidi: isolate;
+  font-variant-numeric: tabular-nums;
+}
+@utility text-price-total {
+  font-family: var(--font-mono);
+  font-size: 28px;
+  line-height: 36px;
+  direction: ltr;
+  unicode-bidi: isolate;
+  font-variant-numeric: tabular-nums;
+}
+/* أرقام العرض العملاقة (البانر والبطاقات الإحصائية) — الحجم يُضبط عند الاستخدام */
+@utility num-display {
+  font-family: var(--font-mono);
+  direction: ltr;
+  unicode-bidi: isolate;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+
+@utility brand-heading {
+  font-family: var(--font-serif);
+  letter-spacing: -0.01em;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    font-family: var(--font-sans);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-size: 15px;
+    line-height: 1.7;
+    background-image: radial-gradient(
+      circle at 12% 10%,
+      rgb(211 167 63 / 0.055),
+      transparent 25rem
+    );
+    background-attachment: fixed;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-serif);
+    letter-spacing: -0.01em;
+  }
+
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    transition-duration: 160ms;
+  }
+}
+
+@layer components {
+  .brand-mark {
+    border-radius: 999px;
+    background: #f5e8c2;
+    box-shadow: inset 0 0 0 1px rgb(211 167 63 / 0.28);
+  }
+
+  section.border,
+  div.border.bg-bg-base {
+    box-shadow: 0 10px 30px -28px rgb(18 62 50 / 0.45);
+  }
+
+  table thead {
+    background: rgb(246 242 233 / 0.72);
+  }
+}
