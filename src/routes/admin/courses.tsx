@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   BookOpen,
+  AlertTriangle,
   ExternalLink,
   ListTree,
   PlaySquare,
@@ -9,7 +10,7 @@ import {
   Shield,
 } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
-import { toast, Toaster } from "sonner";
+import { toast } from "sonner";
 
 import { AdminLayout, useAdminAuth } from "@/components/admin/AdminShell";
 import { SlideUploader } from "@/components/admin/SlideUploader";
@@ -62,6 +63,7 @@ function CourseAdminContent() {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [syncState, setSyncState] = useState<SyncState | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   async function load() {
     const results = await Promise.all([
@@ -164,16 +166,49 @@ function CourseAdminContent() {
 
   async function syncYouTube() {
     setSyncing(true);
-    const session = await supabase.auth.getSession();
-    const response = await fetch("/api/admin/youtube/sync", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${session.data.session?.access_token ?? ""}` },
-    });
-    const payload = await response.json();
-    if (!response.ok) toast.error("فشلت مزامنة YouTube", { description: payload.error });
-    else toast.success(`تمت المزامنة: ${payload.videos} فيديو و${payload.playlists} Playlist`);
-    setSyncing(false);
-    await load();
+    setSyncError(null);
+    try {
+      const session = await supabase.auth.getSession();
+      const accessToken = session.data.session?.access_token;
+      if (!accessToken) throw new Error("انتهت جلسة الدخول. سجّل الدخول مرة أخرى.");
+      const response = await fetch("/api/admin/youtube/sync", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const responseText = await response.text();
+      let payload: {
+        error?: string;
+        message?: string;
+        videos?: number;
+        playlists?: number;
+      } = {};
+      try {
+        payload = responseText ? (JSON.parse(responseText) as typeof payload) : {};
+      } catch {
+        payload = {};
+      }
+      if (!response.ok) {
+        const description =
+          response.status === 404
+            ? "خدمة مزامنة YouTube لم تُنشر بعد على Supabase."
+            : response.status === 401
+              ? "انتهت جلسة الدخول. سجّل الدخول مرة أخرى."
+              : payload.error || payload.message || `تعذّرت المزامنة (HTTP ${response.status}).`;
+        setSyncError(description);
+        toast.error("فشلت مزامنة YouTube", { description });
+        return;
+      }
+      toast.success(
+        `تمت المزامنة: ${payload.videos ?? 0} فيديو و${payload.playlists ?? 0} Playlist`,
+      );
+      await load();
+    } catch (error) {
+      const description = error instanceof Error ? error.message : "تعذّر الاتصال بخدمة YouTube.";
+      setSyncError(description);
+      toast.error("فشلت مزامنة YouTube", { description });
+    } finally {
+      setSyncing(false);
+    }
   }
 
   async function mapPlaylist(playlistId: string, courseId: string | null) {
@@ -211,7 +246,6 @@ function CourseAdminContent() {
   const input = "h-11 rounded-xl border-2 border-[var(--ok-ink)] bg-[var(--ok-paper)] px-3";
   return (
     <div className="space-y-6">
-      <Toaster position="top-center" richColors />
       <section className="flex flex-col gap-4 rounded-3xl border-2 border-[var(--ok-ink)] bg-[#181511] p-5 text-white sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <div className="flex items-center gap-4">
           <span className="grid size-12 place-items-center rounded-2xl bg-[#E8A33D] text-[#181511]">
@@ -249,6 +283,28 @@ function CourseAdminContent() {
           </button>
         </div>
       </section>
+
+      {syncError && (
+        <section
+          role="alert"
+          className="flex flex-col gap-3 rounded-2xl border-2 border-[#d65d4a] bg-red-500/10 p-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div className="flex min-w-0 items-start gap-3">
+            <AlertTriangle className="mt-0.5 shrink-0 text-[#d65d4a]" size={21} />
+            <div className="min-w-0">
+              <h3 className="font-display font-bold">فشلت مزامنة YouTube</h3>
+              <p className="mt-1 break-words text-sm leading-6 opacity-70">{syncError}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSyncError(null)}
+            className="shrink-0 self-start rounded-full border border-current px-4 py-2 text-sm font-bold sm:self-center"
+          >
+            إخفاء
+          </button>
+        </section>
+      )}
 
       <section className="grid gap-5 xl:grid-cols-3">
         <form

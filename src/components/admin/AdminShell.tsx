@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { Toaster } from "sonner";
 
 import { OkaabStyles } from "@/components/okaab/SiteChrome";
 import { supabase } from "@/integrations/supabase/client";
@@ -124,10 +125,19 @@ function AdminFrame({ title, children }: { title: string; children: ReactNode })
     if (!mobileOpen) return;
     const previousOverflow = document.documentElement.style.overflow;
     document.documentElement.style.overflow = "hidden";
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
     return () => {
       document.documentElement.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
     };
   }, [mobileOpen]);
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
 
   const sidebar = (
     <>
@@ -187,54 +197,88 @@ function AdminFrame({ title, children }: { title: string; children: ReactNode })
   return (
     <div dir="rtl" lang="ar" className="min-h-screen bg-[var(--ok-paper)] text-[var(--ok-ink)]">
       <OkaabStyles />
-      <aside className="fixed inset-y-0 right-0 z-40 hidden w-72 flex-col bg-[#181511] text-white lg:flex">
-        {sidebar}
-      </aside>
-      {mobileOpen && (
-        <div className="fixed inset-0 z-50 h-dvh overflow-hidden overscroll-contain lg:hidden">
-          <button
-            aria-label="إغلاق القائمة"
-            className="absolute inset-0 bg-black/55"
-            onClick={() => setMobileOpen(false)}
-          />
-          <aside className="absolute inset-y-0 right-0 flex h-dvh w-[min(84vw,19rem)] max-w-[calc(100vw-2.5rem)] flex-col overflow-hidden bg-[#181511] text-white shadow-2xl">
+      <AdminToaster />
+      <div dir="ltr" className="min-h-screen lg:grid lg:grid-cols-[minmax(0,1fr)_18rem]">
+        <aside
+          dir="rtl"
+          className="sticky top-0 z-40 hidden h-dvh min-h-0 self-start flex-col overflow-hidden bg-[#181511] text-white lg:col-start-2 lg:row-start-1 lg:flex"
+        >
+          {sidebar}
+        </aside>
+        {mobileOpen && (
+          <div
+            dir="rtl"
+            role="dialog"
+            aria-modal="true"
+            aria-label="قائمة الإدارة"
+            className="fixed inset-0 z-50 h-dvh overflow-hidden overscroll-contain lg:hidden"
+          >
             <button
               aria-label="إغلاق القائمة"
-              className="absolute left-3 top-3 rounded-full p-2 hover:bg-white/10"
+              className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"
               onClick={() => setMobileOpen(false)}
-            >
-              <X size={20} />
-            </button>
-            {sidebar}
-          </aside>
-        </div>
-      )}
+            />
+            <aside className="absolute inset-y-0 right-0 flex h-dvh w-[min(84vw,19rem)] max-w-[calc(100vw-2.5rem)] flex-col overflow-hidden border-l border-white/15 bg-[#181511] text-white shadow-2xl">
+              <button
+                aria-label="إغلاق القائمة"
+                className="absolute left-3 top-3 z-10 grid size-9 place-items-center rounded-full border border-white/20 bg-black/25 hover:bg-white/10"
+                onClick={() => setMobileOpen(false)}
+              >
+                <X size={18} />
+              </button>
+              {sidebar}
+            </aside>
+          </div>
+        )}
 
-      <div className="min-w-0 overflow-x-hidden lg:mr-72">
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b-2 border-[var(--ok-ink)] bg-[var(--ok-paper)]/92 px-4 backdrop-blur sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3">
+        <div dir="rtl" className="min-w-0 overflow-x-hidden lg:col-start-1 lg:row-start-1">
+          <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b-2 border-[var(--ok-ink)] bg-[var(--ok-paper)]/92 px-4 backdrop-blur sm:px-6 lg:px-8">
+            <div className="flex min-w-0 items-center gap-3">
+              <button
+                type="button"
+                aria-label="فتح القائمة"
+                onClick={() => setMobileOpen(true)}
+                className="grid size-10 shrink-0 place-items-center rounded-full border-2 border-[var(--ok-ink)] lg:hidden"
+              >
+                <Menu size={19} />
+              </button>
+              <h1 className="truncate font-display text-xl font-bold sm:text-2xl">{title}</h1>
+            </div>
             <button
               type="button"
-              aria-label="فتح القائمة"
-              onClick={() => setMobileOpen(true)}
-              className="grid size-10 place-items-center rounded-full border-2 border-[var(--ok-ink)] lg:hidden"
+              onClick={toggleTheme}
+              aria-label="تبديل الوضع"
+              className="grid size-10 shrink-0 place-items-center rounded-full border-2 border-[var(--ok-ink)]"
             >
-              <Menu size={19} />
+              {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
             </button>
-            <h1 className="font-display text-xl font-bold sm:text-2xl">{title}</h1>
-          </div>
-          <button
-            type="button"
-            onClick={toggleTheme}
-            aria-label="تبديل الوضع"
-            className="grid size-10 place-items-center rounded-full border-2 border-[var(--ok-ink)]"
-          >
-            {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
-        </header>
-        <main className="min-w-0 p-3 sm:p-6 lg:p-8">{children}</main>
+          </header>
+          <main className="min-w-0 p-3 sm:p-6 lg:p-8">{children}</main>
+        </div>
       </div>
     </div>
+  );
+}
+
+export function AdminToaster() {
+  return (
+    <Toaster
+      position="bottom-left"
+      dir="rtl"
+      closeButton
+      visibleToasts={3}
+      toastOptions={{
+        duration: 4500,
+        classNames: {
+          toast:
+            "!rounded-2xl !border-2 !border-[var(--ok-ink)] !bg-[var(--ok-card)] !text-[var(--ok-ink)] !shadow-[5px_5px_0_var(--ok-ink)]",
+          title: "!font-display !font-bold",
+          description: "!leading-6 !text-[var(--ok-ink)]/70",
+          closeButton:
+            "!border-2 !border-[var(--ok-ink)] !bg-[var(--ok-card)] !text-[var(--ok-ink)]",
+        },
+      }}
+    />
   );
 }
 

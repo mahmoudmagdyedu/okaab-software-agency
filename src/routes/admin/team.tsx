@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { MailPlus, Plus, Shield, UserRound, UsersRound } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
-import { toast, Toaster } from "sonner";
+import { toast } from "sonner";
 
 import { AdminLayout, ROLE_LABELS, useAdminAuth } from "@/components/admin/AdminShell";
 import { supabase } from "@/integrations/supabase/client";
@@ -113,7 +113,6 @@ function TeamContent() {
 
   return (
     <div className="space-y-6">
-      <Toaster position="top-center" richColors />
       {canAdminister && (
         <section className="grid gap-5 xl:grid-cols-2">
           <form

@@ -3,7 +3,7 @@ import { addDays, format, startOfDay } from "date-fns";
 import { arEG } from "date-fns/locale";
 import { CalendarPlus, ChevronLeft, ChevronRight, Clock3, Plus, Users, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type DragEvent, type FormEvent } from "react";
-import { toast, Toaster } from "sonner";
+import { toast } from "sonner";
 
 import { AdminLayout, ROLE_LABELS, useAdminAuth } from "@/components/admin/AdminShell";
 import { supabase } from "@/integrations/supabase/client";
@@ -368,7 +368,6 @@ function TasksContent() {
 
   return (
     <div className="space-y-5">
-      <Toaster position="top-center" richColors />
       <div className="flex flex-col gap-3 rounded-3xl border-2 border-[var(--ok-ink)] bg-[var(--ok-card)] p-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex items-center gap-2">
           <button

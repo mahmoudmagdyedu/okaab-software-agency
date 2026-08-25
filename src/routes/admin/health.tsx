@@ -10,7 +10,7 @@ import {
   Wrench,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { toast, Toaster } from "sonner";
+import { toast } from "sonner";
 
 import { AdminLayout, useAdminAuth } from "@/components/admin/AdminShell";
 import { supabase } from "@/integrations/supabase/client";
@@ -145,7 +145,6 @@ function HealthContent() {
 
   return (
     <div className="space-y-6">
-      <Toaster position="top-center" richColors dir="rtl" />
       <section
         className="flex flex-col gap-5 rounded-[2rem] border-2 border-[var(--ok-ink)] p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8"
         style={{ background: `color-mix(in srgb, ${overallStyle.color} 18%, var(--ok-card))` }}
