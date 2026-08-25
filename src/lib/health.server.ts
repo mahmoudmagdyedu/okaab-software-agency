@@ -1,6 +1,5 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
-
-import type { Database, HealthStatus } from "@/integrations/supabase/types";
+import { dbHealth, getDb, sql } from "@/lib/db.server";
+import type { HealthStatus } from "@/integrations/supabase/types";
 
 type CheckResult = {
   key: string;
@@ -11,7 +10,7 @@ type CheckResult = {
   impact: string;
   cause: string;
   action: string;
-  details?: Record<string, string | number | boolean | null>;
+  details?: Record<string, unknown>;
 };
 
 async function httpCheck(key: string, url: string, label: string): Promise<CheckResult> {
@@ -20,31 +19,33 @@ async function httpCheck(key: string, url: string, label: string): Promise<Check
     const response = await fetch(url, {
       redirect: "follow",
       signal: AbortSignal.timeout(12_000),
-      headers: { "user-agent": "Okaab-Health/1.0" },
+      headers: { "user-agent": "Okaab-Health/2.0" },
     });
     const latencyMs = Math.round(performance.now() - started);
-    const healthy = response.ok;
+    const status: HealthStatus = response.ok
+      ? latencyMs > 2500
+        ? "degraded"
+        : "healthy"
+      : response.status >= 500
+        ? "down"
+        : "degraded";
     return {
       key,
-      status: healthy
-        ? latencyMs > 2500
-          ? "degraded"
-          : "healthy"
-        : response.status >= 500
-          ? "down"
-          : "degraded",
+      status,
       latencyMs,
       statusCode: response.status,
-      summary: healthy
-        ? `${label} يعمل${latencyMs > 2500 ? " لكنه أبطأ من المعتاد" : " بشكل طبيعي"}.`
+      summary: response.ok
+        ? `${label} يعمل${status === "degraded" ? " لكنه أبطأ من المعتاد" : " بشكل طبيعي"}.`
         : `${label} أعاد خطأ HTTP ${response.status}.`,
-      impact: healthy ? "لا يوجد تأثير ملحوظ على الزوار." : `قد لا يستطيع الزائر استخدام ${label}.`,
-      cause: healthy
-        ? "الخدمة تستجيب من الخادم الحالي."
-        : "قد يكون هناك نشر غير مكتمل، ضغط على الخادم، أو عطل لدى مزود خارجي.",
-      action: healthy
+      impact: response.ok
+        ? "لا يوجد تأثير ملحوظ على الزوار."
+        : `قد لا يستطيع الزائر استخدام ${label}.`,
+      cause: response.ok
+        ? "الخدمة تستجيب من خادم Heroku."
+        : "قد يكون هناك نشر غير مكتمل أو ضغط على الخادم أو عطل خارجي.",
+      action: response.ok
         ? "لا يلزم أي إجراء الآن."
-        : "افتح سجلات Heroku وتحقق من آخر عملية نشر ثم أعد الاختبار.",
+        : "افتح Heroku Logs وتحقق من آخر عملية نشر ثم أعد الاختبار.",
       details: { finalUrl: response.url },
     };
   } catch (error) {
@@ -56,7 +57,7 @@ async function httpCheck(key: string, url: string, label: string): Promise<Check
       summary: `${label} لا يستجيب.`,
       impact: `الزوار لا يستطيعون الوصول إلى ${label}.`,
       cause: "الخادم متوقف أو الاتصال انتهت مهلته.",
-      action: "تحقق من حالة Heroku والدومين ثم أعد تشغيل التطبيق إذا لزم.",
+      action: "تحقق من Heroku والدومين ثم أعد تشغيل التطبيق عند الحاجة.",
       details: { error: error instanceof Error ? error.name : "network_error" },
     };
   }
@@ -98,11 +99,11 @@ async function tlsCheck(): Promise<CheckResult> {
       cause:
         status === "healthy"
           ? "Heroku يدير الشهادة بصورة صحيحة."
-          : "تجديد الشهادة تأخر أو إعداد الدومين يحتاج مراجعة.",
+          : "تجديد الشهادة أو DNS يحتاج مراجعة.",
       action:
         status === "healthy"
           ? "لا يلزم إجراء."
-          : "راجع Automatic Certificate Management في Heroku وإعدادات DNS.",
+          : "راجع Automatic Certificate Management وإعدادات DNS.",
       details: { expiresAt: expiresAt?.toISOString() ?? null, daysRemaining: days },
     };
   } catch (error) {
@@ -120,12 +121,48 @@ async function tlsCheck(): Promise<CheckResult> {
   }
 }
 
-async function sendIncidentEmail(subject: string, html: string, recipients: string[]) {
+async function serviceCheck(
+  key: string,
+  url: string,
+  token: string | undefined,
+  healthyText: string,
+  failedText: string,
+): Promise<CheckResult> {
+  const started = performance.now();
+  let ok = false;
+  let code: number | null = null;
+  try {
+    if (token) {
+      const response = await fetch(url, {
+        headers: { authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(8_000),
+      });
+      ok = response.ok;
+      code = response.status;
+    }
+  } catch {
+    ok = false;
+  }
+  return {
+    key,
+    status: ok ? "healthy" : "degraded",
+    latencyMs: Math.round(performance.now() - started),
+    statusCode: code,
+    summary: ok ? healthyText : failedText,
+    impact: ok ? "لا يوجد تأثير." : "قد تتعطل الوظيفة المرتبطة بهذه الخدمة.",
+    cause: ok
+      ? "المفتاح والاتصال يعملان."
+      : "المفتاح غير موجود أو غير صالح أو الخدمة الخارجية لا تستجيب.",
+    action: ok ? "لا يلزم إجراء." : `راجع مفتاح ${key} داخل Heroku Config Vars.`,
+  };
+}
+
+async function sendEmail(subject: string, html: string, recipients: string[]) {
   const apiKey = process.env["RESEND_API_KEY"];
   if (!apiKey || !recipients.length) return;
   await fetch("https://api.resend.com/emails", {
     method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
+    headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
     body: JSON.stringify({
       from: "Okaab Health <noreply@okaab.org>",
       to: recipients,
@@ -136,96 +173,97 @@ async function sendIncidentEmail(subject: string, html: string, recipients: stri
   });
 }
 
-async function persist(admin: SupabaseClient<Database>, checks: CheckResult[]) {
-  const servicesResult = await admin.from("health_services").select("*");
-  if (servicesResult.error) throw servicesResult.error;
-  const services = new Map((servicesResult.data ?? []).map((service) => [service.key, service]));
-  const adminsResult = await admin
-    .from("profiles")
-    .select("id,email")
-    .in("role", ["super_admin", "admin"])
-    .eq("is_active", true);
-  const admins = adminsResult.data ?? [];
-
+async function persist(checks: CheckResult[]) {
+  const pool = await getDb();
+  const services = await pool
+    .request()
+    .query<{ id: string; key: string; name_ar: string }>(
+      "select id,[key],name_ar from okaab.health_services where is_enabled=1",
+    );
+  const serviceMap = new Map(services.recordset.map((item) => [item.key, item]));
+  const admins = await pool
+    .request()
+    .query<{ email: string }>(
+      "select email from okaab.profiles where role in ('super_admin','admin') and is_active=1",
+    );
+  const recipients = admins.recordset.map((item) => item.email);
   for (const check of checks) {
-    const service = services.get(check.key);
+    const service = serviceMap.get(check.key);
     if (!service) continue;
-    await admin.from("health_checks").insert({
-      service_id: service.id,
-      status: check.status,
-      latency_ms: check.latencyMs,
-      status_code: check.statusCode,
-      summary_ar: check.summary,
-      impact_ar: check.impact,
-      likely_cause_ar: check.cause,
-      action_ar: check.action,
-      safe_details: check.details ?? {},
-      deployment_version:
-        process.env["HEROKU_SLUG_COMMIT"] ?? process.env["SOURCE_VERSION"] ?? null,
-    });
-    const openResult = await admin
-      .from("health_incidents")
-      .select("*")
-      .eq("service_id", service.id)
-      .is("resolved_at", null)
-      .maybeSingle();
-    const open = openResult.data;
-    if (check.status !== "healthy" && check.status !== "unknown" && !open) {
-      const incident = await admin
-        .from("health_incidents")
-        .insert({
-          service_id: service.id,
-          status: check.status,
-          title_ar: `مشكلة في ${service.name_ar}`,
-          summary_ar: check.summary,
-          impact_ar: check.impact,
-          likely_cause_ar: check.cause,
-          action_ar: check.action,
-          last_alerted_at: new Date().toISOString(),
-        })
-        .select("id")
-        .single();
-      if (incident.data)
-        await admin.from("admin_notifications").insert(
-          admins.map((person) => ({
-            recipient_id: person.id,
-            incident_id: incident.data.id,
-            title_ar: `تنبيه: ${service.name_ar}`,
-            body_ar: `${check.summary} ${check.action}`,
-          })),
+    await pool
+      .request()
+      .input("service_id", sql.NVarChar(64), service.id)
+      .input("status", sql.NVarChar(20), check.status)
+      .input("latency", sql.Int, check.latencyMs)
+      .input("code", sql.Int, check.statusCode)
+      .input("summary", sql.NVarChar(1000), check.summary)
+      .input("impact", sql.NVarChar(1000), check.impact)
+      .input("cause", sql.NVarChar(1000), check.cause)
+      .input("action", sql.NVarChar(1000), check.action)
+      .input("details", sql.NVarChar(sql.MAX), JSON.stringify(check.details || {}))
+      .input(
+        "version",
+        sql.NVarChar(120),
+        process.env["HEROKU_SLUG_COMMIT"] || process.env["SOURCE_VERSION"] || null,
+      )
+      .query(
+        "insert into okaab.health_checks (service_id,status,latency_ms,status_code,summary_ar,impact_ar,likely_cause_ar,action_ar,safe_details,deployment_version) values (@service_id,@status,@latency,@code,@summary,@impact,@cause,@action,@details,@version)",
+      );
+    const openResult = await pool
+      .request()
+      .input("service_id", sql.NVarChar(64), service.id)
+      .query<{ id: string; status: HealthStatus }>(
+        "select top (1) id,status from okaab.health_incidents where service_id=@service_id and resolved_at is null order by started_at desc",
+      );
+    const open = openResult.recordset[0];
+    if (!["healthy", "unknown"].includes(check.status) && !open) {
+      await pool
+        .request()
+        .input("service_id", sql.NVarChar(64), service.id)
+        .input("status", sql.NVarChar(20), check.status)
+        .input("title", sql.NVarChar(300), `مشكلة في ${service.name_ar}`)
+        .input("summary", sql.NVarChar(1000), check.summary)
+        .input("impact", sql.NVarChar(1000), check.impact)
+        .input("cause", sql.NVarChar(1000), check.cause)
+        .input("action", sql.NVarChar(1000), check.action)
+        .query(
+          "insert into okaab.health_incidents (service_id,status,title_ar,summary_ar,impact_ar,likely_cause_ar,action_ar,last_alerted_at) values (@service_id,@status,@title,@summary,@impact,@cause,@action,sysutcdatetime())",
         );
-      await sendIncidentEmail(
+      await sendEmail(
         `تنبيه عُقاب: ${service.name_ar}`,
-        `<div dir="rtl" style="font-family:Arial"><h2>${check.summary}</h2><p><b>التأثير:</b> ${check.impact}</p><p><b>السبب المتوقع:</b> ${check.cause}</p><p><b>الخطوة التالية:</b> ${check.action}</p></div>`,
-        admins.map((person) => person.email),
+        `<div dir="rtl"><h2>${check.summary}</h2><p><b>التأثير:</b> ${check.impact}</p><p><b>الخطوة:</b> ${check.action}</p></div>`,
+        recipients,
       );
     } else if (check.status === "healthy" && open) {
-      await admin
-        .from("health_incidents")
-        .update({ resolved_at: new Date().toISOString(), status: "healthy" })
-        .eq("id", open.id);
-      await sendIncidentEmail(
+      await pool
+        .request()
+        .input("id", sql.NVarChar(64), open.id)
+        .query(
+          "update okaab.health_incidents set status='healthy',resolved_at=sysutcdatetime(),updated_at=sysutcdatetime() where id=@id",
+        );
+      await sendEmail(
         `تم حل مشكلة ${service.name_ar}`,
-        `<div dir="rtl" style="font-family:Arial"><h2>عادت الخدمة للعمل</h2><p>${check.summary}</p></div>`,
-        admins.map((person) => person.email),
+        `<div dir="rtl"><h2>عادت الخدمة للعمل</h2><p>${check.summary}</p></div>`,
+        recipients,
       );
     } else if (open && open.status !== check.status) {
-      await admin
-        .from("health_incidents")
-        .update({
-          status: check.status,
-          summary_ar: check.summary,
-          impact_ar: check.impact,
-          likely_cause_ar: check.cause,
-          action_ar: check.action,
-        })
-        .eq("id", open.id);
+      await pool
+        .request()
+        .input("id", sql.NVarChar(64), open.id)
+        .input("status", sql.NVarChar(20), check.status)
+        .input("summary", sql.NVarChar(1000), check.summary)
+        .input("impact", sql.NVarChar(1000), check.impact)
+        .input("cause", sql.NVarChar(1000), check.cause)
+        .input("action", sql.NVarChar(1000), check.action)
+        .query(
+          "update okaab.health_incidents set status=@status,summary_ar=@summary,impact_ar=@impact,likely_cause_ar=@cause,action_ar=@action,updated_at=sysutcdatetime() where id=@id",
+        );
     }
   }
 }
 
-export async function runDeepHealthCheck(admin: SupabaseClient<Database>) {
-  const base = process.env["PUBLIC_SITE_URL"] ?? "https://okaab.org";
+export async function runDeepHealthCheck() {
+  const base = process.env["PUBLIC_SITE_URL"] || "https://okaab.org";
   const checks = await Promise.all([
     httpCheck("website", `${base}/`, "الموقع الرئيسي"),
     httpCheck("courses", `${base}/courses`, "منصة الكورسات"),
@@ -236,220 +274,149 @@ export async function runDeepHealthCheck(admin: SupabaseClient<Database>) {
       "اتصال YouTube",
     ),
     tlsCheck(),
+    serviceCheck(
+      "authentication",
+      "https://api.clerk.com/v1/users?limit=1",
+      process.env["CLERK_SECRET_KEY"],
+      "خدمة Clerk تستجيب وتسجيل الدخول جاهز.",
+      "تعذّر تأكيد جاهزية Clerk.",
+    ),
+    serviceCheck(
+      "email",
+      "https://api.resend.com/domains",
+      process.env["RESEND_API_KEY"],
+      "خدمة Resend جاهزة للإرسال.",
+      "تعذّر تأكيد جاهزية Resend.",
+    ),
   ]);
 
-  const databaseStarted = performance.now();
-  const database = await admin.from("youtube_sync_state").select("channel_id").limit(1);
-  checks.push({
-    key: "database",
-    status: database.error ? "down" : "healthy",
-    latencyMs: Math.round(performance.now() - databaseStarted),
-    statusCode: null,
-    summary: database.error
-      ? "قاعدة البيانات لا تستجيب للفحص."
-      : "قاعدة البيانات تعمل بصورة طبيعية.",
-    impact: database.error ? "تسجيل الدخول والمهام والكورسات قد لا تعمل." : "لا يوجد تأثير.",
-    cause: database.error
-      ? "اتصال Supabase أو صلاحية المفتاح تحتاج مراجعة."
-      : "الاتصال والقراءة ناجحان.",
-    action: database.error
-      ? "راجع حالة Supabase والمفتاح السري وسجلات Database."
-      : "لا يلزم إجراء.",
-    details: { errorCode: database.error?.code ?? null },
-  });
-
-  const storageStarted = performance.now();
-  const storage = await admin.storage
-    .from("course-slides")
-    .upload(".health/probe.txt", new Blob(["okaab-storage-health"]), {
-      contentType: "text/plain",
-      upsert: true,
-    });
-  const storageRead = storage.error
-    ? null
-    : await admin.storage.from("course-slides").download(".health/probe.txt");
-  const storageError = storage.error ?? storageRead?.error ?? null;
-  checks.push({
-    key: "storage",
-    status: storageError ? "down" : "healthy",
-    latencyMs: Math.round(performance.now() - storageStarted),
-    statusCode: null,
-    summary: storageError
-      ? "تعذّرت كتابة أو قراءة ملف الفحص في تخزين Slides."
-      : "تمت كتابة وقراءة ملف فحص صغير في تخزين Slides.",
-    impact: storageError ? "رفع أو عرض الـSlides قد يفشل." : "لا يوجد تأثير.",
-    cause: storageError
-      ? "Bucket غير موجود أو صلاحية Storage غير صحيحة."
-      : "الرفع والقراءة يعملان بصورة طبيعية.",
-    action: storageError ? "راجع bucket course-slides وسياسات Storage." : "لا يلزم إجراء.",
-    details: { probe: storageError ? "failed" : "write_and_read_ok" },
-  });
-
-  const authStarted = performance.now();
-  const authUrl = `${process.env["SUPABASE_URL"]}/auth/v1/health`;
-  let authOk = false;
+  const dbStarted = performance.now();
   try {
-    authOk = (
-      await fetch(authUrl, {
-        headers: { apikey: process.env["SUPABASE_PUBLISHABLE_KEY"] ?? "" },
-        signal: AbortSignal.timeout(8_000),
-      })
-    ).ok;
+    await dbHealth();
+    checks.push({
+      key: "database",
+      status: "healthy",
+      latencyMs: Math.round(performance.now() - dbStarted),
+      statusCode: null,
+      summary: "قاعدة بيانات Heroku تعمل بصورة طبيعية.",
+      impact: "لا يوجد تأثير.",
+      cause: "الاتصال والقراءة ناجحان.",
+      action: "لا يلزم إجراء.",
+    });
   } catch {
-    authOk = false;
+    checks.push({
+      key: "database",
+      status: "down",
+      latencyMs: Math.round(performance.now() - dbStarted),
+      statusCode: null,
+      summary: "قاعدة بيانات Heroku لا تستجيب.",
+      impact: "المهام والكورسات قد لا تعمل.",
+      cause: "اتصال MSSQL أو الإضافة يحتاج مراجعة.",
+      action: "راجع MSSQL add-on وHeroku Logs.",
+    });
   }
-  checks.push({
-    key: "auth",
-    status: authOk ? "healthy" : "down",
-    latencyMs: Math.round(performance.now() - authStarted),
-    statusCode: null,
-    summary: authOk ? "خدمة تسجيل الدخول تستجيب." : "خدمة تسجيل الدخول لا تستجيب.",
-    impact: authOk ? "لا يوجد تأثير." : "لن تصل روابط الدخول أو تبدأ الجلسات.",
-    cause: authOk ? "Supabase Auth متاح." : "عطل في Auth أو إعدادات رابط Supabase.",
-    action: authOk ? "لا يلزم إجراء." : "راجع Auth Logs وحالة مشروع Supabase.",
-  });
 
-  const resendStarted = performance.now();
-  let resendStatus = false;
-  if (process.env["RESEND_API_KEY"]) {
-    try {
-      resendStatus = (
-        await fetch("https://api.resend.com/domains", {
-          headers: { Authorization: `Bearer ${process.env["RESEND_API_KEY"]}` },
-          signal: AbortSignal.timeout(8_000),
-        })
-      ).ok;
-    } catch {
-      resendStatus = false;
-    }
+  const pool = await getDb();
+  const storageStarted = performance.now();
+  try {
+    await pool.request().query("select top (1) deck_id from okaab.slide_assets");
+    checks.push({
+      key: "storage",
+      status: "healthy",
+      latencyMs: Math.round(performance.now() - storageStarted),
+      statusCode: null,
+      summary: "تخزين Slides داخل قاعدة Heroku جاهز.",
+      impact: "لا يوجد تأثير.",
+      cause: "جدول الملفات متاح.",
+      action: "لا يلزم إجراء.",
+    });
+  } catch {
+    checks.push({
+      key: "storage",
+      status: "down",
+      latencyMs: Math.round(performance.now() - storageStarted),
+      statusCode: null,
+      summary: "تعذّر الوصول إلى ملفات Slides.",
+      impact: "رفع أو عرض Slides قد يفشل.",
+      cause: "جدول التخزين أو الاتصال غير متاح.",
+      action: "شغّل migrations وراجع MSSQL.",
+    });
   }
-  checks.push({
-    key: "email",
-    status: resendStatus ? "healthy" : "degraded",
-    latencyMs: Math.round(performance.now() - resendStarted),
-    statusCode: null,
-    summary: resendStatus ? "خدمة البريد جاهزة للإرسال." : "تعذّر تأكيد جاهزية خدمة البريد.",
-    impact: resendStatus ? "لا يوجد تأثير." : "قد تتأخر روابط الدخول وتنبيهات الأعطال.",
-    cause: resendStatus
-      ? "Resend يقبل المفتاح الحالي."
-      : "مفتاح Resend أو الدومين أو الاتصال يحتاج مراجعة.",
-    action: resendStatus ? "لا يلزم إجراء." : "راجع RESEND_API_KEY وحالة okaab.org داخل Resend.",
-  });
 
-  const syncResult = await admin
-    .from("youtube_sync_state")
-    .select("last_success_at,last_webhook_at,consecutive_failures")
-    .eq("channel_id", "UCBAEq8qb5_yvj6_Ef96agOg")
-    .maybeSingle();
-  const lastSync = syncResult.data?.last_success_at
-    ? new Date(syncResult.data.last_success_at).getTime()
+  const state = await pool
+    .request()
+    .query<{ last_success_at: Date | null; consecutive_failures: number }>(
+      "select top (1) last_success_at,consecutive_failures from okaab.youtube_sync_state",
+    );
+  const lastSync = state.recordset[0]?.last_success_at
+    ? new Date(state.recordset[0].last_success_at).getTime()
     : null;
-  const syncAgeMinutes = lastSync === null ? null : Math.round((Date.now() - lastSync) / 60_000);
-  const youtubeCheck = checks.find((check) => check.key === "youtube");
-  if (youtubeCheck && youtubeCheck.status !== "down") {
-    const stale = syncAgeMinutes === null || syncAgeMinutes > 390;
-    youtubeCheck.status = stale ? "degraded" : "healthy";
-    youtubeCheck.summary = stale
-      ? "قناة YouTube متاحة لكن المزامنة التصحيحية متأخرة أو لم تبدأ بعد."
-      : `مزامنة YouTube سليمة؛ آخر نجاح منذ ${syncAgeMinutes} دقيقة.`;
-    youtubeCheck.impact = stale
-      ? "قد تتأخر الفيديوهات الجديدة في الظهور على الموقع."
-      : "الفيديوهات الجديدة تصل بصورة طبيعية.";
-    youtubeCheck.cause = stale
-      ? "مفتاح YouTube أو مهمة المزامنة كل 6 ساعات تحتاج مراجعة."
-      : "الاتصال بالقناة وسجل المزامنة يعملان.";
-    youtubeCheck.action = stale
-      ? "افتح إدارة الكورسات وشغّل مزامنة الآن ثم راجع YouTube API وCron."
-      : "لا يلزم إجراء.";
-    youtubeCheck.details = {
-      ...youtubeCheck.details,
-      lastSuccessAt: syncResult.data?.last_success_at ?? null,
-      lastWebhookAt: syncResult.data?.last_webhook_at ?? null,
-      consecutiveFailures: syncResult.data?.consecutive_failures ?? 0,
-    };
+  const age = lastSync === null ? null : Math.round((Date.now() - lastSync) / 60_000);
+  const youtube = checks.find((item) => item.key === "youtube");
+  if (youtube && youtube.status !== "down") {
+    youtube.status = age === null || age > 390 ? "degraded" : "healthy";
+    youtube.summary =
+      age === null
+        ? "القناة متاحة لكن أول مزامنة لم تُنفذ بعد."
+        : `القناة متاحة؛ آخر مزامنة ناجحة منذ ${age} دقيقة.`;
+    youtube.action =
+      youtube.status === "healthy"
+        ? "لا يلزم إجراء."
+        : "شغّل المزامنة من صفحة الكورسات ثم راجع YOUTUBE_API_KEY.";
   }
 
-  const memory = process.memoryUsage();
-  const memoryLimitMb = Number(process.env["WEB_MEMORY_MB"] ?? "512");
-  const memoryUsedMb = Math.round(memory.rss / 1024 / 1024);
-  const memoryRatio = memoryUsedMb / memoryLimitMb;
-  const runtimeStatus: HealthStatus =
-    memoryRatio >= 0.9 ? "down" : memoryRatio >= 0.75 ? "degraded" : "healthy";
+  const memoryUsedMb = Math.round(process.memoryUsage().rss / 1024 / 1024);
+  const memoryLimitMb = Number(process.env["WEB_MEMORY_MB"] || "512");
+  const ratio = memoryUsedMb / memoryLimitMb;
   checks.push({
     key: "runtime",
-    status: runtimeStatus,
+    status: ratio >= 0.9 ? "down" : ratio >= 0.75 ? "degraded" : "healthy",
     latencyMs: null,
     statusCode: null,
-    summary: `الخادم يعمل ويستخدم ${memoryUsedMb} من نحو ${memoryLimitMb} ميجابايت من الذاكرة.`,
-    impact:
-      runtimeStatus === "healthy"
-        ? "لا يوجد تأثير."
-        : "قد يبطؤ الخادم أو تعيد Heroku تشغيله إذا استمر استهلاك الذاكرة.",
-    cause:
-      runtimeStatus === "healthy"
-        ? "استهلاك الذاكرة داخل النطاق الطبيعي."
-        : "ضغط طلبات أو عملية تستهلك ذاكرة أكثر من المتوقع.",
-    action:
-      runtimeStatus === "healthy"
-        ? "لا يلزم إجراء."
-        : "راجع Heroku Metrics وLogs وحدد المسار الذي يرفع استهلاك الذاكرة.",
-    details: {
-      memoryUsedMb,
-      memoryLimitMb,
-      deploymentVersion:
-        process.env["HEROKU_SLUG_COMMIT"] ?? process.env["SOURCE_VERSION"] ?? "unknown",
-      nodeVersion: process.version,
-    },
+    summary: `الخادم يستخدم ${memoryUsedMb} من نحو ${memoryLimitMb}MB.`,
+    impact: ratio >= 0.75 ? "قد يبطؤ الخادم إذا استمر الاستهلاك." : "لا يوجد تأثير.",
+    cause: ratio >= 0.75 ? "ضغط طلبات أو عملية تستهلك ذاكرة." : "الاستهلاك طبيعي.",
+    action: ratio >= 0.75 ? "راجع Heroku Metrics وLogs." : "لا يلزم إجراء.",
+    details: { memoryUsedMb, memoryLimitMb, node: process.version },
   });
-
-  const previousMonitor = await admin
-    .from("health_checks")
-    .select("checked_at")
-    .order("checked_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  const previousCheckAt = previousMonitor.data?.checked_at
-    ? new Date(previousMonitor.data.checked_at).getTime()
+  const previousCheck = await pool
+    .request()
+    .query<{ checked_at: Date | null }>(
+      "select max(checked_at) as checked_at from okaab.health_checks",
+    );
+  const previousAt = previousCheck.recordset[0]?.checked_at
+    ? new Date(previousCheck.recordset[0].checked_at).getTime()
     : null;
-  const monitorAgeMinutes =
-    previousCheckAt === null ? null : Math.round((Date.now() - previousCheckAt) / 60_000);
+  const monitorAge = previousAt === null ? null : Math.round((Date.now() - previousAt) / 60_000);
   const schedulerStatus: HealthStatus =
-    monitorAgeMinutes === null
-      ? "unknown"
-      : monitorAgeMinutes > 15 || (syncAgeMinutes !== null && syncAgeMinutes > 390)
-        ? "degraded"
-        : "healthy";
+    monitorAge === null ? "unknown" : monitorAge > 15 ? "degraded" : "healthy";
   checks.push({
     key: "scheduler",
     status: schedulerStatus,
     latencyMs: null,
     statusCode: null,
     summary:
-      monitorAgeMinutes === null
-        ? "هذه أول دورة فحص؛ سيُقاس انتظام المهام في الدورة التالية."
+      monitorAge === null
+        ? "هذه أول دورة فحص؛ سيُقاس الانتظام في الدورة التالية."
         : schedulerStatus === "healthy"
-          ? `المهام المجدولة منتظمة؛ آخر فحص سابق منذ ${monitorAgeMinutes} دقيقة.`
-          : "إحدى المهام المجدولة لم تعمل في موعدها المتوقع.",
-    impact:
-      schedulerStatus === "degraded"
-        ? "قد تتأخر تنبيهات الأعطال أو مزامنة الفيديوهات."
-        : "لا يوجد تأثير ملحوظ.",
+          ? `الفحص الخارجي منتظم؛ آخر دورة منذ ${monitorAge} دقيقة.`
+          : `الفحص الخارجي متأخر؛ آخر دورة منذ ${monitorAge} دقيقة.`,
+    impact: schedulerStatus === "degraded" ? "قد تتأخر تنبيهات الأعطال." : "لا يوجد تأثير.",
     cause:
       schedulerStatus === "degraded"
-        ? "Supabase Cron أو Edge Function أو السر الموقّع يحتاج مراجعة."
-        : "Supabase Cron ينفذ حسب الجدول.",
+        ? "GitHub Actions أو السر الموقّع يحتاج مراجعة."
+        : "مهمة المراقبة الخارجية تعمل حسب الجدول.",
     action:
       schedulerStatus === "degraded"
-        ? "راجع Cron Jobs وEdge Function Logs في Supabase ثم شغّل الفحص يدويًا."
+        ? "راجع workflow Okaab external monitor في GitHub Actions."
         : "لا يلزم إجراء.",
-    details: { monitorAgeMinutes, syncAgeMinutes },
+    details: { monitorAgeMinutes: monitorAge },
   });
-
-  await persist(admin, checks);
+  await persist(checks);
   return {
-    status: checks.some((check) => check.status === "down")
+    status: checks.some((item) => item.status === "down")
       ? "down"
-      : checks.some((check) => check.status === "degraded")
+      : checks.some((item) => item.status === "degraded")
         ? "degraded"
         : "healthy",
     checkedAt: new Date().toISOString(),

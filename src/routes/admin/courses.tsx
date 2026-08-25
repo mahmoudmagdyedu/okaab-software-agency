@@ -14,7 +14,7 @@ import { toast } from "sonner";
 
 import { AdminLayout, useAdminAuth } from "@/components/admin/AdminShell";
 import { SlideUploader } from "@/components/admin/SlideUploader";
-import { supabase } from "@/integrations/supabase/client";
+import { okaab as supabase } from "@/integrations/okaab/client";
 import type {
   Course,
   Lesson,
@@ -132,11 +132,12 @@ function CourseAdminContent() {
       toast.error("تعذّر إنشاء الكورس", { description: created.error.message });
       return;
     }
+    const createdCourse = created.data as Pick<Course, "id">;
     const roadmapId = String(form.get("roadmapId") || "");
     if (roadmapId)
       await supabase.from("roadmap_courses").insert({
         roadmap_id: roadmapId,
-        course_id: created.data.id,
+        course_id: createdCourse.id,
         sort_order: Number(form.get("sortOrder") || 0),
       });
     toast.success("تم إنشاء الكورس");
@@ -168,12 +169,8 @@ function CourseAdminContent() {
     setSyncing(true);
     setSyncError(null);
     try {
-      const session = await supabase.auth.getSession();
-      const accessToken = session.data.session?.access_token;
-      if (!accessToken) throw new Error("انتهت جلسة الدخول. سجّل الدخول مرة أخرى.");
       const response = await fetch("/api/admin/youtube/sync", {
         method: "POST",
-        headers: { Authorization: `Bearer ${accessToken}` },
       });
       const responseText = await response.text();
       let payload: {
@@ -190,7 +187,7 @@ function CourseAdminContent() {
       if (!response.ok) {
         const description =
           response.status === 404
-            ? "خدمة مزامنة YouTube لم تُنشر بعد على Supabase."
+            ? "مسار مزامنة YouTube غير متاح على خادم Heroku."
             : response.status === 401
               ? "انتهت جلسة الدخول. سجّل الدخول مرة أخرى."
               : payload.error || payload.message || `تعذّرت المزامنة (HTTP ${response.status}).`;

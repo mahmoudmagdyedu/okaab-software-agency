@@ -1,41 +1,38 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
-
-import type { Database } from "@/integrations/supabase/types";
+import { getDb, sql } from "@/lib/db.server";
 
 export const OKAAB_CHANNEL_ID = "UCBAEq8qb5_yvj6_Ef96agOg";
 const API_ROOT = "https://www.googleapis.com/youtube/v3";
 
+type Snippet = {
+  title?: string;
+  description?: string;
+  publishedAt?: string;
+  resourceId?: { videoId?: string };
+  thumbnails?: Record<string, { url?: string }>;
+};
 type PlaylistItem = {
-  snippet?: {
-    title?: string;
-    description?: string;
-    publishedAt?: string;
-    playlistId?: string;
-    resourceId?: { videoId?: string };
-    thumbnails?: Record<string, { url?: string }>;
-  };
+  snippet?: Snippet;
   contentDetails?: { videoId?: string; videoPublishedAt?: string };
 };
-
-type YouTubeSnippet = NonNullable<PlaylistItem["snippet"]>;
-type YouTubeChannel = {
+type Channel = {
   snippet?: { title?: string };
   contentDetails?: { relatedPlaylists?: { uploads?: string } };
 };
-type YouTubePlaylist = { id: string; snippet?: YouTubeSnippet };
-type YouTubeVideoDetail = {
-  id: string;
-  snippet?: YouTubeSnippet;
-  status?: { privacyStatus?: string };
-};
+type Playlist = { id: string; snippet?: Snippet };
+type Video = { id: string; snippet?: Snippet; status?: { privacyStatus?: string } };
 
 async function youtube<T>(path: string, params: Record<string, string>) {
   const key = process.env["YOUTUBE_API_KEY"];
-  if (!key) throw new Error("YOUTUBE_API_KEY is not configured");
+  if (!key) throw new Error("YOUTUBE_API_KEY غير موجود في Heroku Config Vars");
   const url = new URL(`${API_ROOT}/${path}`);
-  for (const [name, value] of Object.entries({ ...params, key })) url.searchParams.set(name, value);
+  Object.entries({ ...params, key }).forEach(([name, value]) => url.searchParams.set(name, value));
   const response = await fetch(url, { signal: AbortSignal.timeout(20_000) });
-  if (!response.ok) throw new Error(`YouTube API ${response.status}`);
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(
+      `YouTube API ${response.status}${body.includes("quota") ? " — انتهت الحصة اليومية" : ""}`,
+    );
+  }
   return response.json() as Promise<{ items?: T[]; nextPageToken?: string }>;
 }
 
@@ -44,19 +41,19 @@ async function allPages<T>(path: string, params: Record<string, string>) {
   let pageToken = "";
   do {
     const page = await youtube<T>(path, { ...params, ...(pageToken ? { pageToken } : {}) });
-    items.push(...(page.items ?? []));
-    pageToken = page.nextPageToken ?? "";
+    items.push(...(page.items || []));
+    pageToken = page.nextPageToken || "";
   } while (pageToken);
   return items;
 }
 
-function thumbnail(snippet?: PlaylistItem["snippet"]) {
+function thumbnail(snippet?: Snippet) {
   return (
-    snippet?.thumbnails?.["maxres"]?.url ??
-    snippet?.thumbnails?.["standard"]?.url ??
-    snippet?.thumbnails?.["high"]?.url ??
-    snippet?.thumbnails?.["medium"]?.url ??
-    snippet?.thumbnails?.["default"]?.url ??
+    snippet?.thumbnails?.["maxres"]?.url ||
+    snippet?.thumbnails?.["standard"]?.url ||
+    snippet?.thumbnails?.["high"]?.url ||
+    snippet?.thumbnails?.["medium"]?.url ||
+    snippet?.thumbnails?.["default"]?.url ||
     null
   );
 }
@@ -65,7 +62,7 @@ export async function subscribeYouTubeWebSub() {
   const secret = process.env["YOUTUBE_WEBSUB_SECRET"];
   if (!secret) return { subscribed: false, reason: "missing_secret" };
   const body = new URLSearchParams({
-    "hub.callback": "https://okaab.org/api/youtube/webhook",
+    "hub.callback": `${process.env["PUBLIC_SITE_URL"] || "https://okaab.org"}/api/youtube/webhook`,
     "hub.topic": `https://www.youtube.com/feeds/videos.xml?channel_id=${OKAAB_CHANNEL_ID}`,
     "hub.verify": "async",
     "hub.mode": "subscribe",
@@ -77,156 +74,150 @@ export async function subscribeYouTubeWebSub() {
     body,
     signal: AbortSignal.timeout(15_000),
   });
-  if (!response.ok && response.status !== 202 && response.status !== 204)
-    throw new Error(`WebSub ${response.status}`);
+  if (![200, 202, 204].includes(response.status)) throw new Error(`WebSub ${response.status}`);
   return { subscribed: true };
 }
 
-export async function syncYouTubeChannel(admin: SupabaseClient<Database>) {
-  const attemptedAt = new Date().toISOString();
-  await admin
-    .from("youtube_sync_state")
-    .update({ last_attempt_at: attemptedAt })
-    .eq("channel_id", OKAAB_CHANNEL_ID);
+export async function syncYouTubeChannel() {
+  const attemptedAt = new Date();
+  const pool = await getDb();
+  await pool
+    .request()
+    .input("channel", sql.NVarChar(128), OKAAB_CHANNEL_ID)
+    .query(
+      "update okaab.youtube_sync_state set last_attempt_at=sysutcdatetime(),updated_at=sysutcdatetime() where channel_id=@channel",
+    );
   try {
-    const channelData = await youtube<YouTubeChannel>("channels", {
+    const channelData = await youtube<Channel>("channels", {
       part: "snippet,contentDetails",
       id: OKAAB_CHANNEL_ID,
     });
     const channel = channelData.items?.[0];
-    if (!channel) throw new Error("YouTube channel was not found");
-    const uploadsPlaylistId = channel.contentDetails?.relatedPlaylists?.uploads;
-    if (!uploadsPlaylistId) throw new Error("Uploads playlist was not found");
+    const uploads = channel?.contentDetails?.relatedPlaylists?.uploads;
+    if (!channel || !uploads) throw new Error("تعذّر العثور على قناة Okaab أو قائمة الرفع");
 
-    const playlists = await allPages<YouTubePlaylist>("playlists", {
+    const playlists = await allPages<Playlist>("playlists", {
       part: "snippet",
       channelId: OKAAB_CHANNEL_ID,
       maxResults: "50",
     });
-    if (playlists.length) {
-      const playlistResult = await admin.from("course_playlists").upsert(
-        playlists.map((playlist) => ({
-          youtube_playlist_id: playlist.id,
-          title: playlist.snippet?.title || "YouTube Playlist",
-          thumbnail_url: thumbnail(playlist.snippet),
-          last_synced_at: attemptedAt,
-        })),
-        { onConflict: "youtube_playlist_id" },
-      );
-      if (playlistResult.error) throw playlistResult.error;
+    for (const playlist of playlists) {
+      await pool
+        .request()
+        .input("yt", sql.NVarChar(128), playlist.id)
+        .input("title", sql.NVarChar(300), playlist.snippet?.title || "YouTube Playlist")
+        .input("thumb", sql.NVarChar(1000), thumbnail(playlist.snippet))
+        .query(`merge okaab.course_playlists as target using (select @yt as youtube_playlist_id) as source on target.youtube_playlist_id=source.youtube_playlist_id
+          when matched then update set title=@title,thumbnail_url=@thumb,last_synced_at=sysutcdatetime(),updated_at=sysutcdatetime()
+          when not matched then insert (youtube_playlist_id,title,thumbnail_url,last_synced_at) values (@yt,@title,@thumb,sysutcdatetime());`);
     }
-
-    const playlistRows = await admin.from("course_playlists").select("*");
-    if (playlistRows.error) throw playlistRows.error;
+    const playlistRows = await pool
+      .request()
+      .query<{ id: string; youtube_playlist_id: string; course_id: string | null }>(
+        "select id,youtube_playlist_id,course_id from okaab.course_playlists",
+      );
     const playlistMap = new Map(
-      (playlistRows.data ?? []).map((row) => [row.youtube_playlist_id, row]),
+      playlistRows.recordset.map((row) => [row.youtube_playlist_id, row]),
     );
 
-    const assignedVideo = new Map<string, { playlistDbId: string; courseId: string }>();
-    const itemsByVideo = new Map<string, PlaylistItem>();
+    const assigned = new Map<string, { playlistId: string; courseId: string }>();
+    const items = new Map<string, PlaylistItem>();
     for (const playlist of playlists) {
-      const items = await allPages<PlaylistItem>("playlistItems", {
+      const playlistItems = await allPages<PlaylistItem>("playlistItems", {
         part: "snippet,contentDetails",
         playlistId: playlist.id,
         maxResults: "50",
       });
       const mapped = playlistMap.get(playlist.id);
-      for (const item of items) {
-        const videoId = item.contentDetails?.videoId ?? item.snippet?.resourceId?.videoId;
-        if (!videoId) continue;
-        itemsByVideo.set(videoId, item);
-        if (mapped?.course_id && !assignedVideo.has(videoId))
-          assignedVideo.set(videoId, { playlistDbId: mapped.id, courseId: mapped.course_id });
+      for (const item of playlistItems) {
+        const id = item.contentDetails?.videoId || item.snippet?.resourceId?.videoId;
+        if (!id) continue;
+        items.set(id, item);
+        if (mapped?.course_id && !assigned.has(id))
+          assigned.set(id, { playlistId: mapped.id, courseId: mapped.course_id });
       }
     }
-
-    const uploadItems = await allPages<PlaylistItem>("playlistItems", {
+    const uploadsItems = await allPages<PlaylistItem>("playlistItems", {
       part: "snippet,contentDetails",
-      playlistId: uploadsPlaylistId,
+      playlistId: uploads,
       maxResults: "50",
     });
-    for (const item of uploadItems) {
-      const videoId = item.contentDetails?.videoId ?? item.snippet?.resourceId?.videoId;
-      if (videoId) itemsByVideo.set(videoId, item);
-    }
+    uploadsItems.forEach((item) => {
+      const id = item.contentDetails?.videoId || item.snippet?.resourceId?.videoId;
+      if (id) items.set(id, item);
+    });
 
-    const videoIds = [...itemsByVideo.keys()];
-    const details = new Map<string, YouTubeVideoDetail>();
-    for (let index = 0; index < videoIds.length; index += 50) {
-      const batch = await youtube<YouTubeVideoDetail>("videos", {
-        part: "snippet,contentDetails,status",
-        id: videoIds.slice(index, index + 50).join(","),
+    const ids = [...items.keys()];
+    const details = new Map<string, Video>();
+    for (let index = 0; index < ids.length; index += 50) {
+      const page = await youtube<Video>("videos", {
+        part: "snippet,status",
+        id: ids.slice(index, index + 50).join(","),
         maxResults: "50",
       });
-      for (const item of batch.items ?? []) details.set(item.id, item);
+      (page.items || []).forEach((video) => details.set(video.id, video));
     }
-
-    const existing = videoIds.length
-      ? await admin
-          .from("youtube_videos")
-          .select("youtube_video_id,course_id,playlist_id,lesson_id,sort_order")
-          .in("youtube_video_id", videoIds)
-      : { data: [], error: null };
-    if (existing.error) throw existing.error;
-    const existingMap = new Map((existing.data ?? []).map((row) => [row.youtube_video_id, row]));
-    const rows = videoIds.map((videoId) => {
-      const item = itemsByVideo.get(videoId)!;
-      const detail = details.get(videoId);
-      const current = existingMap.get(videoId);
-      const mapped = assignedVideo.get(videoId);
-      const snippet = detail?.snippet ?? item.snippet;
-      return {
-        youtube_video_id: videoId,
-        playlist_id: mapped?.playlistDbId ?? current?.playlist_id ?? null,
-        course_id: mapped?.courseId ?? current?.course_id ?? null,
-        lesson_id: current?.lesson_id ?? null,
-        title: snippet?.title || "فيديو من عُقاب",
-        description: snippet?.description || "",
-        thumbnail_url: thumbnail(snippet),
-        published_at:
-          detail?.snippet?.publishedAt ??
-          item.contentDetails?.videoPublishedAt ??
-          item.snippet?.publishedAt ??
-          null,
-        sort_order: current?.sort_order ?? 0,
-        is_available: Boolean(detail) && detail?.status?.privacyStatus === "public",
-        last_synced_at: attemptedAt,
-      };
-    });
-    if (rows.length) {
-      const saved = await admin
-        .from("youtube_videos")
-        .upsert(rows, { onConflict: "youtube_video_id" });
-      if (saved.error) throw saved.error;
+    const existingRows = await pool.request().query<{
+      youtube_video_id: string;
+      playlist_id: string | null;
+      course_id: string | null;
+      lesson_id: string | null;
+      sort_order: number;
+    }>("select youtube_video_id,playlist_id,course_id,lesson_id,sort_order from okaab.youtube_videos");
+    const existing = new Map(existingRows.recordset.map((row) => [row.youtube_video_id, row]));
+    for (const id of ids) {
+      const item = items.get(id)!;
+      const detail = details.get(id);
+      const old = existing.get(id);
+      const mapped = assigned.get(id);
+      const snippet = detail?.snippet || item.snippet;
+      await pool
+        .request()
+        .input("yt", sql.NVarChar(64), id)
+        .input("playlist", sql.NVarChar(64), mapped?.playlistId || old?.playlist_id || null)
+        .input("course", sql.NVarChar(64), mapped?.courseId || old?.course_id || null)
+        .input("lesson", sql.NVarChar(64), old?.lesson_id || null)
+        .input("title", sql.NVarChar(500), snippet?.title || "فيديو من عُقاب")
+        .input("description", sql.NVarChar(sql.MAX), snippet?.description || "")
+        .input("thumb", sql.NVarChar(1000), thumbnail(snippet))
+        .input(
+          "published",
+          sql.DateTimeOffset,
+          snippet?.publishedAt
+            ? new Date(snippet.publishedAt)
+            : item.contentDetails?.videoPublishedAt
+              ? new Date(item.contentDetails.videoPublishedAt)
+              : null,
+        )
+        .input("sort", sql.Int, old?.sort_order || 0)
+        .input("available", sql.Bit, Boolean(detail) && detail?.status?.privacyStatus === "public")
+        .query(`merge okaab.youtube_videos as target using (select @yt as youtube_video_id) as source on target.youtube_video_id=source.youtube_video_id
+          when matched then update set playlist_id=@playlist,course_id=@course,lesson_id=@lesson,title=@title,description=@description,thumbnail_url=@thumb,published_at=@published,sort_order=@sort,is_available=@available,last_synced_at=sysutcdatetime(),updated_at=sysutcdatetime()
+          when not matched then insert (youtube_video_id,playlist_id,course_id,lesson_id,title,description,thumbnail_url,published_at,sort_order,is_available,last_synced_at) values (@yt,@playlist,@course,@lesson,@title,@description,@thumb,@published,@sort,@available,sysutcdatetime());`);
     }
-
-    await admin
-      .from("youtube_sync_state")
-      .update({
-        channel_title: channel.snippet?.title ?? "Okaab",
-        last_success_at: attemptedAt,
-        last_error_code: null,
-        last_error_summary: null,
-        consecutive_failures: 0,
-      })
-      .eq("channel_id", OKAAB_CHANNEL_ID);
-    await subscribeYouTubeWebSub();
-    return { videos: rows.length, playlists: playlists.length, syncedAt: attemptedAt };
+    await pool
+      .request()
+      .input("channel", sql.NVarChar(128), OKAAB_CHANNEL_ID)
+      .input("title", sql.NVarChar(300), channel.snippet?.title || "Okaab")
+      .query(
+        "update okaab.youtube_sync_state set channel_title=@title,last_success_at=sysutcdatetime(),last_error_code=null,last_error_summary=null,consecutive_failures=0,updated_at=sysutcdatetime() where channel_id=@channel",
+      );
+    await subscribeYouTubeWebSub().catch((error) =>
+      console.warn("WebSub subscription failed", error),
+    );
+    return { videos: ids.length, playlists: playlists.length, syncedAt: attemptedAt.toISOString() };
   } catch (error) {
-    const current = await admin
-      .from("youtube_sync_state")
-      .select("consecutive_failures")
-      .eq("channel_id", OKAAB_CHANNEL_ID)
-      .maybeSingle();
-    await admin
-      .from("youtube_sync_state")
-      .update({
-        last_error_code: "sync_failed",
-        last_error_summary:
-          error instanceof Error ? error.message.slice(0, 300) : "Unknown sync error",
-        consecutive_failures: (current.data?.consecutive_failures ?? 0) + 1,
-      })
-      .eq("channel_id", OKAAB_CHANNEL_ID);
+    await pool
+      .request()
+      .input("channel", sql.NVarChar(128), OKAAB_CHANNEL_ID)
+      .input(
+        "summary",
+        sql.NVarChar(1000),
+        error instanceof Error ? error.message.slice(0, 1000) : "Unknown sync error",
+      )
+      .query(
+        "update okaab.youtube_sync_state set last_error_code='sync_failed',last_error_summary=@summary,consecutive_failures=consecutive_failures+1,updated_at=sysutcdatetime() where channel_id=@channel",
+      );
     throw error;
   }
 }

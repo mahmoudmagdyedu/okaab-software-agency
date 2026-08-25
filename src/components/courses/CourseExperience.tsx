@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { supabase } from "@/integrations/supabase/client";
+import { okaab as supabase } from "@/integrations/okaab/client";
 import type {
   Course,
   Lesson,
@@ -502,9 +502,7 @@ function OkaabVideoPlayer({ video, onEnded }: { video: YouTubeVideo; onEnded: ()
 }
 
 function SlideViewer({ deck }: { deck: SlideDeck }) {
-  const supabaseUrl =
-    import.meta.env["VITE_SUPABASE_URL"] || "https://cqxloxfxxwuhdkppjcpr.supabase.co";
-  const base = `${supabaseUrl}/storage/v1/object/public/course-slides/${deck.storage_root}`;
+  const base = `/slides/${deck.id}`;
   return (
     <div className="overflow-hidden rounded-3xl border-2 border-[var(--ok-ink)] bg-[var(--ok-card)]">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-[var(--ok-ink)] p-4">
@@ -514,7 +512,7 @@ function SlideViewer({ deck }: { deck: SlideDeck }) {
         </div>
         {deck.allow_download && deck.archive_name && (
           <a
-            href={`${base}/${deck.archive_name}`}
+            href={`/api/slides/${deck.id}/download`}
             target="_blank"
             rel="noreferrer"
             className="flex items-center gap-2 rounded-full border-2 border-[var(--ok-ink)] px-4 py-2 text-xs font-bold"

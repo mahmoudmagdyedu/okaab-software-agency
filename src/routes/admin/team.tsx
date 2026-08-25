@@ -4,7 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
 import { AdminLayout, ROLE_LABELS, useAdminAuth } from "@/components/admin/AdminShell";
-import { supabase } from "@/integrations/supabase/client";
+import { okaab as supabase } from "@/integrations/okaab/client";
 import type { AppRole, Profile, Team } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/admin/team")({
@@ -72,13 +72,9 @@ function TeamContent() {
     const form = new FormData(event.currentTarget);
     const role = String(form.get("role")) as AppRole;
     const teamId = String(form.get("teamId") || "") || null;
-    const session = await supabase.auth.getSession();
     const response = await fetch("/api/admin/invite", {
       method: "POST",
-      headers: {
-        "content-type": "application/json",
-        Authorization: `Bearer ${session.data.session?.access_token ?? ""}`,
-      },
+      headers: { "content-type": "application/json" },
       body: JSON.stringify({ email: String(form.get("email")), role, teamId }),
     });
     const payload = await response.json();
