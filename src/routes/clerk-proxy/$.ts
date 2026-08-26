@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-const CLERK_FRONTEND_API = "https://clerk.okaab.org";
+const CLERK_FRONTEND_API = "https://frontend-api.clerk.dev";
 const CLERK_PROXY_URL = "https://okaab.org/clerk-proxy";
 
 function getClientIp(request: Request) {
