@@ -16,6 +16,7 @@ import { Route as McpRouteImport } from './routes/mcp'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SoftwareDevelopmentEgyptRouteImport } from './routes/software-development-egypt'
+import { Route as SsoCallbackRouteImport } from './routes/sso-callback'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
@@ -90,6 +91,11 @@ const SoftwareDevelopmentEgyptRoute =
     path: '/software-development-egypt',
     getParentRoute: () => rootRouteImport,
   } as any)
+const SsoCallbackRoute = SsoCallbackRouteImport.update({
+  id: '/sso-callback',
+  path: '/sso-callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const Char91DotmcpChar93ListToolsRoute =
   Char91DotmcpChar93ListToolsRouteImport.update({
     id: '/.mcp/list-tools',
@@ -290,6 +296,7 @@ export interface FileRoutesByFullPath {
   '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/software-development-egypt': typeof SoftwareDevelopmentEgyptRoute
+  '/sso-callback': typeof SsoCallbackRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/admin/courses': typeof AdminCoursesRoute
@@ -335,6 +342,7 @@ export interface FileRoutesByTo {
   '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/software-development-egypt': typeof SoftwareDevelopmentEgyptRoute
+  '/sso-callback': typeof SsoCallbackRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/admin/courses': typeof AdminCoursesRoute
@@ -381,6 +389,7 @@ export interface FileRoutesById {
   '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/software-development-egypt': typeof SoftwareDevelopmentEgyptRoute
+  '/sso-callback': typeof SsoCallbackRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/admin/courses': typeof AdminCoursesRoute
@@ -428,6 +437,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/sitemap.xml'
     | '/software-development-egypt'
+    | '/sso-callback'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/admin/courses'
@@ -473,6 +483,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/sitemap.xml'
     | '/software-development-egypt'
+    | '/sso-callback'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/admin/courses'
@@ -518,6 +529,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/sitemap.xml'
     | '/software-development-egypt'
+    | '/sso-callback'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/admin/courses'
@@ -564,6 +576,7 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SoftwareDevelopmentEgyptRoute: typeof SoftwareDevelopmentEgyptRoute
+  SsoCallbackRoute: typeof SsoCallbackRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   AdminCoursesRoute: typeof AdminCoursesRoute
@@ -651,6 +664,13 @@ declare module '@tanstack/react-router' {
       path: '/software-development-egypt'
       fullPath: '/software-development-egypt'
       preLoaderRoute: typeof SoftwareDevelopmentEgyptRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sso-callback': {
+      id: '/sso-callback'
+      path: '/sso-callback'
+      fullPath: '/sso-callback'
+      preLoaderRoute: typeof SsoCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/.mcp/list-tools': {
@@ -916,6 +936,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SoftwareDevelopmentEgyptRoute: SoftwareDevelopmentEgyptRoute,
+  SsoCallbackRoute: SsoCallbackRoute,
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
