@@ -19,6 +19,7 @@ const OKAAB_ARABIC_LOCALIZATION = {
   ...arSA,
   formFieldInputPlaceholder__emailAddress: "أدخل بريدك الإلكتروني",
   formFieldInputPlaceholder__password: "أدخل كلمة المرور",
+  formFieldInputPlaceholder__signUpPassword: "أنشئ كلمة مرور قوية",
 };
 
 function NotFoundComponent() {
