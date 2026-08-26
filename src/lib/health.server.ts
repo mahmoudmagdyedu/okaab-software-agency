@@ -157,6 +157,53 @@ async function serviceCheck(
   };
 }
 
+async function resendCheck(): Promise<CheckResult> {
+  const started = performance.now();
+  const token = process.env["RESEND_API_KEY"];
+  let code: number | null = null;
+  let authenticated = false;
+
+  try {
+    if (token) {
+      // A sending-only Resend key cannot read /domains. Submit an intentionally
+      // incomplete email instead: an authenticated key returns 422 without
+      // sending anything, while an invalid/revoked key returns 401/403.
+      const response = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${token}`,
+          "content-type": "application/json",
+        },
+        body: "{}",
+        signal: AbortSignal.timeout(8_000),
+      });
+      code = response.status;
+      authenticated = response.status === 422;
+    }
+  } catch {
+    authenticated = false;
+  }
+
+  return {
+    key: "email",
+    status: authenticated ? "healthy" : "degraded",
+    latencyMs: Math.round(performance.now() - started),
+    statusCode: code,
+    summary: authenticated
+      ? "خدمة Resend جاهزة للإرسال."
+      : "تعذّر تأكيد جاهزية Resend.",
+    impact: authenticated
+      ? "لا يوجد تأثير."
+      : "قد لا تصل تنبيهات حالة النظام والرسائل البريدية.",
+    cause: authenticated
+      ? "مفتاح الإرسال مقبول والاتصال يعمل."
+      : "مفتاح الإرسال غير موجود أو غير صالح أو خدمة Resend لا تستجيب.",
+    action: authenticated
+      ? "لا يلزم إجراء."
+      : "راجع RESEND_API_KEY داخل Heroku Config Vars.",
+  };
+}
+
 async function sendEmail(subject: string, html: string, recipients: string[]) {
   const apiKey = process.env["RESEND_API_KEY"];
   if (!apiKey || !recipients.length) return;
@@ -281,13 +328,7 @@ export async function runDeepHealthCheck() {
       "خدمة Clerk تستجيب وتسجيل الدخول جاهز.",
       "تعذّر تأكيد جاهزية Clerk.",
     ),
-    serviceCheck(
-      "email",
-      "https://api.resend.com/domains",
-      process.env["RESEND_API_KEY"],
-      "خدمة Resend جاهزة للإرسال.",
-      "تعذّر تأكيد جاهزية Resend.",
-    ),
+    resendCheck(),
   ]);
 
   const dbStarted = performance.now();
