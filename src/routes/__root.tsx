@@ -15,6 +15,12 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { THEME_INIT_SCRIPT } from "../lib/theme";
 
+const OKAAB_ARABIC_LOCALIZATION = {
+  ...arSA,
+  formFieldInputPlaceholder__emailAddress: "أدخل بريدك الإلكتروني",
+  formFieldInputPlaceholder__password: "أدخل كلمة المرور",
+};
+
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -188,7 +194,7 @@ function RootShell({ children }: { children: ReactNode }) {
       </head>
       <body>
         <ClerkProvider
-          localization={arSA}
+          localization={OKAAB_ARABIC_LOCALIZATION}
           appearance={{
             cssLayerName: shadcn.cssLayerName!,
             variables: shadcn.variables!,

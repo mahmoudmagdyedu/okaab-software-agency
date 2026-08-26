@@ -69,7 +69,7 @@ function AdminLoginPage() {
                 elements: {
                   rootBox: "w-full",
                   cardBox: "w-full shadow-none",
-                  card: "w-full border-2 border-[var(--ok-ink)] bg-[var(--ok-card)] shadow-[6px_6px_0_var(--ok-ink)]",
+                  card: "w-full border-2 border-[var(--ok-ink)] bg-[var(--ok-card)] shadow-[6px_6px_0_#6B4311]",
                   headerTitle: "text-xl font-black",
                   headerSubtitle: "text-sm opacity-65",
                   socialButtonsBlockButton:
@@ -78,7 +78,8 @@ function AdminLoginPage() {
                   formFieldInput:
                     "h-12 border-2 border-[var(--ok-ink)] bg-[var(--ok-paper)] text-[var(--ok-ink)] shadow-none",
                   formButtonPrimary:
-                    "h-12 border-2 border-[var(--ok-ink)] bg-[#E8A33D] font-black text-[#181511] shadow-[3px_3px_0_var(--ok-ink)] hover:bg-[#f0b24f]",
+                    "h-12 border-2 border-[var(--ok-ink)] bg-[#E8A33D] font-black text-[#181511] shadow-[3px_3px_0_#6B4311] hover:bg-[#f0b24f]",
+                  buttonArrowIcon: "hidden",
                   dividerLine: "bg-[var(--ok-ink)]/20",
                   dividerText: "text-[var(--ok-ink)]/60",
                   footerAction: "hidden",
