@@ -45,7 +45,22 @@ function AdminLoginPage() {
             </Link>
             <img src="/logo-96.webp" alt="عُقاب" className="size-14 object-contain" />
           </div>
-          <SignIn routing="hash" fallbackRedirectUrl="/admin" signUpUrl="/sign-up" />
+          <SignIn
+            routing="hash"
+            fallbackRedirectUrl="/admin"
+            signUpUrl="/sign-up"
+            appearance={{
+              options: {
+                socialButtonsPlacement: "top",
+                socialButtonsVariant: "blockButton",
+              },
+              variables: {
+                colorPrimary: "#E8A33D",
+                colorBackground: "#fffdf8",
+                borderRadius: "0.75rem",
+              },
+            }}
+          />
         </main>
       </div>
     </ThemeProvider>
