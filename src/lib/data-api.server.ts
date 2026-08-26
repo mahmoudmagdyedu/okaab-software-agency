@@ -269,11 +269,7 @@ async function access(table: TableName, operation: DataRequest["operation"]) {
       throw new Response("Forbidden", { status: 403 });
     if (table === "teams" && !["super_admin", "admin"].includes(profile.role))
       throw new Response("Forbidden", { status: 403 });
-    if (
-      ["tasks", "task_assignees"].includes(table) &&
-      profile.role === "employee" &&
-      operation !== "update"
-    )
+    if (["tasks", "task_assignees"].includes(table) && profile.role !== "super_admin")
       throw new Response("Forbidden", { status: 403 });
   }
   return profile;

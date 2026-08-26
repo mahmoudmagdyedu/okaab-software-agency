@@ -1,7 +1,19 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { addDays, format, startOfDay } from "date-fns";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { addDays, format, startOfDay, startOfWeek } from "date-fns";
 import { arEG } from "date-fns/locale";
-import { CalendarPlus, ChevronLeft, ChevronRight, Clock3, Plus, Users, X } from "lucide-react";
+import {
+  AlertTriangle,
+  CalendarPlus,
+  ChevronLeft,
+  ChevronRight,
+  Clock3,
+  Edit3,
+  Plus,
+  ShieldCheck,
+  Trash2,
+  Users,
+  X,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type DragEvent, type FormEvent } from "react";
 import { toast } from "sonner";
 
@@ -54,29 +66,49 @@ function taskStyle(task: Task) {
   );
   return {
     top: `${(topMinutes / total) * GRID_HEIGHT}px`,
-    height: `${Math.max(54, (duration / total) * GRID_HEIGHT)}px`,
+    height: `${Math.max(76, (duration / total) * GRID_HEIGHT)}px`,
   };
 }
 
-function TaskComposer({
+function TaskEditor({
   teams,
   profiles,
+  selectedDay,
+  task,
   onClose,
-  onCreated,
+  onSaved,
 }: {
   teams: Team[];
   profiles: Profile[];
+  selectedDay: Date;
+  task?: TaskWithPeople | null;
   onClose: () => void;
-  onCreated: () => Promise<void>;
+  onSaved: () => Promise<void>;
 }) {
-  const { profile } = useAdminAuth();
   const [saving, setSaving] = useState(false);
-  const [teamId, setTeamId] = useState(profile?.team_id ?? teams[0]?.id ?? "");
-  const [assignees, setAssignees] = useState<string[]>([]);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [teamId, setTeamId] = useState(task?.team_id ?? teams[0]?.id ?? "");
+  const [assignees, setAssignees] = useState<string[]>(task?.assigneeIds ?? []);
+
+  const initialDate = task ? new Date(task.starts_at) : new Date(selectedDay);
+  if (!task) initialDate.setHours(DAY_START, 0, 0, 0);
+  const initialEnd = task
+    ? new Date(task.ends_at)
+    : new Date(initialDate.getTime() + 60 * 60 * 1000);
+
+  async function request(method: "POST" | "PATCH" | "DELETE", body: Record<string, unknown>) {
+    const response = await fetch("/api/admin/tasks", {
+      method,
+      credentials: "same-origin",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    if (!response.ok) throw new Error(payload?.error || "تعذّر تنفيذ العملية");
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!profile) return;
     const form = new FormData(event.currentTarget);
     const date = String(form.get("date"));
     const start = new Date(`${date}T${String(form.get("start"))}:00`);
@@ -86,42 +118,42 @@ function TaskComposer({
       return;
     }
     setSaving(true);
-    const inserted = await supabase
-      .from("tasks")
-      .insert({
-        team_id: teamId,
+    try {
+      await request(task ? "PATCH" : "POST", {
+        id: task?.id,
+        teamId,
         title: String(form.get("title")),
         description: String(form.get("description") ?? ""),
-        starts_at: start.toISOString(),
-        ends_at: end.toISOString(),
-        status: "scheduled",
-        issuer_id: profile.id,
-      })
-      .select("*")
-      .single();
-
-    if (inserted.error || !inserted.data) {
-      toast.error("تعذّر إنشاء المهمة", { description: inserted.error?.message });
+        startsAt: start.toISOString(),
+        endsAt: end.toISOString(),
+        status: String(form.get("status") || "scheduled"),
+        assigneeIds: assignees,
+      });
+      toast.success(task ? "تم تعديل المهمة" : "تم إنشاء المهمة");
+      await onSaved();
+      onClose();
+    } catch (error) {
+      toast.error(task ? "تعذّر تعديل المهمة" : "تعذّر إنشاء المهمة", {
+        description: error instanceof Error ? error.message : undefined,
+      });
       setSaving(false);
-      return;
     }
-    const createdTask = inserted.data as Task;
+  }
 
-    if (assignees.length) {
-      const assignment = await supabase.from("task_assignees").insert(
-        assignees.map((profileId) => ({
-          task_id: createdTask.id,
-          profile_id: profileId,
-          assigned_by: profile.id,
-          status: "scheduled" as TaskStatus,
-        })),
-      );
-      if (assignment.error) toast.error("أُنشئت المهمة لكن تعذّر إسناد بعض الأعضاء");
+  async function remove() {
+    if (!task) return;
+    setSaving(true);
+    try {
+      await request("DELETE", { id: task.id });
+      toast.success("تم حذف المهمة");
+      await onSaved();
+      onClose();
+    } catch (error) {
+      toast.error("تعذّر حذف المهمة", {
+        description: error instanceof Error ? error.message : undefined,
+      });
+      setSaving(false);
     }
-
-    toast.success("تم إنشاء المهمة وترتيبها تلقائيًا");
-    await onCreated();
-    onClose();
   }
 
   const eligible = profiles.filter(
@@ -150,10 +182,10 @@ function TaskComposer({
           <X size={17} />
         </button>
         <h2 id="task-title" className="font-display text-3xl font-bold">
-          مهمة جديدة
+          {task ? "تعديل المهمة" : "مهمة جديدة"}
         </h2>
         <p className="mt-2 text-sm opacity-65">
-          الأولوية تُحسب من دور منشئ المهمة ولا يمكن تعديلها يدويًا.
+          هذه العملية متاحة للسوبر أدمن فقط، وتُسجّل تلقائيًا في سجل التدقيق.
         </p>
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
           <label className="sm:col-span-2">
@@ -163,6 +195,7 @@ function TaskComposer({
               required
               minLength={2}
               maxLength={180}
+              defaultValue={task?.title ?? ""}
               className="h-11 w-full rounded-xl border-2 border-[var(--ok-ink)] bg-[var(--ok-paper)] px-3 outline-none"
             />
           </label>
@@ -191,7 +224,7 @@ function TaskComposer({
               name="date"
               type="date"
               required
-              defaultValue={format(new Date(), "yyyy-MM-dd")}
+              defaultValue={format(initialDate, "yyyy-MM-dd")}
               className="h-11 w-full rounded-xl border-2 border-[var(--ok-ink)] bg-[var(--ok-paper)] px-3"
             />
           </label>
@@ -201,7 +234,7 @@ function TaskComposer({
               name="start"
               type="time"
               required
-              defaultValue="09:00"
+              defaultValue={format(initialDate, "HH:mm")}
               className="h-11 w-full rounded-xl border-2 border-[var(--ok-ink)] bg-[var(--ok-paper)] px-3"
             />
           </label>
@@ -211,7 +244,7 @@ function TaskComposer({
               name="end"
               type="time"
               required
-              defaultValue="10:00"
+              defaultValue={format(initialEnd, "HH:mm")}
               className="h-11 w-full rounded-xl border-2 border-[var(--ok-ink)] bg-[var(--ok-paper)] px-3"
             />
           </label>
@@ -220,8 +253,23 @@ function TaskComposer({
             <textarea
               name="description"
               rows={3}
+              defaultValue={task?.description ?? ""}
               className="w-full rounded-xl border-2 border-[var(--ok-ink)] bg-[var(--ok-paper)] p-3 outline-none"
             />
+          </label>
+          <label className="sm:col-span-2">
+            <span className="mb-1.5 block text-sm font-bold">الحالة</span>
+            <select
+              name="status"
+              defaultValue={task?.status ?? "scheduled"}
+              className="h-11 w-full rounded-xl border-2 border-[var(--ok-ink)] bg-[var(--ok-paper)] px-3"
+            >
+              {Object.entries(STATUS_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
           </label>
         </div>
         <fieldset className="mt-5">
@@ -252,13 +300,52 @@ function TaskComposer({
             )}
           </div>
         </fieldset>
-        <button
-          disabled={saving || !teamId}
-          className="mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-xl border-2 border-[var(--ok-ink)] bg-[var(--ok-ink)] font-bold text-[var(--ok-paper)] disabled:opacity-50"
-        >
-          <Plus size={18} />
-          {saving ? "جاري الحفظ…" : "إنشاء المهمة"}
-        </button>
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+          <button
+            disabled={saving || !teamId}
+            className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl border-2 border-[var(--ok-ink)] bg-[var(--ok-ink)] font-bold text-[var(--ok-paper)] disabled:opacity-50"
+          >
+            {task ? <Edit3 size={18} /> : <Plus size={18} />}
+            {saving ? "جاري الحفظ…" : task ? "حفظ التعديلات" : "إنشاء المهمة"}
+          </button>
+          {task && !confirmingDelete && (
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => setConfirmingDelete(true)}
+              className="flex h-12 items-center justify-center gap-2 rounded-xl border-2 border-red-500 px-5 font-bold text-red-500 transition hover:bg-red-500 hover:text-white"
+            >
+              <Trash2 size={18} />
+              حذف
+            </button>
+          )}
+        </div>
+        {task && confirmingDelete && (
+          <div className="mt-3 rounded-2xl border border-red-500/40 bg-red-500/10 p-4">
+            <p className="flex items-center gap-2 text-sm font-bold text-red-500">
+              <AlertTriangle size={18} />
+              سيتم حذف المهمة وتعليقاتها وإسناداتها نهائيًا.
+            </p>
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => void remove()}
+                className="h-10 flex-1 rounded-xl bg-red-500 px-4 font-bold text-white disabled:opacity-50"
+              >
+                تأكيد الحذف
+              </button>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => setConfirmingDelete(false)}
+                className="h-10 rounded-xl border border-[var(--ok-ink)] px-4 font-bold"
+              >
+                تراجع
+              </button>
+            </div>
+          </div>
+        )}
       </form>
     </div>
   );
@@ -272,7 +359,8 @@ function TasksContent() {
   const [tasks, setTasks] = useState<TaskWithPeople[]>([]);
   const [loading, setLoading] = useState(true);
   const [composerOpen, setComposerOpen] = useState(false);
-  const canManage = profile?.role !== "employee";
+  const [editingTask, setEditingTask] = useState<TaskWithPeople | null>(null);
+  const canManage = profile?.role === "super_admin";
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -321,9 +409,32 @@ function TasksContent() {
   }, [teams, profile]);
 
   const days = useMemo(
-    () => Array.from({ length: 7 }, (_, index) => addDays(startOfDay(new Date()), index)),
-    [],
+    () =>
+      Array.from({ length: 7 }, (_, index) =>
+        addDays(startOfWeek(selectedDay, { weekStartsOn: 6 }), index),
+      ),
+    [selectedDay],
   );
+
+  async function updateTask(task: TaskWithPeople, changes: Partial<Task> = {}) {
+    const response = await fetch("/api/admin/tasks", {
+      method: "PATCH",
+      credentials: "same-origin",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        id: task.id,
+        teamId: changes.team_id ?? task.team_id,
+        title: changes.title ?? task.title,
+        description: changes.description ?? task.description,
+        startsAt: changes.starts_at ?? task.starts_at,
+        endsAt: changes.ends_at ?? task.ends_at,
+        status: changes.status ?? task.status,
+        assigneeIds: task.assigneeIds,
+      }),
+    });
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    if (!response.ok) throw new Error(payload?.error || "تعذّر تعديل المهمة");
+  }
 
   async function dropTask(event: DragEvent<HTMLDivElement>, teamId: string) {
     event.preventDefault();
@@ -338,28 +449,33 @@ function TasksContent() {
     startsAt.setHours(DAY_START, minutes, 0, 0);
     const duration = new Date(task.ends_at).getTime() - new Date(task.starts_at).getTime();
     const endsAt = new Date(startsAt.getTime() + duration);
-    const result = await supabase
-      .from("tasks")
-      .update({ team_id: teamId, starts_at: startsAt.toISOString(), ends_at: endsAt.toISOString() })
-      .eq("id", taskId);
-    if (result.error) toast.error("لم يتم نقل المهمة", { description: result.error.message });
-    else {
+    try {
+      const teamMemberIds = new Set(
+        profiles.filter((member) => member.team_id === teamId).map((member) => member.id),
+      );
+      await updateTask(
+        { ...task, assigneeIds: task.assigneeIds.filter((id) => teamMemberIds.has(id)) },
+        { team_id: teamId, starts_at: startsAt.toISOString(), ends_at: endsAt.toISOString() },
+      );
       toast.success("تم تحديث وقت المهمة");
       await load();
+    } catch (error) {
+      toast.error("لم يتم نقل المهمة", {
+        description: error instanceof Error ? error.message : undefined,
+      });
     }
   }
 
-  async function setTaskStatus(task: Task, status: TaskStatus) {
-    const result =
-      profile?.role === "employee"
-        ? await supabase
-            .from("task_assignees")
-            .update({ status })
-            .eq("task_id", task.id)
-            .eq("profile_id", profile.id)
-        : await supabase.from("tasks").update({ status }).eq("id", task.id);
-    if (result.error) toast.error("تعذّر تحديث الحالة");
-    else await load();
+  async function setTaskStatus(task: TaskWithPeople, status: TaskStatus) {
+    if (!canManage) return;
+    try {
+      await updateTask(task, { status });
+      await load();
+    } catch (error) {
+      toast.error("تعذّر تحديث الحالة", {
+        description: error instanceof Error ? error.message : undefined,
+      });
+    }
   }
 
   const personName = (id: string) =>
@@ -398,10 +514,13 @@ function TasksContent() {
             {format(selectedDay, "d MMMM yyyy", { locale: arEG })}
           </span>
         </div>
-        {canManage && (
+        {canManage && visibleTeams.length > 0 && (
           <button
             type="button"
-            onClick={() => setComposerOpen(true)}
+            onClick={() => {
+              setEditingTask(null);
+              setComposerOpen(true);
+            }}
             className="flex h-11 items-center justify-center gap-2 rounded-xl border-2 border-[var(--ok-ink)] bg-[#E8A33D] px-5 font-bold text-[#181511]"
           >
             <CalendarPlus size={18} />
@@ -409,6 +528,13 @@ function TasksContent() {
           </button>
         )}
       </div>
+
+      {profile && !canManage && (
+        <div className="flex items-start gap-3 rounded-2xl border border-[#E8A33D]/35 bg-[#E8A33D]/10 px-4 py-3 text-sm leading-6">
+          <ShieldCheck className="mt-0.5 size-5 shrink-0 text-[#D88C20]" aria-hidden />
+          <p>يمكنك مشاهدة الجدول والمهام، بينما الإضافة والتعديل والحذف متاحة للسوبر أدمن فقط.</p>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-7">
         {days.map((day) => {
@@ -428,110 +554,160 @@ function TasksContent() {
       </div>
 
       <section className="hidden overflow-x-auto rounded-3xl border-2 border-[var(--ok-ink)] bg-[var(--ok-card)] md:block">
-        <div
-          className="min-w-[820px]"
-          style={{ width: `${Math.max(100, visibleTeams.length * 260 + 70)}px` }}
-        >
-          <div
-            className="grid border-b-2 border-[var(--ok-ink)]"
-            style={{
-              gridTemplateColumns: `70px repeat(${Math.max(visibleTeams.length, 1)}, minmax(250px, 1fr))`,
-            }}
-          >
-            <div className="p-3 text-center text-xs opacity-55">
-              <Clock3 className="mx-auto" size={17} />
+        {loading ? (
+          <div className="grid min-h-80 place-items-center p-8 text-center">
+            <div>
+              <Clock3 className="mx-auto mb-3 size-8 animate-pulse text-[#D88C20]" />
+              <p className="font-bold">جاري تجهيز الجدول…</p>
+              <p className="mt-1 text-sm opacity-55">نحمّل الفرق والمهام لهذا اليوم.</p>
             </div>
-            {visibleTeams.map((team) => (
-              <div key={team.id} className="border-r border-[var(--ok-ink)]/25 p-3">
-                <span
-                  className="inline-block size-2.5 rounded-full"
-                  style={{ background: team.color }}
-                />{" "}
-                <strong className="mr-2">{team.name}</strong>
-              </div>
-            ))}
           </div>
+        ) : visibleTeams.length === 0 ? (
+          <div className="grid min-h-80 place-items-center p-8 text-center">
+            <div className="max-w-md">
+              <div className="mx-auto grid size-16 place-items-center rounded-2xl bg-[#E8A33D]/15 text-[#D88C20]">
+                <Users size={28} />
+              </div>
+              <h2 className="mt-5 text-xl font-black">لا توجد فرق نشطة لعرضها</h2>
+              <p className="mt-2 text-sm leading-6 opacity-60">
+                أضف فريقًا أولًا، وبعدها سيظهر هنا كعمود مستقل ويمكنك إضافة مهامه وتنظيمها.
+              </p>
+              {canManage && (
+                <Link
+                  to="/admin/team"
+                  className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#E8A33D] px-5 font-bold text-[#181511]"
+                >
+                  <Plus size={17} />
+                  إضافة فريق
+                </Link>
+              )}
+            </div>
+          </div>
+        ) : (
           <div
-            className="grid"
-            style={{
-              gridTemplateColumns: `70px repeat(${Math.max(visibleTeams.length, 1)}, minmax(250px, 1fr))`,
-            }}
+            className="min-w-[820px]"
+            style={{ minWidth: `${visibleTeams.length * 260 + 70}px` }}
           >
             <div
-              className="relative border-l-2 border-[var(--ok-ink)]"
-              style={{ height: GRID_HEIGHT }}
+              className="sticky top-0 z-30 grid border-b-2 border-[var(--ok-ink)] bg-[var(--ok-card)]"
+              style={{
+                gridTemplateColumns: `70px repeat(${visibleTeams.length}, minmax(250px, 1fr))`,
+              }}
             >
-              {Array.from({ length: DAY_END - DAY_START + 1 }, (_, index) => (
-                <span
-                  key={index}
-                  className="absolute left-0 right-0 -translate-y-1/2 text-center text-[11px] opacity-50"
-                  style={{ top: `${(index / (DAY_END - DAY_START)) * 100}%` }}
-                >
-                  {String(DAY_START + index).padStart(2, "0")}:00
-                </span>
+              <div className="p-3 text-center text-xs opacity-55">
+                <Clock3 className="mx-auto" size={17} />
+              </div>
+              {visibleTeams.map((team) => (
+                <div key={team.id} className="border-r border-[var(--ok-ink)]/25 p-3">
+                  <span
+                    className="inline-block size-2.5 rounded-full"
+                    style={{ background: team.color }}
+                  />{" "}
+                  <strong className="mr-2">{team.name}</strong>
+                </div>
               ))}
             </div>
-            {visibleTeams.map((team) => (
+            <div
+              className="grid"
+              style={{
+                gridTemplateColumns: `70px repeat(${visibleTeams.length}, minmax(250px, 1fr))`,
+              }}
+            >
               <div
-                key={team.id}
-                onDragOver={(event) => canManage && event.preventDefault()}
-                onDrop={(event) => void dropTask(event, team.id)}
-                className="relative border-l border-[var(--ok-ink)]/30"
-                style={{
-                  height: GRID_HEIGHT,
-                  backgroundImage:
-                    "repeating-linear-gradient(to bottom, transparent 0, transparent 69px, color-mix(in srgb, var(--ok-ink) 16%, transparent) 70px)",
-                }}
+                className="relative border-l-2 border-[var(--ok-ink)]"
+                style={{ height: GRID_HEIGHT }}
               >
-                {tasks
-                  .filter((task) => task.team_id === team.id)
-                  .map((task) => (
-                    <article
-                      key={task.id}
-                      draggable={canManage}
-                      onDragStart={(event) => event.dataTransfer.setData("text/task-id", task.id)}
-                      style={{ ...taskStyle(task), borderTopColor: team.color }}
-                      className="absolute inset-x-2 z-10 cursor-grab overflow-hidden rounded-xl border-2 border-[var(--ok-ink)] border-t-[5px] bg-[var(--ok-paper-2)] p-2.5 shadow-sm active:cursor-grabbing"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <strong className="line-clamp-1 text-sm">{task.title}</strong>
-                        <span className="shrink-0 rounded-full bg-[#E8A33D]/25 px-2 py-0.5 text-[10px] font-bold">
-                          {ROLE_LABELS[task.issuer_role_snapshot]}
-                        </span>
-                      </div>
-                      <p dir="ltr" className="mt-1 text-right text-[11px] opacity-60">
-                        {format(new Date(task.starts_at), "HH:mm")} –{" "}
-                        {format(new Date(task.ends_at), "HH:mm")}
-                      </p>
-                      {task.assigneeIds.length > 0 && (
-                        <p className="mt-1 line-clamp-1 text-[11px] opacity-65">
-                          {task.assigneeIds.map(personName).join("، ")}
-                        </p>
-                      )}
-                      <select
-                        aria-label="حالة المهمة"
-                        value={
-                          profile?.role === "employee"
-                            ? (task.personalStatus ?? task.status)
-                            : task.status
-                        }
-                        onChange={(event) =>
-                          void setTaskStatus(task, event.target.value as TaskStatus)
-                        }
-                        className="mt-2 max-w-full rounded-lg border border-[var(--ok-ink)]/25 bg-transparent px-1.5 py-1 text-[10px] font-bold"
-                      >
-                        {Object.entries(STATUS_LABELS).map(([value, label]) => (
-                          <option key={value} value={value}>
-                            {label}
-                          </option>
-                        ))}
-                      </select>
-                    </article>
-                  ))}
+                {Array.from({ length: DAY_END - DAY_START + 1 }, (_, index) => (
+                  <span
+                    key={index}
+                    className="absolute left-0 right-0 -translate-y-1/2 text-center text-[11px] opacity-50"
+                    style={{ top: `${(index / (DAY_END - DAY_START)) * 100}%` }}
+                  >
+                    {String(DAY_START + index).padStart(2, "0")}:00
+                  </span>
+                ))}
               </div>
-            ))}
+              {visibleTeams.map((team) => (
+                <div
+                  key={team.id}
+                  onDragOver={(event) => canManage && event.preventDefault()}
+                  onDrop={(event) => void dropTask(event, team.id)}
+                  className="relative border-l border-[var(--ok-ink)]/30"
+                  style={{
+                    height: GRID_HEIGHT,
+                    backgroundImage:
+                      "repeating-linear-gradient(to bottom, transparent 0, transparent 69px, color-mix(in srgb, var(--ok-ink) 16%, transparent) 70px)",
+                  }}
+                >
+                  {tasks
+                    .filter((task) => task.team_id === team.id)
+                    .map((task) => (
+                      <article
+                        key={task.id}
+                        draggable={canManage}
+                        onDragStart={(event) => event.dataTransfer.setData("text/task-id", task.id)}
+                        style={{ ...taskStyle(task), borderTopColor: team.color }}
+                        className={`absolute inset-x-2 z-10 overflow-hidden rounded-xl border-2 border-[var(--ok-ink)] border-t-[5px] bg-[var(--ok-paper-2)] p-2.5 shadow-sm transition hover:z-20 hover:shadow-lg ${canManage ? "cursor-grab active:cursor-grabbing" : "cursor-default"}`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <strong className="line-clamp-1 text-sm">{task.title}</strong>
+                          <div className="flex shrink-0 items-center gap-1">
+                            <span className="rounded-full bg-[#E8A33D]/25 px-2 py-0.5 text-[10px] font-bold">
+                              {ROLE_LABELS[task.issuer_role_snapshot]}
+                            </span>
+                            {canManage && (
+                              <button
+                                type="button"
+                                aria-label={`تعديل ${task.title}`}
+                                onPointerDown={(event) => event.stopPropagation()}
+                                onClick={() => {
+                                  setEditingTask(task);
+                                  setComposerOpen(true);
+                                }}
+                                className="grid size-7 place-items-center rounded-lg border border-[var(--ok-ink)]/20 bg-[var(--ok-card)] transition hover:border-[#E8A33D]"
+                              >
+                                <Edit3 size={13} />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        <p dir="ltr" className="mt-1 text-right text-[11px] opacity-60">
+                          {format(new Date(task.starts_at), "HH:mm")} –{" "}
+                          {format(new Date(task.ends_at), "HH:mm")}
+                        </p>
+                        {task.assigneeIds.length > 0 && (
+                          <p className="mt-1 line-clamp-1 text-[11px] opacity-65">
+                            {task.assigneeIds.map(personName).join("، ")}
+                          </p>
+                        )}
+                        {canManage ? (
+                          <select
+                            aria-label="حالة المهمة"
+                            value={task.status}
+                            onPointerDown={(event) => event.stopPropagation()}
+                            onChange={(event) =>
+                              void setTaskStatus(task, event.target.value as TaskStatus)
+                            }
+                            className="mt-2 max-w-full rounded-lg border border-[var(--ok-ink)]/25 bg-transparent px-1.5 py-1 text-[10px] font-bold"
+                          >
+                            {Object.entries(STATUS_LABELS).map(([value, label]) => (
+                              <option key={value} value={value}>
+                                {label}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <span className="mt-2 inline-block rounded-lg bg-[var(--ok-card)] px-2 py-1 text-[10px] font-bold">
+                            {STATUS_LABELS[task.status]}
+                          </span>
+                        )}
+                      </article>
+                    ))}
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </section>
 
       <section className="space-y-3 md:hidden">
@@ -539,13 +715,28 @@ function TasksContent() {
           <p className="rounded-2xl border-2 border-[var(--ok-ink)] bg-[var(--ok-card)] p-5 text-center opacity-60">
             جاري تحميل المهام…
           </p>
+        ) : visibleTeams.length === 0 ? (
+          <div className="rounded-2xl border-2 border-dashed border-[var(--ok-ink)] bg-[var(--ok-card)] p-6 text-center">
+            <Users className="mx-auto size-8 text-[#D88C20]" />
+            <h2 className="mt-3 font-black">لا توجد فرق نشطة</h2>
+            <p className="mt-1 text-sm leading-6 opacity-60">أضف فريقًا أولًا ليظهر جدوله هنا.</p>
+            {canManage && (
+              <Link
+                to="/admin/team"
+                className="mt-4 inline-flex h-10 items-center gap-2 rounded-xl bg-[#E8A33D] px-4 font-bold text-[#181511]"
+              >
+                <Plus size={16} />
+                إضافة فريق
+              </Link>
+            )}
+          </div>
         ) : tasks.length === 0 ? (
           <p className="rounded-2xl border-2 border-dashed border-[var(--ok-ink)] p-7 text-center opacity-60">
             لا توجد مهام في هذا اليوم.
           </p>
         ) : (
           [...tasks]
-            .sort((a, b) => b.issuer_rank - a.issuer_rank || a.starts_at.localeCompare(b.starts_at))
+            .sort((a, b) => a.issuer_rank - b.issuer_rank || a.starts_at.localeCompare(b.starts_at))
             .map((task) => (
               <article
                 key={task.id}
@@ -559,13 +750,7 @@ function TasksContent() {
                     <h3 className="mt-1 font-bold">{task.title}</h3>
                   </div>
                   <span className="rounded-full bg-[var(--ok-paper)] px-2.5 py-1 text-xs font-bold">
-                    {
-                      STATUS_LABELS[
-                        profile?.role === "employee"
-                          ? (task.personalStatus ?? task.status)
-                          : task.status
-                      ]
-                    }
+                    {STATUS_LABELS[task.status]}
                   </span>
                 </div>
                 <p className="mt-3 flex items-center gap-2 text-sm opacity-65">
@@ -579,32 +764,51 @@ function TasksContent() {
                     {task.assigneeIds.map(personName).join("، ")}
                   </p>
                 )}
-                <select
-                  value={
-                    profile?.role === "employee"
-                      ? (task.personalStatus ?? task.status)
-                      : task.status
-                  }
-                  onChange={(event) => void setTaskStatus(task, event.target.value as TaskStatus)}
-                  className="mt-4 h-10 w-full rounded-xl border-2 border-[var(--ok-ink)] bg-[var(--ok-paper)] px-3 text-sm font-bold"
-                >
-                  {Object.entries(STATUS_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
+                {canManage && (
+                  <div className="mt-4 grid grid-cols-[1fr_auto] gap-2">
+                    <select
+                      aria-label="حالة المهمة"
+                      value={task.status}
+                      onChange={(event) =>
+                        void setTaskStatus(task, event.target.value as TaskStatus)
+                      }
+                      className="h-10 min-w-0 rounded-xl border-2 border-[var(--ok-ink)] bg-[var(--ok-paper)] px-3 text-sm font-bold"
+                    >
+                      {Object.entries(STATUS_LABELS).map(([value, label]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingTask(task);
+                        setComposerOpen(true);
+                      }}
+                      className="flex h-10 items-center gap-2 rounded-xl border-2 border-[var(--ok-ink)] px-3 font-bold"
+                    >
+                      <Edit3 size={16} />
+                      تعديل
+                    </button>
+                  </div>
+                )}
               </article>
             ))
         )}
       </section>
 
       {composerOpen && (
-        <TaskComposer
+        <TaskEditor
           teams={visibleTeams}
           profiles={profiles}
-          onClose={() => setComposerOpen(false)}
-          onCreated={load}
+          selectedDay={selectedDay}
+          task={editingTask}
+          onClose={() => {
+            setComposerOpen(false);
+            setEditingTask(null);
+          }}
+          onSaved={load}
         />
       )}
     </div>

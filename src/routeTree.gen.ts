@@ -40,6 +40,7 @@ import { Route as SignUpSplatRouteImport } from './routes/sign-up.$'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as ApiAdminInviteRouteImport } from './routes/api/admin/invite'
 import { Route as ApiAdminMeRouteImport } from './routes/api/admin/me'
+import { Route as ApiAdminTasksRouteImport } from './routes/api/admin/tasks'
 import { Route as ApiDataTableRouteImport } from './routes/api/data/$table'
 import { Route as ApiYoutubeWebhookRouteImport } from './routes/api/youtube/webhook'
 import { Route as CoursesCourseSlugIndexRouteImport } from './routes/courses/$courseSlug/index'
@@ -221,6 +222,11 @@ const ApiAdminMeRoute = ApiAdminMeRouteImport.update({
   path: '/api/admin/me',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminTasksRoute = ApiAdminTasksRouteImport.update({
+  id: '/api/admin/tasks',
+  path: '/api/admin/tasks',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiDataTableRoute = ApiDataTableRouteImport.update({
   id: '/api/data/$table',
   path: '/api/data/$table',
@@ -326,6 +332,7 @@ export interface FileRoutesByFullPath {
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/admin/invite': typeof ApiAdminInviteRoute
   '/api/admin/me': typeof ApiAdminMeRoute
+  '/api/admin/tasks': typeof ApiAdminTasksRoute
   '/api/data/$table': typeof ApiDataTableRoute
   '/api/youtube/webhook': typeof ApiYoutubeWebhookRoute
   '/courses/$courseSlug/$lessonSlug': typeof CoursesCourseSlugLessonSlugRoute
@@ -373,6 +380,7 @@ export interface FileRoutesByTo {
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/admin/invite': typeof ApiAdminInviteRoute
   '/api/admin/me': typeof ApiAdminMeRoute
+  '/api/admin/tasks': typeof ApiAdminTasksRoute
   '/api/data/$table': typeof ApiDataTableRoute
   '/api/youtube/webhook': typeof ApiYoutubeWebhookRoute
   '/courses/$courseSlug/$lessonSlug': typeof CoursesCourseSlugLessonSlugRoute
@@ -421,6 +429,7 @@ export interface FileRoutesById {
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/admin/invite': typeof ApiAdminInviteRoute
   '/api/admin/me': typeof ApiAdminMeRoute
+  '/api/admin/tasks': typeof ApiAdminTasksRoute
   '/api/data/$table': typeof ApiDataTableRoute
   '/api/youtube/webhook': typeof ApiYoutubeWebhookRoute
   '/courses/$courseSlug/$lessonSlug': typeof CoursesCourseSlugLessonSlugRoute
@@ -470,6 +479,7 @@ export interface FileRouteTypes {
     | '/.mcp/invoke-tool/$tool'
     | '/api/admin/invite'
     | '/api/admin/me'
+    | '/api/admin/tasks'
     | '/api/data/$table'
     | '/api/youtube/webhook'
     | '/courses/$courseSlug/$lessonSlug'
@@ -517,6 +527,7 @@ export interface FileRouteTypes {
     | '/.mcp/invoke-tool/$tool'
     | '/api/admin/invite'
     | '/api/admin/me'
+    | '/api/admin/tasks'
     | '/api/data/$table'
     | '/api/youtube/webhook'
     | '/courses/$courseSlug/$lessonSlug'
@@ -564,6 +575,7 @@ export interface FileRouteTypes {
     | '/.mcp/invoke-tool/$tool'
     | '/api/admin/invite'
     | '/api/admin/me'
+    | '/api/admin/tasks'
     | '/api/data/$table'
     | '/api/youtube/webhook'
     | '/courses/$courseSlug/$lessonSlug'
@@ -612,6 +624,7 @@ export interface RootRouteChildren {
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   ApiAdminInviteRoute: typeof ApiAdminInviteRoute
   ApiAdminMeRoute: typeof ApiAdminMeRoute
+  ApiAdminTasksRoute: typeof ApiAdminTasksRoute
   ApiDataTableRoute: typeof ApiDataTableRoute
   ApiYoutubeWebhookRoute: typeof ApiYoutubeWebhookRoute
   CoursesCourseSlugLessonSlugRoute: typeof CoursesCourseSlugLessonSlugRoute
@@ -847,6 +860,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminMeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/tasks': {
+      id: '/api/admin/tasks'
+      path: '/api/admin/tasks'
+      fullPath: '/api/admin/tasks'
+      preLoaderRoute: typeof ApiAdminTasksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/data/$table': {
       id: '/api/data/$table'
       path: '/api/data/$table'
@@ -981,6 +1001,7 @@ const rootRouteChildren: RootRouteChildren = {
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   ApiAdminInviteRoute: ApiAdminInviteRoute,
   ApiAdminMeRoute: ApiAdminMeRoute,
+  ApiAdminTasksRoute: ApiAdminTasksRoute,
   ApiDataTableRoute: ApiDataTableRoute,
   ApiYoutubeWebhookRoute: ApiYoutubeWebhookRoute,
   CoursesCourseSlugLessonSlugRoute: CoursesCourseSlugLessonSlugRoute,
