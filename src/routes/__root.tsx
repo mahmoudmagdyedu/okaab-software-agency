@@ -1,4 +1,6 @@
 import { ClerkProvider } from "@clerk/tanstack-react-start";
+import { arSA } from "@clerk/localizations";
+import { shadcn } from "@clerk/ui/themes";
 import {
   Outlet,
   Link,
@@ -185,7 +187,15 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <ClerkProvider {...(import.meta.env.PROD ? { proxyUrl: "/clerk-proxy" } : {})}>
+        <ClerkProvider
+          localization={arSA}
+          appearance={{
+            cssLayerName: shadcn.cssLayerName!,
+            variables: shadcn.variables!,
+            elements: shadcn.elements!,
+          }}
+          {...(import.meta.env.PROD ? { proxyUrl: "/clerk-proxy" } : {})}
+        >
           <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
 
           {children}

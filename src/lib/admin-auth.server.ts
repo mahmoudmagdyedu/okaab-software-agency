@@ -21,7 +21,22 @@ export async function getAdminProfile(): Promise<Profile | null> {
     .request()
     .input("id", sql.NVarChar(64), userId)
     .query<Profile>("select top (1) * from okaab.profiles where id = @id");
-  if (current.recordset[0]) return current.recordset[0].is_active ? current.recordset[0] : null;
+  const existing = current.recordset[0];
+  if (existing) {
+    if (existing.email.trim().toLowerCase() === SUPER_ADMIN_EMAIL) {
+      if (existing.role !== "super_admin" || !existing.is_active || existing.team_id !== null) {
+        await pool
+          .request()
+          .input("id", sql.NVarChar(64), userId)
+          .query(
+            "update okaab.profiles set role = 'super_admin', team_id = null, is_active = 1, updated_at = sysutcdatetime() where id = @id",
+          );
+        return { ...existing, role: "super_admin", team_id: null, is_active: true };
+      }
+      return existing;
+    }
+    return existing.is_active ? existing : null;
+  }
 
   const user = await clerkClient().users.getUser(userId);
   const email = user.primaryEmailAddress?.emailAddress?.trim().toLowerCase();

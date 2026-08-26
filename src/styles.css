@@ -1,8 +1,8 @@
 @import "tailwindcss" source(none);
+@import "@clerk/ui/themes/shadcn.css";
 @source "../src/components/okaab";
 @source "../src/routes";
 @import "./styles.fonts.css";
-
 
 @custom-variant dark (&:is(.dark *));
 
@@ -220,8 +220,8 @@
   textarea,
   label,
   svg {
-    transition-property: color, background-color, border-color, fill, stroke,
-      box-shadow, opacity, transform, filter;
+    transition-property:
+      color, background-color, border-color, fill, stroke, box-shadow, opacity, transform, filter;
     transition-duration: 260ms;
     transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
   }
