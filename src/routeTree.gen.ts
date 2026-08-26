@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ClerkBrowserDotjsRouteImport } from './routes/clerk-browser[.]js'
+import { Route as ClerkUiDotjsRouteImport } from './routes/clerk-ui[.]js'
 import { Route as EcommerceDevelopmentEgyptRouteImport } from './routes/ecommerce-development-egypt'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as PrivacyRouteImport } from './routes/privacy'
@@ -60,6 +61,11 @@ const IndexRoute = IndexRouteImport.update({
 const ClerkBrowserDotjsRoute = ClerkBrowserDotjsRouteImport.update({
   id: '/clerk-browser.js',
   path: '/clerk-browser.js',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClerkUiDotjsRoute = ClerkUiDotjsRouteImport.update({
+  id: '/clerk-ui.js',
+  path: '/clerk-ui.js',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EcommerceDevelopmentEgyptRoute =
@@ -279,6 +285,7 @@ const LovableEmailTransactionalPreviewRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/clerk-browser.js': typeof ClerkBrowserDotjsRoute
+  '/clerk-ui.js': typeof ClerkUiDotjsRoute
   '/ecommerce-development-egypt': typeof EcommerceDevelopmentEgyptRoute
   '/mcp': typeof McpRoute
   '/privacy': typeof PrivacyRoute
@@ -323,6 +330,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/clerk-browser.js': typeof ClerkBrowserDotjsRoute
+  '/clerk-ui.js': typeof ClerkUiDotjsRoute
   '/ecommerce-development-egypt': typeof EcommerceDevelopmentEgyptRoute
   '/mcp': typeof McpRoute
   '/privacy': typeof PrivacyRoute
@@ -368,6 +376,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/clerk-browser.js': typeof ClerkBrowserDotjsRoute
+  '/clerk-ui.js': typeof ClerkUiDotjsRoute
   '/ecommerce-development-egypt': typeof EcommerceDevelopmentEgyptRoute
   '/mcp': typeof McpRoute
   '/privacy': typeof PrivacyRoute
@@ -414,6 +423,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/clerk-browser.js'
+    | '/clerk-ui.js'
     | '/ecommerce-development-egypt'
     | '/mcp'
     | '/privacy'
@@ -458,6 +468,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/clerk-browser.js'
+    | '/clerk-ui.js'
     | '/ecommerce-development-egypt'
     | '/mcp'
     | '/privacy'
@@ -502,6 +513,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/clerk-browser.js'
+    | '/clerk-ui.js'
     | '/ecommerce-development-egypt'
     | '/mcp'
     | '/privacy'
@@ -547,6 +559,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ClerkBrowserDotjsRoute: typeof ClerkBrowserDotjsRoute
+  ClerkUiDotjsRoute: typeof ClerkUiDotjsRoute
   EcommerceDevelopmentEgyptRoute: typeof EcommerceDevelopmentEgyptRoute
   McpRoute: typeof McpRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -603,6 +616,13 @@ declare module '@tanstack/react-router' {
       path: '/clerk-browser.js'
       fullPath: '/clerk-browser.js'
       preLoaderRoute: typeof ClerkBrowserDotjsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/clerk-ui.js': {
+      id: '/clerk-ui.js'
+      path: '/clerk-ui.js'
+      fullPath: '/clerk-ui.js'
+      preLoaderRoute: typeof ClerkUiDotjsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ecommerce-development-egypt': {
@@ -891,6 +911,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ClerkBrowserDotjsRoute: ClerkBrowserDotjsRoute,
+  ClerkUiDotjsRoute: ClerkUiDotjsRoute,
   EcommerceDevelopmentEgyptRoute: EcommerceDevelopmentEgyptRoute,
   McpRoute: McpRoute,
   PrivacyRoute: PrivacyRoute,

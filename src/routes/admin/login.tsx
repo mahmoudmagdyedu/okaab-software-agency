@@ -12,6 +12,7 @@ export const Route = createFileRoute("/admin/login")({
       { name: "robots", content: "noindex,nofollow" },
       { name: "description", content: "تسجيل الدخول الآمن إلى لوحة إدارة عُقاب." },
     ],
+    scripts: [{ src: "/clerk-ui.js" }],
   }),
   component: AdminLoginPage,
 });
