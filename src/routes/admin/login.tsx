@@ -80,10 +80,11 @@ function AdminLoginPage() {
   const handleGoogleSignIn = async () => {
     setErrorMessage("");
     try {
+      signIn.reset();
       const { error } = await signIn.sso({
         strategy: "oauth_google",
-        redirectUrl: "/admin",
-        redirectCallbackUrl: "/sso-callback",
+        redirectUrl: `${window.location.origin}/admin`,
+        redirectCallbackUrl: `${window.location.origin}/sso-callback`,
       });
       if (error) setErrorMessage(getErrorMessage(error));
     } catch (error) {
@@ -95,6 +96,7 @@ function AdminLoginPage() {
     event.preventDefault();
     setErrorMessage("");
     try {
+      signIn.reset();
       const { error } = await signIn.emailCode.sendCode({ emailAddress: email.trim() });
       if (error) {
         setErrorMessage("هذا البريد غير مضاف إلى فريق عُقاب. اطلب دعوة من المسؤول.");
