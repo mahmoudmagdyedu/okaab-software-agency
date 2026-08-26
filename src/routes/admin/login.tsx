@@ -1,4 +1,4 @@
-import { useAuth, useSignIn } from "@clerk/tanstack-react-start";
+import { useAuth, useClerk, useSignIn } from "@clerk/tanstack-react-start";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowLeft,
@@ -58,6 +58,7 @@ function GoogleMark() {
 
 function AdminLoginPage() {
   const { isLoaded, isSignedIn } = useAuth();
+  const clerk = useClerk();
   const { signIn, fetchStatus } = useSignIn();
   const [step, setStep] = useState<"email" | "code">("email");
   const [email, setEmail] = useState("");
@@ -80,13 +81,13 @@ function AdminLoginPage() {
   const handleGoogleSignIn = async () => {
     setErrorMessage("");
     try {
-      signIn.reset();
-      const { error } = await signIn.sso({
+      await clerk.client.signIn.authenticateWithRedirect({
         strategy: "oauth_google",
-        redirectUrl: `${window.location.origin}/admin`,
-        redirectCallbackUrl: `${window.location.origin}/sso-callback`,
+        redirectUrl: "/sso-callback",
+        redirectUrlComplete: "/admin",
+        continueSignIn: false,
+        continueSignUp: false,
       });
-      if (error) setErrorMessage(getErrorMessage(error));
     } catch (error) {
       setErrorMessage(getErrorMessage(error));
     }
