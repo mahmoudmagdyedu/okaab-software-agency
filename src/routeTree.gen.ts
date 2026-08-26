@@ -26,6 +26,7 @@ import { Route as AdminLoginRouteImport } from './routes/admin/login'
 import { Route as AdminTasksRouteImport } from './routes/admin/tasks'
 import { Route as AdminTeamRouteImport } from './routes/admin/team'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
+import { Route as ClerkProxySplatRouteImport } from './routes/clerk-proxy/$'
 import { Route as ClerkUiAssetsSplatRouteImport } from './routes/clerk-ui-assets/$'
 import { Route as CoursesIndexRouteImport } from './routes/courses/index'
 import { Route as EnEcommerceDevelopmentEgyptRouteImport } from './routes/en.ecommerce-development-egypt'
@@ -141,6 +142,11 @@ const AdminTeamRoute = AdminTeamRouteImport.update({
 const ApiHealthRoute = ApiHealthRouteImport.update({
   id: '/api/health',
   path: '/api/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClerkProxySplatRoute = ClerkProxySplatRouteImport.update({
+  id: '/clerk-proxy/$',
+  path: '/clerk-proxy/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ClerkUiAssetsSplatRoute = ClerkUiAssetsSplatRouteImport.update({
@@ -305,6 +311,7 @@ export interface FileRoutesByFullPath {
   '/admin/tasks': typeof AdminTasksRoute
   '/admin/team': typeof AdminTeamRoute
   '/api/health': typeof ApiHealthRoute
+  '/clerk-proxy/$': typeof ClerkProxySplatRoute
   '/clerk-ui-assets/$': typeof ClerkUiAssetsSplatRoute
   '/en/ecommerce-development-egypt': typeof EnEcommerceDevelopmentEgyptRoute
   '/en/software-development-egypt': typeof EnSoftwareDevelopmentEgyptRoute
@@ -351,6 +358,7 @@ export interface FileRoutesByTo {
   '/admin/tasks': typeof AdminTasksRoute
   '/admin/team': typeof AdminTeamRoute
   '/api/health': typeof ApiHealthRoute
+  '/clerk-proxy/$': typeof ClerkProxySplatRoute
   '/clerk-ui-assets/$': typeof ClerkUiAssetsSplatRoute
   '/en/ecommerce-development-egypt': typeof EnEcommerceDevelopmentEgyptRoute
   '/en/software-development-egypt': typeof EnSoftwareDevelopmentEgyptRoute
@@ -398,6 +406,7 @@ export interface FileRoutesById {
   '/admin/tasks': typeof AdminTasksRoute
   '/admin/team': typeof AdminTeamRoute
   '/api/health': typeof ApiHealthRoute
+  '/clerk-proxy/$': typeof ClerkProxySplatRoute
   '/clerk-ui-assets/$': typeof ClerkUiAssetsSplatRoute
   '/en/ecommerce-development-egypt': typeof EnEcommerceDevelopmentEgyptRoute
   '/en/software-development-egypt': typeof EnSoftwareDevelopmentEgyptRoute
@@ -446,6 +455,7 @@ export interface FileRouteTypes {
     | '/admin/tasks'
     | '/admin/team'
     | '/api/health'
+    | '/clerk-proxy/$'
     | '/clerk-ui-assets/$'
     | '/en/ecommerce-development-egypt'
     | '/en/software-development-egypt'
@@ -492,6 +502,7 @@ export interface FileRouteTypes {
     | '/admin/tasks'
     | '/admin/team'
     | '/api/health'
+    | '/clerk-proxy/$'
     | '/clerk-ui-assets/$'
     | '/en/ecommerce-development-egypt'
     | '/en/software-development-egypt'
@@ -538,6 +549,7 @@ export interface FileRouteTypes {
     | '/admin/tasks'
     | '/admin/team'
     | '/api/health'
+    | '/clerk-proxy/$'
     | '/clerk-ui-assets/$'
     | '/en/ecommerce-development-egypt'
     | '/en/software-development-egypt'
@@ -585,6 +597,7 @@ export interface RootRouteChildren {
   AdminTasksRoute: typeof AdminTasksRoute
   AdminTeamRoute: typeof AdminTeamRoute
   ApiHealthRoute: typeof ApiHealthRoute
+  ClerkProxySplatRoute: typeof ClerkProxySplatRoute
   ClerkUiAssetsSplatRoute: typeof ClerkUiAssetsSplatRoute
   EnEcommerceDevelopmentEgyptRoute: typeof EnEcommerceDevelopmentEgyptRoute
   EnSoftwareDevelopmentEgyptRoute: typeof EnSoftwareDevelopmentEgyptRoute
@@ -734,6 +747,13 @@ declare module '@tanstack/react-router' {
       path: '/api/health'
       fullPath: '/api/health'
       preLoaderRoute: typeof ApiHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/clerk-proxy/$': {
+      id: '/clerk-proxy/$'
+      path: '/clerk-proxy/$'
+      fullPath: '/clerk-proxy/$'
+      preLoaderRoute: typeof ClerkProxySplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/clerk-ui-assets/$': {
@@ -946,6 +966,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminTasksRoute: AdminTasksRoute,
   AdminTeamRoute: AdminTeamRoute,
   ApiHealthRoute: ApiHealthRoute,
+  ClerkProxySplatRoute: ClerkProxySplatRoute,
   ClerkUiAssetsSplatRoute: ClerkUiAssetsSplatRoute,
   EnEcommerceDevelopmentEgyptRoute: EnEcommerceDevelopmentEgyptRoute,
   EnSoftwareDevelopmentEgyptRoute: EnSoftwareDevelopmentEgyptRoute,

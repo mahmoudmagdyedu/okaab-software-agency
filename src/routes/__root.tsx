@@ -185,7 +185,7 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <ClerkProvider>
+        <ClerkProvider {...(import.meta.env.PROD ? { proxyUrl: "/clerk-proxy" } : {})}>
           <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
 
           {children}
