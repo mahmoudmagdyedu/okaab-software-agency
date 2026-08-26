@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { Link } from "@tanstack/react-router";
 
 import {
   ArrowUpRight,
@@ -247,6 +248,9 @@ export default function OkaabLanding() {
             </span>
           </div>
           <div className="hidden lg:flex items-center gap-4 xl:gap-7 text-[13px] xl:text-sm font-medium">
+            <Link to="/courses" className="accent-link transition-colors whitespace-nowrap">
+              {t.nav.courses}
+            </Link>
             <a href="#catalog" className="accent-link transition-colors whitespace-nowrap">
               {t.nav.services}
             </a>
@@ -314,6 +318,13 @@ export default function OkaabLanding() {
             id="mobile-menu"
             className="lg:hidden border-t-2 border-[var(--ok-ink)] bg-[var(--ok-paper)] px-4 sm:px-6 py-4 flex flex-col gap-3 text-base font-medium"
           >
+            <Link
+              to="/courses"
+              onClick={() => setMenuOpen(false)}
+              className="accent-link transition-colors py-1"
+            >
+              {t.nav.courses}
+            </Link>
             <a href="#catalog" onClick={() => setMenuOpen(false)} className="accent-link transition-colors py-1">
               {t.nav.services}
             </a>

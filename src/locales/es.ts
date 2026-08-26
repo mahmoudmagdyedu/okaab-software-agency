@@ -6,6 +6,7 @@ const dict: Dict = {
   dir: "ltr",
   label: "Español",
   nav: {
+    courses: "Cursos",
     services: "Servicios",
     projects: "Proyectos",
     why: "Por qué Okaab",

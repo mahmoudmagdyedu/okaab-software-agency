@@ -4,6 +4,7 @@ const dict = {
   dir: "rtl" as "rtl" | "ltr",
   label: "مصري",
   nav: {
+    courses: "الكورسات",
     services: "خدماتنا",
     projects: "مشاريعنا",
     why: "ليه عُقاب",
