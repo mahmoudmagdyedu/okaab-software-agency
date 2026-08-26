@@ -395,15 +395,28 @@ export async function runDeepHealthCheck() {
   const age = lastSync === null ? null : Math.round((Date.now() - lastSync) / 60_000);
   const youtube = checks.find((item) => item.key === "youtube");
   if (youtube && youtube.status !== "down") {
+    const feedStatusCode = youtube.statusCode;
     youtube.status = age === null || age > 390 ? "degraded" : "healthy";
+    youtube.statusCode = youtube.status === "healthy" ? null : feedStatusCode;
     youtube.summary =
       age === null
         ? "القناة متاحة لكن أول مزامنة لم تُنفذ بعد."
         : `القناة متاحة؛ آخر مزامنة ناجحة منذ ${age} دقيقة.`;
+    youtube.impact =
+      youtube.status === "healthy"
+        ? "لا يوجد تأثير؛ ستظهر الفيديوهات الجديدة بعد المزامنة التالية."
+        : "قد تتأخر الفيديوهات الجديدة في الظهور على منصة الكورسات.";
+    youtube.cause =
+      youtube.status === "healthy"
+        ? feedStatusCode === 404
+          ? "القناة لا تحتوي فيديوهات عامة بعد، والمزامنة تعمل بصورة طبيعية."
+          : "قناة YouTube وآخر مزامنة تستجيبان بصورة طبيعية."
+        : "المزامنة الدورية لم تنجح خلال الفترة المتوقعة.";
     youtube.action =
       youtube.status === "healthy"
         ? "لا يلزم إجراء."
         : "شغّل المزامنة من صفحة الكورسات ثم راجع YOUTUBE_API_KEY.";
+    youtube.details = { ...youtube.details, feedStatusCode };
   }
 
   const memoryUsedMb = Math.round(process.memoryUsage().rss / 1024 / 1024);
@@ -445,11 +458,11 @@ export async function runDeepHealthCheck() {
     impact: schedulerStatus === "degraded" ? "قد تتأخر تنبيهات الأعطال." : "لا يوجد تأثير.",
     cause:
       schedulerStatus === "degraded"
-        ? "GitHub Actions أو السر الموقّع يحتاج مراجعة."
-        : "مهمة المراقبة الخارجية تعمل حسب الجدول.",
+        ? "Heroku Scheduler أو GitHub Actions أو السر الموقّع يحتاج مراجعة."
+        : "مهمة المراقبة الدورية تعمل حسب الجدول.",
     action:
       schedulerStatus === "degraded"
-        ? "راجع workflow Okaab external monitor في GitHub Actions."
+        ? "راجع Heroku Scheduler، ثم workflow Okaab external monitor إذا كانت GitHub Actions مفعّلة."
         : "لا يلزم إجراء.",
     details: { monitorAgeMinutes: monitorAge },
   });
