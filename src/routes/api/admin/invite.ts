@@ -15,6 +15,44 @@ const ROLE_LABELS: Record<Exclude<AppRole, "super_admin">, string> = {
 export const Route = createFileRoute("/api/admin/invite")({
   server: {
     handlers: {
+      GET: async () => {
+        try {
+          await requireAdminProfile(["super_admin", "admin"]);
+          const [pool, clerk] = await Promise.all([getDb(), clerkClient()]);
+          const [databaseInvites, clerkInvites] = await Promise.all([
+            pool.request().query(`
+              select i.id, i.email, i.role, i.team_id, i.created_at, i.expires_at,
+                     t.name as team_name
+              from okaab.pending_invites i
+              left join okaab.teams t on t.id = i.team_id
+              where i.accepted_at is null and i.expires_at > sysutcdatetime()
+              order by i.created_at desc
+            `),
+            clerk.invitations.getInvitationList({ status: "pending", limit: 100 }),
+          ]);
+          const clerkByEmail = new Map(
+            clerkInvites.data.map((item) => [item.emailAddress.toLowerCase(), item]),
+          );
+          const invitations = databaseInvites.recordset.map((row) => {
+            const clerkInvite = clerkByEmail.get(String(row.email).toLowerCase());
+            return {
+              id: String(row.id),
+              email: String(row.email),
+              role: String(row.role),
+              teamId: row.team_id ? String(row.team_id) : null,
+              teamName: row.team_name ? String(row.team_name) : null,
+              createdAt: new Date(row.created_at).toISOString(),
+              expiresAt: new Date(row.expires_at).toISOString(),
+              invitationUrl: clerkInvite?.url ?? null,
+            };
+          });
+          return Response.json({ invitations }, { headers: { "cache-control": "no-store" } });
+        } catch (error) {
+          if (error instanceof Response) return error;
+          console.error("Loading admin invitations failed", error);
+          return Response.json({ error: "تعذّر تحميل الدعوات المعلقة" }, { status: 500 });
+        }
+      },
       POST: async ({ request }) => {
         try {
           const actor = await requireAdminProfile(["super_admin", "admin"]);
@@ -114,7 +152,8 @@ export const Route = createFileRoute("/api/admin/invite")({
           return Response.json({
             ok: true,
             email,
-            message: "تم إرسال رابط الدعوة عبر بريد عُقاب بنجاح.",
+            invitationUrl: invitation.url,
+            message: "تم إنشاء الدعوة وقبلت خدمة البريد إرسال الرسالة.",
           });
         } catch (error) {
           if (error instanceof Response) return error;

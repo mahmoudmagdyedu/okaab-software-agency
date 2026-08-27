@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import {
   AlertCircle,
   CheckCircle2,
+  Copy,
+  Hourglass,
   LoaderCircle,
   MailPlus,
   Plus,
@@ -9,12 +11,23 @@ import {
   UserRound,
   UsersRound,
 } from "lucide-react";
-import { useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
 import { AdminLayout, ROLE_LABELS, useAdminAuth } from "@/components/admin/AdminShell";
 import { okaab as supabase } from "@/integrations/okaab/client";
 import type { AppRole, Profile, Team } from "@/integrations/supabase/types";
+
+type PendingInvite = {
+  id: string;
+  email: string;
+  role: Exclude<AppRole, "super_admin">;
+  teamId: string | null;
+  teamName: string | null;
+  createdAt: string;
+  expiresAt: string;
+  invitationUrl: string | null;
+};
 
 export const Route = createFileRoute("/admin/team")({
   head: () => ({
@@ -39,6 +52,7 @@ function TeamContent() {
   const { profile } = useAdminAuth();
   const [teams, setTeams] = useState<Team[]>([]);
   const [people, setPeople] = useState<Profile[]>([]);
+  const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
   const [loading, setLoading] = useState(true);
   const [inviteRole, setInviteRole] = useState<AppRole>(
     profile?.role === "super_admin" ? "admin" : "team_leader",
@@ -48,24 +62,32 @@ function TeamContent() {
     ok: boolean;
     message: string;
     email?: string;
+    invitationUrl?: string;
   } | null>(null);
-  const canAdminister = profile && ["super_admin", "admin"].includes(profile.role);
+  const canAdminister = Boolean(profile && ["super_admin", "admin"].includes(profile.role));
 
-  async function load() {
-    const [teamResult, peopleResult] = await Promise.all([
+  const load = useCallback(async () => {
+    const [teamResult, peopleResult, inviteResponse] = await Promise.all([
       supabase.from("teams").select("*").order("name"),
       supabase.from("profiles").select("*").order("role").order("display_name"),
+      canAdminister ? fetch("/api/admin/invite", { cache: "no-store" }) : Promise.resolve(null),
     ]);
     setTeams((teamResult.data ?? []) as Team[]);
     setPeople((peopleResult.data ?? []) as Profile[]);
+    if (inviteResponse?.ok) {
+      const payload = (await inviteResponse.json()) as { invitations?: PendingInvite[] };
+      setPendingInvites(payload.invitations ?? []);
+    } else if (inviteResponse) {
+      setPendingInvites([]);
+    }
     setLoading(false);
-  }
+  }, [canAdminister]);
   useEffect(() => {
     void load();
-  }, []);
+  }, [load]);
   useEffect(() => {
     if (profile) setInviteRole(profile.role === "super_admin" ? "admin" : "team_leader");
-  }, [profile?.role]);
+  }, [profile]);
 
   async function createTeam(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -105,6 +127,7 @@ function TeamContent() {
       const payload = (await response.json().catch(() => ({}))) as {
         error?: string;
         message?: string;
+        invitationUrl?: string;
       };
       if (!response.ok) {
         const message = payload.error || "تعذّر إرسال الدعوة الآن";
@@ -112,10 +135,16 @@ function TeamContent() {
         toast.error("تعذّر إرسال الدعوة", { description: message });
       } else {
         const message = payload.message || "تم إرسال رابط الدعوة عبر البريد بنجاح.";
-        setInviteResult({ ok: true, message, email });
+        setInviteResult({
+          ok: true,
+          message,
+          email,
+          ...(payload.invitationUrl ? { invitationUrl: payload.invitationUrl } : {}),
+        });
         toast.success("تم إرسال رابط الدخول", { description: email });
         event.currentTarget.reset();
         setInviteRole(profile?.role === "super_admin" ? "admin" : "team_leader");
+        await load();
       }
     } catch {
       const message = "تعذّر الاتصال بخدمة الدعوات. حاول مرة أخرى.";
@@ -272,10 +301,77 @@ function TeamContent() {
                     {inviteResult.message}{" "}
                     {inviteResult.email && <bdi dir="ltr">({inviteResult.email})</bdi>}
                   </p>
+                  {inviteResult.ok && inviteResult.invitationUrl && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void navigator.clipboard.writeText(inviteResult.invitationUrl!);
+                        toast.success("تم نسخ رابط الدعوة");
+                      }}
+                      className="mr-auto flex shrink-0 items-center gap-1 rounded-xl border border-current px-3 py-2 text-xs font-bold"
+                    >
+                      <Copy size={14} />
+                      نسخ الرابط
+                    </button>
+                  )}
                 </div>
               )}
             </div>
           </form>
+        </section>
+      )}
+
+      {canAdminister && pendingInvites.length > 0 && (
+        <section className="overflow-hidden rounded-3xl border-2 border-[var(--ok-ink)] bg-[var(--ok-card)]">
+          <div className="flex items-center justify-between border-b-2 border-[var(--ok-ink)] p-5">
+            <div>
+              <h2 className="font-display text-2xl font-bold">دعوات بانتظار القبول</h2>
+              <p className="mt-1 text-sm opacity-60">
+                يظهر العضو في القائمة الرئيسية فور قبول الدعوة وتسجيل الدخول.
+              </p>
+            </div>
+            <span className="flex items-center gap-2 rounded-full bg-[#E8A33D]/15 px-3 py-1.5 text-xs font-bold text-[#D88C20]">
+              <Hourglass size={15} />
+              {pendingInvites.length}
+            </span>
+          </div>
+          <div className="divide-y divide-[var(--ok-ink)]/15">
+            {pendingInvites.map((invitation) => (
+              <article
+                key={invitation.id}
+                className="grid gap-3 p-4 sm:grid-cols-[1fr_auto_auto] sm:items-center sm:p-5"
+              >
+                <div className="min-w-0">
+                  <p dir="ltr" className="truncate text-left font-bold">
+                    {invitation.email}
+                  </p>
+                  <p className="mt-1 text-xs opacity-55">
+                    {ROLE_LABELS[invitation.role]}
+                    {invitation.teamName ? ` · ${invitation.teamName}` : ""} · تنتهي في{" "}
+                    {new Date(invitation.expiresAt).toLocaleDateString("ar-EG")}
+                  </p>
+                </div>
+                <span className="w-fit rounded-full border border-[#E8A33D]/45 bg-[#E8A33D]/10 px-3 py-1.5 text-xs font-bold text-[#D88C20]">
+                  بانتظار القبول
+                </span>
+                {invitation.invitationUrl ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void navigator.clipboard.writeText(invitation.invitationUrl!);
+                      toast.success("تم نسخ رابط الدعوة");
+                    }}
+                    className="flex h-10 items-center justify-center gap-2 rounded-xl border-2 border-[var(--ok-ink)] px-3 text-xs font-bold"
+                  >
+                    <Copy size={15} />
+                    نسخ رابط الدعوة
+                  </button>
+                ) : (
+                  <span className="text-xs opacity-50">أعد إرسال الدعوة لإنشاء رابط جديد</span>
+                )}
+              </article>
+            ))}
+          </div>
         </section>
       )}
 

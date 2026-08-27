@@ -162,6 +162,7 @@ export function SlideUploader({
   lessons,
   videos,
   profile,
+  onCreateHierarchy,
   onUploaded,
 }: {
   roadmaps: Roadmap[];
@@ -170,6 +171,12 @@ export function SlideUploader({
   lessons: Lesson[];
   videos: YouTubeVideo[];
   profile: Profile;
+  onCreateHierarchy: (input: {
+    roadmapTitle: string;
+    courseTitle: string;
+    lessonTitle: string;
+    published: boolean;
+  }) => Promise<string>;
   onUploaded: () => Promise<void>;
 }) {
   const [uploading, setUploading] = useState(false);
@@ -200,8 +207,18 @@ export function SlideUploader({
     setProgress(2);
     try {
       const prepared = await prepare(file);
-      const lessonId = String(form.get("lessonId"));
+      let lessonId = String(form.get("lessonId") || "");
       const allowDownload = form.get("allowDownload") === "on";
+      const publishNow = form.get("published") === "on";
+      if (!lessonId) {
+        setProgress(8);
+        lessonId = await onCreateHierarchy({
+          roadmapTitle: String(form.get("quickRoadmapTitle") || ""),
+          courseTitle: String(form.get("quickCourseTitle") || ""),
+          lessonTitle: String(form.get("quickLessonTitle") || ""),
+          published: publishNow,
+        });
+      }
       const uploadList = allowDownload ? [...prepared.files, prepared.source] : prepared.files;
       const requestBytes = uploadList.reduce((total, item) => total + item.bytes.byteLength, 0);
       if (requestBytes > MAX_REQUEST_BYTES)
@@ -219,7 +236,7 @@ export function SlideUploader({
           archiveSizeBytes: allowDownload ? file.size : null,
           fileCount: prepared.files.length,
           allowDownload,
-          isPublished: form.get("published") === "on",
+          isPublished: publishNow,
           sortOrder: Number(form.get("sortOrder") || 0),
         }),
       );
@@ -302,7 +319,7 @@ export function SlideUploader({
         </select>
         <select
           name="lessonId"
-          required
+          required={lessons.length > 0}
           className="h-11 rounded-xl border-2 border-[var(--ok-ink)] bg-[var(--ok-paper)] px-3"
         >
           <option value="">اختر الدرس</option>
@@ -353,13 +370,35 @@ export function SlideUploader({
       {lessons.length === 0 && (
         <div
           role="status"
-          className="mt-4 flex items-start gap-3 rounded-2xl border border-[#E8A33D]/45 bg-[#E8A33D]/10 p-4 text-sm leading-6"
+          className="mt-4 rounded-2xl border border-[#E8A33D]/45 bg-[#E8A33D]/10 p-4"
         >
-          <AlertCircle className="mt-0.5 shrink-0 text-[#D88C20]" size={19} />
-          <p>
-            أنشئ بالترتيب: <strong>Roadmap ثم كورس ثم درس</strong> من النماذج الموجودة أعلى الصفحة.
-            بعد إنشاء الدرس سيصبح زر الرفع متاحًا فورًا.
-          </p>
+          <div className="flex items-start gap-3 text-sm leading-6">
+            <AlertCircle className="mt-0.5 shrink-0 text-[#D88C20]" size={19} />
+            <p>
+              لا يوجد محتوى تعليمي بعد. اكتب الأسماء التالية وسينشئ النظام الـRoadmap والكورس والدرس
+              تلقائيًا ثم يرفع الملف في خطوة واحدة.
+            </p>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <input
+              name="quickRoadmapTitle"
+              required
+              placeholder="اسم الـRoadmap"
+              className="h-11 rounded-xl border-2 border-[var(--ok-ink)] bg-[var(--ok-paper)] px-3"
+            />
+            <input
+              name="quickCourseTitle"
+              required
+              placeholder="اسم الكورس"
+              className="h-11 rounded-xl border-2 border-[var(--ok-ink)] bg-[var(--ok-paper)] px-3"
+            />
+            <input
+              name="quickLessonTitle"
+              required
+              placeholder="اسم الدرس"
+              className="h-11 rounded-xl border-2 border-[var(--ok-ink)] bg-[var(--ok-paper)] px-3"
+            />
+          </div>
         </div>
       )}
       {progress > 0 && (
@@ -368,7 +407,7 @@ export function SlideUploader({
         </div>
       )}
       <button
-        disabled={uploading || lessons.length === 0}
+        disabled={uploading}
         className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-xl border-2 border-[var(--ok-ink)] bg-[var(--ok-ink)] font-bold text-[var(--ok-paper)] disabled:opacity-50"
       >
         {uploading ? (

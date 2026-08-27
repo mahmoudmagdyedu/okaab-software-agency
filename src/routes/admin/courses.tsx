@@ -257,6 +257,26 @@ function CourseAdminContent() {
     await load();
   }
 
+  async function createHierarchyForUpload(input: {
+    roadmapTitle: string;
+    courseTitle: string;
+    lessonTitle: string;
+    published: boolean;
+  }) {
+    const response = await fetch("/api/admin/courses/bootstrap", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(input),
+    });
+    const payload = (await response.json().catch(() => ({}))) as {
+      lessonId?: string;
+      error?: string;
+    };
+    if (!response.ok || !payload.lessonId)
+      throw new Error(payload.error || "تعذّر إنشاء الـRoadmap والكورس والدرس");
+    return payload.lessonId;
+  }
+
   if (!profile || !["super_admin", "admin"].includes(profile.role))
     return (
       <div className="rounded-3xl border-2 border-[var(--ok-ink)] bg-[var(--ok-card)] p-8 text-center">
@@ -474,6 +494,7 @@ function CourseAdminContent() {
           lessons={lessons}
           videos={videos}
           profile={profile}
+          onCreateHierarchy={createHierarchyForUpload}
           onUploaded={load}
         />
       </section>

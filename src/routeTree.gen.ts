@@ -46,6 +46,7 @@ import { Route as ApiYoutubeWebhookRouteImport } from './routes/api/youtube/webh
 import { Route as CoursesCourseSlugIndexRouteImport } from './routes/courses/$courseSlug/index'
 import { Route as CoursesCourseSlugLessonSlugRouteImport } from './routes/courses/$courseSlug/$lessonSlug'
 import { Route as SlidesDeckIdSplatRouteImport } from './routes/slides/$deckId/$'
+import { Route as ApiAdminCoursesBootstrapRouteImport } from './routes/api/admin/courses/bootstrap'
 import { Route as ApiAdminHealthRunRouteImport } from './routes/api/admin/health/run'
 import { Route as ApiAdminSlidesUploadRouteImport } from './routes/api/admin/slides/upload'
 import { Route as ApiAdminYoutubeSyncRouteImport } from './routes/api/admin/youtube/sync'
@@ -253,6 +254,12 @@ const SlidesDeckIdSplatRoute = SlidesDeckIdSplatRouteImport.update({
   path: '/slides/$deckId/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminCoursesBootstrapRoute =
+  ApiAdminCoursesBootstrapRouteImport.update({
+    id: '/api/admin/courses/bootstrap',
+    path: '/api/admin/courses/bootstrap',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiAdminHealthRunRoute = ApiAdminHealthRunRouteImport.update({
   id: '/api/admin/health/run',
   path: '/api/admin/health/run',
@@ -338,6 +345,7 @@ export interface FileRoutesByFullPath {
   '/courses/$courseSlug/$lessonSlug': typeof CoursesCourseSlugLessonSlugRoute
   '/slides/$deckId/$': typeof SlidesDeckIdSplatRoute
   '/courses/$courseSlug/': typeof CoursesCourseSlugIndexRoute
+  '/api/admin/courses/bootstrap': typeof ApiAdminCoursesBootstrapRoute
   '/api/admin/health/run': typeof ApiAdminHealthRunRoute
   '/api/admin/slides/upload': typeof ApiAdminSlidesUploadRoute
   '/api/admin/youtube/sync': typeof ApiAdminYoutubeSyncRoute
@@ -386,6 +394,7 @@ export interface FileRoutesByTo {
   '/courses/$courseSlug/$lessonSlug': typeof CoursesCourseSlugLessonSlugRoute
   '/slides/$deckId/$': typeof SlidesDeckIdSplatRoute
   '/courses/$courseSlug': typeof CoursesCourseSlugIndexRoute
+  '/api/admin/courses/bootstrap': typeof ApiAdminCoursesBootstrapRoute
   '/api/admin/health/run': typeof ApiAdminHealthRunRoute
   '/api/admin/slides/upload': typeof ApiAdminSlidesUploadRoute
   '/api/admin/youtube/sync': typeof ApiAdminYoutubeSyncRoute
@@ -435,6 +444,7 @@ export interface FileRoutesById {
   '/courses/$courseSlug/$lessonSlug': typeof CoursesCourseSlugLessonSlugRoute
   '/slides/$deckId/$': typeof SlidesDeckIdSplatRoute
   '/courses/$courseSlug/': typeof CoursesCourseSlugIndexRoute
+  '/api/admin/courses/bootstrap': typeof ApiAdminCoursesBootstrapRoute
   '/api/admin/health/run': typeof ApiAdminHealthRunRoute
   '/api/admin/slides/upload': typeof ApiAdminSlidesUploadRoute
   '/api/admin/youtube/sync': typeof ApiAdminYoutubeSyncRoute
@@ -485,6 +495,7 @@ export interface FileRouteTypes {
     | '/courses/$courseSlug/$lessonSlug'
     | '/slides/$deckId/$'
     | '/courses/$courseSlug/'
+    | '/api/admin/courses/bootstrap'
     | '/api/admin/health/run'
     | '/api/admin/slides/upload'
     | '/api/admin/youtube/sync'
@@ -533,6 +544,7 @@ export interface FileRouteTypes {
     | '/courses/$courseSlug/$lessonSlug'
     | '/slides/$deckId/$'
     | '/courses/$courseSlug'
+    | '/api/admin/courses/bootstrap'
     | '/api/admin/health/run'
     | '/api/admin/slides/upload'
     | '/api/admin/youtube/sync'
@@ -581,6 +593,7 @@ export interface FileRouteTypes {
     | '/courses/$courseSlug/$lessonSlug'
     | '/slides/$deckId/$'
     | '/courses/$courseSlug/'
+    | '/api/admin/courses/bootstrap'
     | '/api/admin/health/run'
     | '/api/admin/slides/upload'
     | '/api/admin/youtube/sync'
@@ -630,6 +643,7 @@ export interface RootRouteChildren {
   CoursesCourseSlugLessonSlugRoute: typeof CoursesCourseSlugLessonSlugRoute
   SlidesDeckIdSplatRoute: typeof SlidesDeckIdSplatRoute
   CoursesCourseSlugIndexRoute: typeof CoursesCourseSlugIndexRoute
+  ApiAdminCoursesBootstrapRoute: typeof ApiAdminCoursesBootstrapRoute
   ApiAdminHealthRunRoute: typeof ApiAdminHealthRunRoute
   ApiAdminSlidesUploadRoute: typeof ApiAdminSlidesUploadRoute
   ApiAdminYoutubeSyncRoute: typeof ApiAdminYoutubeSyncRoute
@@ -902,6 +916,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SlidesDeckIdSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/courses/bootstrap': {
+      id: '/api/admin/courses/bootstrap'
+      path: '/api/admin/courses/bootstrap'
+      fullPath: '/api/admin/courses/bootstrap'
+      preLoaderRoute: typeof ApiAdminCoursesBootstrapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/health/run': {
       id: '/api/admin/health/run'
       path: '/api/admin/health/run'
@@ -1007,6 +1028,7 @@ const rootRouteChildren: RootRouteChildren = {
   CoursesCourseSlugLessonSlugRoute: CoursesCourseSlugLessonSlugRoute,
   SlidesDeckIdSplatRoute: SlidesDeckIdSplatRoute,
   CoursesCourseSlugIndexRoute: CoursesCourseSlugIndexRoute,
+  ApiAdminCoursesBootstrapRoute: ApiAdminCoursesBootstrapRoute,
   ApiAdminHealthRunRoute: ApiAdminHealthRunRoute,
   ApiAdminSlidesUploadRoute: ApiAdminSlidesUploadRoute,
   ApiAdminYoutubeSyncRoute: ApiAdminYoutubeSyncRoute,

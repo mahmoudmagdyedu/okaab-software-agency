@@ -35,6 +35,7 @@ export const Route = createFileRoute("/admin/tasks")({
 const DAY_START = 9;
 const DAY_END = 21;
 const GRID_HEIGHT = 840;
+const DESKTOP_MIN_COLUMNS = 4;
 const STATUS_LABELS: Record<TaskStatus, string> = {
   scheduled: "مجدولة",
   in_progress: "قيد التنفيذ",
@@ -67,7 +68,7 @@ function taskStyle(task: Task) {
   );
   return {
     top: `${(topMinutes / total) * GRID_HEIGHT}px`,
-    height: `${Math.max(76, (duration / total) * GRID_HEIGHT)}px`,
+    height: `${Math.max(52, (duration / total) * GRID_HEIGHT)}px`,
   };
 }
 
@@ -439,6 +440,9 @@ function TasksContent() {
           })),
     );
   }, [displayTeams, searchQuery, tasks, profiles]);
+  const emptyColumnCount = Math.max(0, DESKTOP_MIN_COLUMNS - displayTeams.length);
+  const desktopColumnCount = displayTeams.length + emptyColumnCount;
+  const desktopGridColumns = `70px repeat(${desktopColumnCount}, minmax(250px, 1fr))`;
 
   async function updateTask(task: TaskWithPeople, changes: Partial<Task> = {}) {
     const response = await fetch("/api/admin/tasks", {
@@ -618,7 +622,7 @@ function TasksContent() {
         })}
       </div>
 
-      <section className="hidden overflow-x-auto rounded-3xl border-2 border-[var(--ok-ink)] bg-[var(--ok-card)] md:block">
+      <section className="hidden max-h-[calc(100vh-190px)] min-h-[580px] overflow-auto rounded-3xl border-2 border-[var(--ok-ink)] bg-[var(--ok-card)] md:block">
         {loading ? (
           <div className="grid min-h-80 place-items-center p-8 text-center">
             <div>
@@ -650,13 +654,13 @@ function TasksContent() {
           </div>
         ) : (
           <div
-            className="min-w-[820px]"
-            style={{ minWidth: `${displayTeams.length * 260 + 70}px` }}
+            className="min-w-[1120px]"
+            style={{ minWidth: `${desktopColumnCount * 270 + 70}px` }}
           >
             <div
               className="sticky top-0 z-30 grid border-b-2 border-[var(--ok-ink)] bg-[var(--ok-card)]"
               style={{
-                gridTemplateColumns: `70px repeat(${displayTeams.length}, minmax(250px, 1fr))`,
+                gridTemplateColumns: desktopGridColumns,
               }}
             >
               <div className="p-3 text-center text-xs opacity-55">
@@ -698,11 +702,29 @@ function TasksContent() {
                   </div>
                 );
               })}
+              {Array.from({ length: emptyColumnCount }, (_, index) => (
+                <div
+                  key={`empty-header-${index}`}
+                  className="border-r border-dashed border-[var(--ok-ink)]/20 p-3"
+                >
+                  {canManage ? (
+                    <Link
+                      to="/admin/team"
+                      className="flex h-full min-h-10 items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--ok-ink)]/25 text-xs font-bold opacity-55 transition hover:border-[#E8A33D] hover:opacity-100"
+                    >
+                      <Plus size={15} />
+                      فريق جديد
+                    </Link>
+                  ) : (
+                    <span className="block py-2 text-center text-xs opacity-30">عمود متاح</span>
+                  )}
+                </div>
+              ))}
             </div>
             <div
               className="grid"
               style={{
-                gridTemplateColumns: `70px repeat(${displayTeams.length}, minmax(250px, 1fr))`,
+                gridTemplateColumns: desktopGridColumns,
               }}
             >
               <div
@@ -739,7 +761,7 @@ function TasksContent() {
                         draggable={canManage}
                         onDragStart={(event) => event.dataTransfer.setData("text/task-id", task.id)}
                         style={{ ...taskStyle(task), borderTopColor: team.color }}
-                        className={`absolute inset-x-2 z-10 overflow-hidden rounded-xl border-2 border-[var(--ok-ink)] border-t-[5px] bg-[var(--ok-paper-2)] p-2.5 shadow-sm transition hover:z-20 hover:shadow-lg ${canManage ? "cursor-grab active:cursor-grabbing" : "cursor-default"}`}
+                        className={`absolute inset-x-1.5 z-10 overflow-hidden rounded-md border border-[var(--ok-ink)] border-t-[5px] bg-[var(--ok-paper-2)] p-2.5 shadow-sm transition hover:z-20 hover:shadow-lg ${canManage ? "cursor-grab active:cursor-grabbing" : "cursor-default"}`}
                       >
                         <div className="flex items-start justify-between gap-2">
                           <strong className="line-clamp-1 text-sm">{task.title}</strong>
@@ -796,6 +818,18 @@ function TasksContent() {
                       </article>
                     ))}
                 </div>
+              ))}
+              {Array.from({ length: emptyColumnCount }, (_, index) => (
+                <div
+                  key={`empty-column-${index}`}
+                  className="relative border-l border-dashed border-[var(--ok-ink)]/15"
+                  style={{
+                    height: GRID_HEIGHT,
+                    backgroundImage:
+                      "repeating-linear-gradient(to bottom, transparent 0, transparent 34px, color-mix(in srgb, var(--ok-ink) 10%, transparent) 35px, transparent 36px, transparent 69px, color-mix(in srgb, var(--ok-ink) 22%, transparent) 70px)",
+                  }}
+                  aria-hidden
+                />
               ))}
             </div>
           </div>
