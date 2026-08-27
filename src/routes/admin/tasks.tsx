@@ -9,6 +9,7 @@ import {
   Clock3,
   Edit3,
   Plus,
+  Search,
   ShieldCheck,
   Trash2,
   Users,
@@ -360,6 +361,8 @@ function TasksContent() {
   const [loading, setLoading] = useState(true);
   const [composerOpen, setComposerOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<TaskWithPeople | null>(null);
+  const [teamFilter, setTeamFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const canManage = profile?.role === "super_admin";
 
   const load = useCallback(async () => {
@@ -415,6 +418,27 @@ function TasksContent() {
       ),
     [selectedDay],
   );
+  const displayTeams = useMemo(
+    () =>
+      teamFilter === "all" ? visibleTeams : visibleTeams.filter((team) => team.id === teamFilter),
+    [teamFilter, visibleTeams],
+  );
+  const displayTasks = useMemo(() => {
+    const normalized = searchQuery.trim().toLocaleLowerCase("ar");
+    return tasks.filter(
+      (task) =>
+        displayTeams.some((team) => team.id === task.team_id) &&
+        (!normalized ||
+          task.title.toLocaleLowerCase("ar").includes(normalized) ||
+          task.description.toLocaleLowerCase("ar").includes(normalized) ||
+          task.assigneeIds.some((id) => {
+            const person = profiles.find((profile) => profile.id === id);
+            return (person?.display_name || person?.email || "")
+              .toLocaleLowerCase("ar")
+              .includes(normalized);
+          })),
+    );
+  }, [displayTeams, searchQuery, tasks, profiles]);
 
   async function updateTask(task: TaskWithPeople, changes: Partial<Task> = {}) {
     const response = await fetch("/api/admin/tasks", {
@@ -485,49 +509,90 @@ function TasksContent() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-col gap-3 rounded-3xl border-2 border-[var(--ok-ink)] bg-[var(--ok-card)] p-4 xl:flex-row xl:items-center xl:justify-between">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setSelectedDay((day) => addDays(day, -7))}
-            aria-label="الأسبوع السابق"
-            className="grid size-10 place-items-center rounded-xl border-2 border-[var(--ok-ink)]"
-          >
-            <ChevronRight size={18} />
-          </button>
-          <button
-            type="button"
-            onClick={() => setSelectedDay(startOfDay(new Date()))}
-            className="h-10 rounded-xl border-2 border-[var(--ok-ink)] px-4 text-sm font-bold"
-          >
-            اليوم
-          </button>
-          <button
-            type="button"
-            onClick={() => setSelectedDay((day) => addDays(day, 7))}
-            aria-label="الأسبوع التالي"
-            className="grid size-10 place-items-center rounded-xl border-2 border-[var(--ok-ink)]"
-          >
-            <ChevronLeft size={18} />
-          </button>
-          <span className="mr-2 hidden text-sm font-bold opacity-65 sm:inline">
-            {format(selectedDay, "d MMMM yyyy", { locale: arEG })}
-          </span>
+      <section className="overflow-hidden rounded-3xl border-2 border-[var(--ok-ink)] bg-[var(--ok-card)]">
+        <div className="flex flex-col gap-3 border-b border-[var(--ok-ink)]/15 p-4 sm:p-5 xl:flex-row xl:items-end xl:justify-between">
+          <div>
+            <p className="text-xs font-bold text-[#D88C20]">إدارة وقت الفرق</p>
+            <h2 className="mt-1 font-display text-2xl font-black sm:text-3xl">التقويم الأسبوعي</h2>
+            <p className="mt-1 text-sm opacity-55">
+              {format(days[0]!, "d MMM", { locale: arEG })} —{" "}
+              {format(days[6]!, "d MMM yyyy", { locale: arEG })}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setSelectedDay((day) => addDays(day, -7))}
+              aria-label="الأسبوع السابق"
+              className="grid size-10 place-items-center rounded-xl border-2 border-[var(--ok-ink)]"
+            >
+              <ChevronRight size={18} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedDay(startOfDay(new Date()))}
+              className="h-10 rounded-xl border-2 border-[var(--ok-ink)] px-4 text-sm font-bold"
+            >
+              اليوم
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedDay((day) => addDays(day, 7))}
+              aria-label="الأسبوع التالي"
+              className="grid size-10 place-items-center rounded-xl border-2 border-[var(--ok-ink)]"
+            >
+              <ChevronLeft size={18} />
+            </button>
+            {canManage && visibleTeams.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingTask(null);
+                  setComposerOpen(true);
+                }}
+                className="flex h-10 items-center justify-center gap-2 rounded-xl border-2 border-[var(--ok-ink)] bg-[#E8A33D] px-4 text-sm font-bold text-[#181511]"
+              >
+                <CalendarPlus size={17} />
+                مهمة جديدة
+              </button>
+            )}
+          </div>
         </div>
-        {canManage && visibleTeams.length > 0 && (
-          <button
-            type="button"
-            onClick={() => {
-              setEditingTask(null);
-              setComposerOpen(true);
-            }}
-            className="flex h-11 items-center justify-center gap-2 rounded-xl border-2 border-[var(--ok-ink)] bg-[#E8A33D] px-5 font-bold text-[#181511]"
-          >
-            <CalendarPlus size={18} />
-            مهمة جديدة
-          </button>
-        )}
-      </div>
+        <div className="grid gap-3 p-4 xl:grid-cols-[minmax(220px,320px)_1fr] xl:items-center">
+          <label className="relative block">
+            <Search
+              className="absolute right-3 top-1/2 size-4 -translate-y-1/2 opacity-45"
+              aria-hidden
+            />
+            <input
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="ابحث باسم المهمة أو العضو"
+              className="h-11 w-full rounded-xl border-2 border-[var(--ok-ink)] bg-[var(--ok-paper)] pr-10 pl-3 text-sm outline-none focus:border-[#E8A33D]"
+            />
+          </label>
+          <div className="flex gap-2 overflow-x-auto pb-1 xl:justify-end">
+            <button
+              type="button"
+              onClick={() => setTeamFilter("all")}
+              className={`shrink-0 rounded-xl border-2 border-[var(--ok-ink)] px-3 py-2 text-xs font-bold ${teamFilter === "all" ? "bg-[var(--ok-ink)] text-[var(--ok-paper)]" : "bg-[var(--ok-paper)]"}`}
+            >
+              كل الفرق
+            </button>
+            {visibleTeams.map((team) => (
+              <button
+                key={team.id}
+                type="button"
+                onClick={() => setTeamFilter(team.id)}
+                className={`flex shrink-0 items-center gap-2 rounded-xl border-2 border-[var(--ok-ink)] px-3 py-2 text-xs font-bold ${teamFilter === team.id ? "bg-[#E8A33D] text-[#181511]" : "bg-[var(--ok-paper)]"}`}
+              >
+                <span className="size-2 rounded-full" style={{ backgroundColor: team.color }} />
+                {team.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {profile && !canManage && (
         <div className="flex items-start gap-3 rounded-2xl border border-[#E8A33D]/35 bg-[#E8A33D]/10 px-4 py-3 text-sm leading-6">
@@ -586,31 +651,58 @@ function TasksContent() {
         ) : (
           <div
             className="min-w-[820px]"
-            style={{ minWidth: `${visibleTeams.length * 260 + 70}px` }}
+            style={{ minWidth: `${displayTeams.length * 260 + 70}px` }}
           >
             <div
               className="sticky top-0 z-30 grid border-b-2 border-[var(--ok-ink)] bg-[var(--ok-card)]"
               style={{
-                gridTemplateColumns: `70px repeat(${visibleTeams.length}, minmax(250px, 1fr))`,
+                gridTemplateColumns: `70px repeat(${displayTeams.length}, minmax(250px, 1fr))`,
               }}
             >
               <div className="p-3 text-center text-xs opacity-55">
                 <Clock3 className="mx-auto" size={17} />
               </div>
-              {visibleTeams.map((team) => (
-                <div key={team.id} className="border-r border-[var(--ok-ink)]/25 p-3">
-                  <span
-                    className="inline-block size-2.5 rounded-full"
-                    style={{ background: team.color }}
-                  />{" "}
-                  <strong className="mr-2">{team.name}</strong>
-                </div>
-              ))}
+              {displayTeams.map((team) => {
+                const teamTasks = displayTasks.filter((task) => task.team_id === team.id);
+                const scheduledMinutes = teamTasks.reduce(
+                  (sum, task) =>
+                    sum +
+                    Math.max(
+                      0,
+                      (new Date(task.ends_at).getTime() - new Date(task.starts_at).getTime()) /
+                        60000,
+                    ),
+                  0,
+                );
+                const utilization = Math.min(100, Math.round((scheduledMinutes / 480) * 100));
+                const memberCount = profiles.filter((member) => member.team_id === team.id).length;
+                return (
+                  <div key={team.id} className="border-r border-[var(--ok-ink)]/25 p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span
+                          className="grid size-9 shrink-0 place-items-center rounded-full text-xs font-black text-[#181511]"
+                          style={{ background: team.color }}
+                        >
+                          {team.name.slice(0, 2)}
+                        </span>
+                        <div className="min-w-0">
+                          <strong className="block truncate text-sm">{team.name}</strong>
+                          <span className="text-[10px] opacity-50">{memberCount} أعضاء</span>
+                        </div>
+                      </div>
+                      <span className="rounded-lg border border-[#E8A33D]/40 bg-[#E8A33D]/12 px-2 py-1 text-[10px] font-bold text-[#D88C20]">
+                        {utilization}%
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
             <div
               className="grid"
               style={{
-                gridTemplateColumns: `70px repeat(${visibleTeams.length}, minmax(250px, 1fr))`,
+                gridTemplateColumns: `70px repeat(${displayTeams.length}, minmax(250px, 1fr))`,
               }}
             >
               <div
@@ -627,7 +719,7 @@ function TasksContent() {
                   </span>
                 ))}
               </div>
-              {visibleTeams.map((team) => (
+              {displayTeams.map((team) => (
                 <div
                   key={team.id}
                   onDragOver={(event) => canManage && event.preventDefault()}
@@ -636,10 +728,10 @@ function TasksContent() {
                   style={{
                     height: GRID_HEIGHT,
                     backgroundImage:
-                      "repeating-linear-gradient(to bottom, transparent 0, transparent 69px, color-mix(in srgb, var(--ok-ink) 16%, transparent) 70px)",
+                      "repeating-linear-gradient(to bottom, transparent 0, transparent 34px, color-mix(in srgb, var(--ok-ink) 13%, transparent) 35px, transparent 36px, transparent 69px, color-mix(in srgb, var(--ok-ink) 32%, transparent) 70px)",
                   }}
                 >
-                  {tasks
+                  {displayTasks
                     .filter((task) => task.team_id === team.id)
                     .map((task) => (
                       <article
@@ -730,12 +822,12 @@ function TasksContent() {
               </Link>
             )}
           </div>
-        ) : tasks.length === 0 ? (
+        ) : displayTasks.length === 0 ? (
           <p className="rounded-2xl border-2 border-dashed border-[var(--ok-ink)] p-7 text-center opacity-60">
             لا توجد مهام في هذا اليوم.
           </p>
         ) : (
-          [...tasks]
+          [...displayTasks]
             .sort((a, b) => a.issuer_rank - b.issuer_rank || a.starts_at.localeCompare(b.starts_at))
             .map((task) => (
               <article

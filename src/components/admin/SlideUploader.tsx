@@ -1,13 +1,14 @@
 import { unzipSync } from "fflate";
-import { FileArchive, LoaderCircle, UploadCloud } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { AlertCircle, FileArchive, LoaderCircle, UploadCloud } from "lucide-react";
+import { useMemo, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
-import type { Lesson, Profile, YouTubeVideo } from "@/integrations/supabase/types";
+import type { Course, Lesson, Profile, Roadmap, YouTubeVideo } from "@/integrations/supabase/types";
 
 const MAX_ARCHIVE = 100 * 1024 * 1024;
 const MAX_EXPANDED = 300 * 1024 * 1024;
-const MAX_FILES = 2000;
+const MAX_FILES = 750;
+const MAX_REQUEST_BYTES = 40 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = new Set([
   "html",
   "htm",
@@ -155,11 +156,17 @@ async function prepare(
 }
 
 export function SlideUploader({
+  roadmaps,
+  courses,
+  roadmapCourses,
   lessons,
   videos,
   profile,
   onUploaded,
 }: {
+  roadmaps: Roadmap[];
+  courses: Course[];
+  roadmapCourses: { roadmap_id: string; course_id: string }[];
   lessons: Lesson[];
   videos: YouTubeVideo[];
   profile: Profile;
@@ -167,6 +174,19 @@ export function SlideUploader({
 }) {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [roadmapId, setRoadmapId] = useState("");
+  const [courseId, setCourseId] = useState("");
+
+  const filteredCourses = useMemo(() => {
+    if (!roadmapId) return courses;
+    const ids = new Set(
+      roadmapCourses.filter((link) => link.roadmap_id === roadmapId).map((link) => link.course_id),
+    );
+    return courses.filter((course) => ids.has(course.id));
+  }, [courses, roadmapCourses, roadmapId]);
+  const filteredLessons = courseId
+    ? lessons.filter((lesson) => lesson.course_id === courseId)
+    : lessons;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -183,6 +203,11 @@ export function SlideUploader({
       const lessonId = String(form.get("lessonId"));
       const allowDownload = form.get("allowDownload") === "on";
       const uploadList = allowDownload ? [...prepared.files, prepared.source] : prepared.files;
+      const requestBytes = uploadList.reduce((total, item) => total + item.bytes.byteLength, 0);
+      if (requestBytes > MAX_REQUEST_BYTES)
+        throw new Error(
+          "الحزمة بعد التجهيز أكبر من 40MB. قلّل حجم الصور أو ألغِ تنزيل الملف الأصلي.",
+        );
       const upload = new FormData();
       upload.set(
         "metadata",
@@ -247,14 +272,43 @@ export function SlideUploader({
           className="h-11 rounded-xl border-2 border-[var(--ok-ink)] bg-[var(--ok-paper)] px-3 sm:col-span-2"
         />
         <select
+          name="roadmapId"
+          value={roadmapId}
+          onChange={(event) => {
+            setRoadmapId(event.target.value);
+            setCourseId("");
+          }}
+          className="h-11 rounded-xl border-2 border-[var(--ok-ink)] bg-[var(--ok-paper)] px-3"
+        >
+          <option value="">كل الـRoadmaps</option>
+          {roadmaps.map((roadmap) => (
+            <option key={roadmap.id} value={roadmap.id}>
+              {roadmap.title}
+            </option>
+          ))}
+        </select>
+        <select
+          name="courseId"
+          value={courseId}
+          onChange={(event) => setCourseId(event.target.value)}
+          className="h-11 rounded-xl border-2 border-[var(--ok-ink)] bg-[var(--ok-paper)] px-3"
+        >
+          <option value="">اختر الكورس</option>
+          {filteredCourses.map((course) => (
+            <option key={course.id} value={course.id}>
+              {course.title}
+            </option>
+          ))}
+        </select>
+        <select
           name="lessonId"
           required
           className="h-11 rounded-xl border-2 border-[var(--ok-ink)] bg-[var(--ok-paper)] px-3"
         >
           <option value="">اختر الدرس</option>
-          {lessons.map((lesson) => (
+          {filteredLessons.map((lesson) => (
             <option key={lesson.id} value={lesson.id}>
-              {lesson.title}
+              {courses.find((course) => course.id === lesson.course_id)?.title} — {lesson.title}
             </option>
           ))}
         </select>
@@ -296,6 +350,18 @@ export function SlideUploader({
           />
         </label>
       </div>
+      {lessons.length === 0 && (
+        <div
+          role="status"
+          className="mt-4 flex items-start gap-3 rounded-2xl border border-[#E8A33D]/45 bg-[#E8A33D]/10 p-4 text-sm leading-6"
+        >
+          <AlertCircle className="mt-0.5 shrink-0 text-[#D88C20]" size={19} />
+          <p>
+            أنشئ بالترتيب: <strong>Roadmap ثم كورس ثم درس</strong> من النماذج الموجودة أعلى الصفحة.
+            بعد إنشاء الدرس سيصبح زر الرفع متاحًا فورًا.
+          </p>
+        </div>
+      )}
       {progress > 0 && (
         <div className="mt-4 h-2 overflow-hidden rounded-full bg-[var(--ok-paper)]">
           <div className="h-full bg-[#E8A33D] transition-all" style={{ width: `${progress}%` }} />

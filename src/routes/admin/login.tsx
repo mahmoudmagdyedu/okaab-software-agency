@@ -12,6 +12,7 @@ import {
 import { useEffect, useState } from "react";
 
 import { OkaabStyles } from "@/components/okaab/SiteChrome";
+import { ClerkBoundary } from "@/components/auth/ClerkBoundary";
 import { ThemeProvider } from "@/lib/theme";
 
 export const Route = createFileRoute("/admin/login")({
@@ -22,8 +23,16 @@ export const Route = createFileRoute("/admin/login")({
       { name: "description", content: "تسجيل الدخول الآمن إلى لوحة إدارة عُقاب." },
     ],
   }),
-  component: AdminLoginPage,
+  component: AdminLoginRoute,
 });
+
+function AdminLoginRoute() {
+  return (
+    <ClerkBoundary>
+      <AdminLoginPage />
+    </ClerkBoundary>
+  );
+}
 
 function getErrorMessage(error: unknown) {
   if (error && typeof error === "object") {

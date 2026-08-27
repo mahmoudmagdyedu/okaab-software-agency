@@ -1,5 +1,4 @@
 @import "tailwindcss" source(none);
-@import "@clerk/ui/themes/shadcn.css";
 @source "../src/components/okaab";
 @source "../src/routes";
 @import "./styles.fonts.css";

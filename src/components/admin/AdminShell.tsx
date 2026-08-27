@@ -24,6 +24,7 @@ import {
 import { Toaster } from "sonner";
 
 import { OkaabStyles } from "@/components/okaab/SiteChrome";
+import { ClerkBoundary } from "@/components/auth/ClerkBoundary";
 import type { AppRole, Profile } from "@/integrations/supabase/types";
 import { ThemeProvider, useTheme } from "@/lib/theme";
 
@@ -312,13 +313,15 @@ export function AdminToaster() {
 
 export function AdminLayout({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <ThemeProvider>
-      <AdminAuthProvider>
-        <AdminGate>
-          <AdminFrame title={title}>{children}</AdminFrame>
-        </AdminGate>
-      </AdminAuthProvider>
-    </ThemeProvider>
+    <ClerkBoundary>
+      <ThemeProvider>
+        <AdminAuthProvider>
+          <AdminGate>
+            <AdminFrame title={title}>{children}</AdminFrame>
+          </AdminGate>
+        </AdminAuthProvider>
+      </ThemeProvider>
+    </ClerkBoundary>
   );
 }
 

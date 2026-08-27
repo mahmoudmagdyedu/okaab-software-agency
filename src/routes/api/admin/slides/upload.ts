@@ -85,7 +85,11 @@ export const Route = createFileRoute("/api/admin/slides/upload")({
                 )
                 .input("content", sql.VarBinary(sql.MAX), bytes)
                 .input("size", sql.BigInt, bytes.length)
-                .input("is_source", sql.Bit, asset.path === "source.zip")
+                .input(
+                  "is_source",
+                  sql.Bit,
+                  asset.path === "source.zip" || asset.path === "source.html",
+                )
                 .query(
                   "insert into okaab.slide_assets (deck_id,path,content_type,content,size_bytes,is_source) values (@deck_id,@path,@content_type,@content,@size,@is_source)",
                 );

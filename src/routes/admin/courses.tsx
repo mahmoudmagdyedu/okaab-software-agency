@@ -43,12 +43,14 @@ type SyncState = {
   last_error_summary: string | null;
   consecutive_failures: number;
 };
+type RoadmapCourseLink = { roadmap_id: string; course_id: string; sort_order: number };
 
 function slugify(value: string) {
   return value
     .trim()
     .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "")
+    .normalize("NFKD")
+    .replace(/[^\p{Letter}\p{Number}\s-]/gu, "")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-");
 }
@@ -57,6 +59,7 @@ function CourseAdminContent() {
   const { profile } = useAdminAuth();
   const [roadmaps, setRoadmaps] = useState<Roadmap[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
+  const [roadmapCourses, setRoadmapCourses] = useState<RoadmapCourseLink[]>([]);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [videos, setVideos] = useState<YouTubeVideo[]>([]);
   const [decks, setDecks] = useState<SlideDeck[]>([]);
@@ -66,9 +69,19 @@ function CourseAdminContent() {
   const [syncError, setSyncError] = useState<string | null>(null);
 
   async function load() {
-    const results = await Promise.all([
+    const [
+      roadmapResult,
+      courseResult,
+      roadmapCourseResult,
+      lessonResult,
+      videoResult,
+      deckResult,
+      playlistResult,
+      syncResult,
+    ] = await Promise.all([
       supabase.from("roadmaps").select("*").order("sort_order"),
       supabase.from("courses").select("*").order("created_at"),
+      supabase.from("roadmap_courses").select("*").order("sort_order"),
       supabase.from("lessons").select("*").order("course_id").order("sort_order"),
       supabase.from("youtube_videos").select("*").order("published_at", { ascending: false }),
       supabase.from("slide_decks").select("*").order("created_at", { ascending: false }),
@@ -78,13 +91,14 @@ function CourseAdminContent() {
         .select("last_success_at,last_error_summary,consecutive_failures")
         .maybeSingle(),
     ]);
-    setRoadmaps((results[0].data ?? []) as Roadmap[]);
-    setCourses((results[1].data ?? []) as Course[]);
-    setLessons((results[2].data ?? []) as Lesson[]);
-    setVideos((results[3].data ?? []) as YouTubeVideo[]);
-    setDecks((results[4].data ?? []) as SlideDeck[]);
-    setPlaylists((results[5].data ?? []) as Playlist[]);
-    setSyncState(results[6].data as SyncState | null);
+    setRoadmaps((roadmapResult.data ?? []) as Roadmap[]);
+    setCourses((courseResult.data ?? []) as Course[]);
+    setRoadmapCourses((roadmapCourseResult.data ?? []) as RoadmapCourseLink[]);
+    setLessons((lessonResult.data ?? []) as Lesson[]);
+    setVideos((videoResult.data ?? []) as YouTubeVideo[]);
+    setDecks((deckResult.data ?? []) as SlideDeck[]);
+    setPlaylists((playlistResult.data ?? []) as Playlist[]);
+    setSyncState(syncResult.data as SyncState | null);
   }
   useEffect(() => {
     void load();
@@ -228,6 +242,19 @@ function CourseAdminContent() {
       .eq("id", videoId);
     if (result.error) toast.error("تعذّر ربط الفيديو");
     else await load();
+  }
+
+  async function toggleDeckPublished(deck: SlideDeck) {
+    const result = await supabase
+      .from("slide_decks")
+      .update({ is_published: !deck.is_published })
+      .eq("id", deck.id);
+    if (result.error) {
+      toast.error("تعذّر تغيير حالة النشر", { description: result.error.message });
+      return;
+    }
+    toast.success(deck.is_published ? "تم إلغاء نشر الـSlides" : "تم نشر الـSlides");
+    await load();
   }
 
   if (!profile || !["super_admin", "admin"].includes(profile.role))
@@ -440,7 +467,15 @@ function CourseAdminContent() {
             )}
           </div>
         </div>
-        <SlideUploader lessons={lessons} videos={videos} profile={profile} onUploaded={load} />
+        <SlideUploader
+          roadmaps={roadmaps}
+          courses={courses}
+          roadmapCourses={roadmapCourses}
+          lessons={lessons}
+          videos={videos}
+          profile={profile}
+          onUploaded={load}
+        />
       </section>
 
       <section className="overflow-hidden rounded-3xl border-2 border-[var(--ok-ink)] bg-[var(--ok-card)]">
@@ -508,6 +543,27 @@ function CourseAdminContent() {
                 {deck.file_count} ملف · {deck.is_published ? "منشور" : "مسودة"} ·{" "}
                 {deck.allow_download ? "التنزيل متاح" : "عرض فقط"}
               </p>
+              <div className="mt-4 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => void toggleDeckPublished(deck)}
+                  className={`h-9 rounded-xl border-2 border-[var(--ok-ink)] px-4 text-xs font-bold ${
+                    deck.is_published ? "bg-[var(--ok-paper)]" : "bg-[#E8A33D] text-[#181511]"
+                  }`}
+                >
+                  {deck.is_published ? "إلغاء النشر" : "نشر الآن"}
+                </button>
+                {deck.is_published && (
+                  <a
+                    href={`/slides/${deck.id}/index.html`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs font-bold text-[var(--ok-accent-text)] underline"
+                  >
+                    معاينة
+                  </a>
+                )}
+              </div>
             </article>
           ))}
           {decks.length === 0 && <p className="text-sm opacity-60">لم تُرفع Slides بعد.</p>}

@@ -1,5 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { MailPlus, Plus, Shield, UserRound, UsersRound } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  LoaderCircle,
+  MailPlus,
+  Plus,
+  Shield,
+  UserRound,
+  UsersRound,
+} from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
@@ -31,6 +40,15 @@ function TeamContent() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [people, setPeople] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [inviteRole, setInviteRole] = useState<AppRole>(
+    profile?.role === "super_admin" ? "admin" : "team_leader",
+  );
+  const [inviting, setInviting] = useState(false);
+  const [inviteResult, setInviteResult] = useState<{
+    ok: boolean;
+    message: string;
+    email?: string;
+  } | null>(null);
   const canAdminister = profile && ["super_admin", "admin"].includes(profile.role);
 
   async function load() {
@@ -45,6 +63,9 @@ function TeamContent() {
   useEffect(() => {
     void load();
   }, []);
+  useEffect(() => {
+    if (profile) setInviteRole(profile.role === "super_admin" ? "admin" : "team_leader");
+  }, [profile?.role]);
 
   async function createTeam(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -69,19 +90,39 @@ function TeamContent() {
 
   async function invite(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setInviteResult(null);
+    setInviting(true);
     const form = new FormData(event.currentTarget);
     const role = String(form.get("role")) as AppRole;
     const teamId = String(form.get("teamId") || "") || null;
-    const response = await fetch("/api/admin/invite", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ email: String(form.get("email")), role, teamId }),
-    });
-    const payload = await response.json();
-    if (!response.ok) toast.error("تعذّر إرسال الدعوة", { description: payload.error });
-    else {
-      toast.success("تم إرسال رابط الدخول");
-      event.currentTarget.reset();
+    const email = String(form.get("email")).trim().toLowerCase();
+    try {
+      const response = await fetch("/api/admin/invite", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email, role, teamId }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        message?: string;
+      };
+      if (!response.ok) {
+        const message = payload.error || "تعذّر إرسال الدعوة الآن";
+        setInviteResult({ ok: false, message, email });
+        toast.error("تعذّر إرسال الدعوة", { description: message });
+      } else {
+        const message = payload.message || "تم إرسال رابط الدعوة عبر البريد بنجاح.";
+        setInviteResult({ ok: true, message, email });
+        toast.success("تم إرسال رابط الدخول", { description: email });
+        event.currentTarget.reset();
+        setInviteRole(profile?.role === "super_admin" ? "admin" : "team_leader");
+      }
+    } catch {
+      const message = "تعذّر الاتصال بخدمة الدعوات. حاول مرة أخرى.";
+      setInviteResult({ ok: false, message, email });
+      toast.error("تعذّر إرسال الدعوة", { description: message });
+    } finally {
+      setInviting(false);
     }
   }
 
@@ -179,6 +220,8 @@ function TeamContent() {
               <select
                 name="role"
                 required
+                value={inviteRole}
+                onChange={(event) => setInviteRole(event.target.value as AppRole)}
                 className="h-11 rounded-xl border-2 border-[var(--ok-ink)] bg-[var(--ok-paper)] px-3"
               >
                 {profile?.role === "super_admin" && <option value="admin">أدمن</option>}
@@ -187,6 +230,8 @@ function TeamContent() {
               </select>
               <select
                 name="teamId"
+                required={inviteRole !== "admin"}
+                disabled={inviteRole === "admin"}
                 className="h-11 rounded-xl border-2 border-[var(--ok-ink)] bg-[var(--ok-paper)] px-3"
               >
                 <option value="">بدون فريق (للأدمن)</option>
@@ -196,10 +241,39 @@ function TeamContent() {
                   </option>
                 ))}
               </select>
-              <button className="flex h-11 items-center justify-center gap-2 rounded-xl border-2 border-[var(--ok-ink)] bg-[#E8A33D] font-bold text-[#181511] sm:col-span-2">
-                <MailPlus size={17} />
-                إرسال الدعوة
+              <button
+                disabled={inviting}
+                className="flex h-11 items-center justify-center gap-2 rounded-xl border-2 border-[var(--ok-ink)] bg-[#E8A33D] font-bold text-[#181511] disabled:cursor-wait disabled:opacity-60 sm:col-span-2"
+              >
+                {inviting ? (
+                  <LoaderCircle className="animate-spin" size={17} />
+                ) : (
+                  <MailPlus size={17} />
+                )}
+                {inviting ? "جاري إنشاء الرابط وإرساله…" : "إرسال الدعوة"}
               </button>
+              {inviteResult && (
+                <div
+                  role={inviteResult.ok ? "status" : "alert"}
+                  className={`flex items-start gap-3 rounded-2xl border p-3 text-sm leading-6 sm:col-span-2 ${
+                    inviteResult.ok
+                      ? "border-emerald-500/40 bg-emerald-500/10"
+                      : "border-red-500/40 bg-red-500/10"
+                  }`}
+                >
+                  {inviteResult.ok ? (
+                    <CheckCircle2 className="mt-0.5 shrink-0 text-emerald-600" size={19} />
+                  ) : (
+                    <AlertCircle className="mt-0.5 shrink-0 text-red-500" size={19} />
+                  )}
+                  <p>
+                    <strong>{inviteResult.ok ? "تم الإرسال" : "لم يتم الإرسال"}</strong>
+                    <br />
+                    {inviteResult.message}{" "}
+                    {inviteResult.email && <bdi dir="ltr">({inviteResult.email})</bdi>}
+                  </p>
+                </div>
+              )}
             </div>
           </form>
         </section>

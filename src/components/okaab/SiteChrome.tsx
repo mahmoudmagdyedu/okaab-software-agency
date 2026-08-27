@@ -104,6 +104,7 @@ export function OkaabStyles() {
         __html: `
         ::selection { background: ${ACCENT}; color: var(--ok-paper-2); }
         .font-display { font-family: 'Fraunces', 'IBM Plex Sans Arabic', serif; font-variation-settings: 'opsz' 144; }
+        [dir="rtl"] .font-display { font-family: 'IBM Plex Sans Arabic', sans-serif; font-variation-settings: normal; }
         .font-hand { font-family: 'Caveat', 'IBM Plex Sans Arabic', cursive; }
         [dir="rtl"] .font-hand { font-family: 'IBM Plex Sans Arabic', sans-serif; font-weight: 600; }
         .paper-grain { background-image: radial-gradient(var(--ok-ink) 0.6px, transparent 0.6px); background-size: 22px 22px; }

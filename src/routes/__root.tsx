@@ -1,6 +1,3 @@
-import { ClerkProvider } from "@clerk/tanstack-react-start";
-import { arSA } from "@clerk/localizations";
-import { shadcn } from "@clerk/ui/themes";
 import {
   Outlet,
   Link,
@@ -14,13 +11,6 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { THEME_INIT_SCRIPT } from "../lib/theme";
-
-const OKAAB_ARABIC_LOCALIZATION = {
-  ...arSA,
-  formFieldInputPlaceholder__emailAddress: "أدخل بريدك الإلكتروني",
-  formFieldInputPlaceholder__password: "أدخل كلمة المرور",
-  formFieldInputPlaceholder__signUpPassword: "أنشئ كلمة مرور قوية",
-};
 
 function NotFoundComponent() {
   return (
@@ -166,14 +156,6 @@ export const Route = createRootRoute({
         type: "font/woff2",
         crossOrigin: "anonymous",
       },
-      {
-        rel: "preload",
-        href: "/fonts/plex-5ab42dd5.woff2",
-        as: "font",
-        type: "font/woff2",
-        crossOrigin: "anonymous",
-      },
-
       { rel: "icon", href: "/favicon-32.png?v=3", type: "image/png", sizes: "32x32" },
       { rel: "icon", href: "/favicon-48.png?v=3", type: "image/png", sizes: "48x48" },
       { rel: "icon", href: "/favicon.png?v=3", type: "image/png", sizes: "192x192" },
@@ -194,20 +176,9 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <ClerkProvider
-          localization={OKAAB_ARABIC_LOCALIZATION}
-          appearance={{
-            cssLayerName: shadcn.cssLayerName!,
-            variables: shadcn.variables!,
-            elements: shadcn.elements!,
-          }}
-          {...(import.meta.env.PROD ? { proxyUrl: "/clerk-proxy" } : {})}
-        >
-          <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
-
-          {children}
-          <Scripts />
-        </ClerkProvider>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        {children}
+        <Scripts />
       </body>
     </html>
   );

@@ -1,5 +1,4 @@
 import "./lib/error-capture";
-import appCssUrl from "./styles.css?url";
 import serverEntry from "@tanstack/react-start/server-entry";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
@@ -211,7 +210,6 @@ function withPerformanceHeaders(request: Request, response: Response): Response 
   if (contentType.includes("text/html")) {
     headers.set("content-security-policy", SECURITY_POLICY);
     headers.set("cache-control", "no-cache, max-age=0, must-revalidate");
-    headers.append("link", `<${appCssUrl}>; rel=preload; as=style`);
   }
   const acceptsGzip = /(?:^|,)\s*gzip\s*(?:;|,|$)/i.test(
     request.headers.get("accept-encoding") ?? "",
