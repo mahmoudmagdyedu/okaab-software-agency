@@ -60,7 +60,6 @@ const CARD_META = [
 ];
 
 const WHATSAPP = "+201228086441";
-const WHATSAPP_DISPLAY = "01228086441";
 const EMAIL = "hello@okaab.org";
 const EMAIL_SALES = "sales@okaab.org";
 const EMAIL_SUPPORT = "support@okaab.org";
@@ -1055,9 +1054,6 @@ export default function OkaabLanding() {
               >
                 <WhatsAppIcon className="size-5 transition-transform group-hover:rotate-12" />
                 {t.quote.whatsapp}
-                <span dir="ltr" className="text-base">
-                  {WHATSAPP_DISPLAY}
-                </span>
               </a>
             </div>
             {sent && (
