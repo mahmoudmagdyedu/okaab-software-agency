@@ -87,12 +87,31 @@ function contentType(path: string) {
 }
 
 function findRelativeAssets(html: string) {
-  const matches = [...html.matchAll(/(?:src|href)\s*=\s*["']([^"']+)["']/gi)].map(
-    (match) => match[1] ?? "",
-  );
-  return matches.filter(
-    (value) => value && !/^(?:https?:|data:|blob:|#|mailto:|tel:|\/\/)/i.test(value),
-  );
+  const document = new DOMParser().parseFromString(html, "text/html");
+  const references = new Set<string>();
+  const collect = (value: string | null) => {
+    const normalized = value?.trim();
+    if (normalized && !/^(?:https?:|data:|blob:|#|mailto:|tel:|javascript:|\/\/)/i.test(normalized))
+      references.add(normalized);
+  };
+
+  document
+    .querySelectorAll(
+      "script[src],link[href],img[src],source[src],video[src],audio[src],track[src],iframe[src],embed[src],object[data],input[type='image'][src]",
+    )
+    .forEach((element) => {
+      collect(element.getAttribute("src"));
+      collect(element.getAttribute("href"));
+      collect(element.getAttribute("data"));
+    });
+  document.querySelectorAll("[srcset]").forEach((element) => {
+    element
+      .getAttribute("srcset")
+      ?.split(",")
+      .forEach((candidate) => collect(candidate.trim().split(/\s+/)[0] ?? null));
+  });
+
+  return [...references];
 }
 
 async function prepare(
@@ -181,6 +200,7 @@ export function SlideUploader({
 }) {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [uploadError, setUploadError] = useState("");
   const [roadmapId, setRoadmapId] = useState("");
   const [courseId, setCourseId] = useState("");
 
@@ -204,6 +224,7 @@ export function SlideUploader({
       toast.error("اختر ملف HTML أو ZIP");
       return;
     }
+    setUploadError("");
     setUploading(true);
     setProgress(2);
     try {
@@ -259,8 +280,10 @@ export function SlideUploader({
       formElement.reset();
       await onUploaded();
     } catch (error) {
+      const message = error instanceof Error ? error.message : "خطأ غير متوقع";
+      setUploadError(message);
       toast.error("لم يكتمل رفع الـSlides", {
-        description: error instanceof Error ? error.message : "خطأ غير متوقع",
+        description: message,
       });
     } finally {
       setUploading(false);
@@ -405,6 +428,18 @@ export function SlideUploader({
       {progress > 0 && (
         <div className="mt-4 h-2 overflow-hidden rounded-full bg-[var(--ok-paper)]">
           <div className="h-full bg-[#E8A33D] transition-all" style={{ width: `${progress}%` }} />
+        </div>
+      )}
+      {uploadError && (
+        <div
+          role="alert"
+          className="mt-4 flex items-start gap-3 rounded-2xl border border-red-500/45 bg-red-500/10 p-4 text-sm leading-6 text-red-700 dark:text-red-300"
+        >
+          <AlertCircle className="mt-0.5 shrink-0" size={19} />
+          <div>
+            <strong className="block">لم يكتمل رفع الـSlides</strong>
+            <span>{uploadError}</span>
+          </div>
         </div>
       )}
       <button
