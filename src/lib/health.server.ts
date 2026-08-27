@@ -1,4 +1,5 @@
 import { dbHealth, getDb, sql } from "@/lib/db.server";
+import { cleanupExpiredQuoteRateLimits } from "@/lib/quote-rate-limit";
 import type { HealthStatus } from "@/integrations/supabase/types";
 
 type CheckResult = {
@@ -466,6 +467,7 @@ export async function runDeepHealthCheck() {
         : "لا يلزم إجراء.",
     details: { monitorAgeMinutes: monitorAge },
   });
+  await cleanupExpiredQuoteRateLimits().catch(() => undefined);
   await persist(checks);
   return {
     status: checks.some((item) => item.status === "down")
