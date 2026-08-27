@@ -92,7 +92,8 @@ function TeamContent() {
   async function createTeam(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!profile) return;
-    const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
     const name = String(form.get("name"));
     const result = await supabase.from("teams").insert({
       name,
@@ -105,7 +106,7 @@ function TeamContent() {
     if (result.error) toast.error("تعذّر إنشاء الفريق", { description: result.error.message });
     else {
       toast.success("تم إنشاء الفريق");
-      event.currentTarget.reset();
+      formElement.reset();
       await load();
     }
   }
@@ -114,7 +115,8 @@ function TeamContent() {
     event.preventDefault();
     setInviteResult(null);
     setInviting(true);
-    const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
     const role = String(form.get("role")) as AppRole;
     const teamId = String(form.get("teamId") || "") || null;
     const email = String(form.get("email")).trim().toLowerCase();
@@ -142,7 +144,7 @@ function TeamContent() {
           ...(payload.invitationUrl ? { invitationUrl: payload.invitationUrl } : {}),
         });
         toast.success("تم إرسال رابط الدخول", { description: email });
-        event.currentTarget.reset();
+        formElement.reset();
         setInviteRole(profile?.role === "super_admin" ? "admin" : "team_leader");
         await load();
       }

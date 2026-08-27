@@ -197,7 +197,8 @@ export function SlideUploader({
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
     const file = form.get("file");
     if (!(file instanceof File) || !file.size) {
       toast.error("اختر ملف HTML أو ZIP");
@@ -255,7 +256,7 @@ export function SlideUploader({
       toast.success("تم رفع الـSlides وفحصها بنجاح", {
         description: `${prepared.files.length} ملف — ${prepared.sourceName}`,
       });
-      event.currentTarget.reset();
+      formElement.reset();
       await onUploaded();
     } catch (error) {
       toast.error("لم يكتمل رفع الـSlides", {

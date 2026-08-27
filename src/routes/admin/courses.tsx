@@ -107,7 +107,8 @@ function CourseAdminContent() {
   async function createRoadmap(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!profile) return;
-    const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
     const title = String(form.get("title"));
     const result = await supabase.from("roadmaps").insert({
       title,
@@ -120,7 +121,7 @@ function CourseAdminContent() {
     if (result.error) toast.error("تعذّر إنشاء الـRoadmap", { description: result.error.message });
     else {
       toast.success("تم إنشاء الـRoadmap");
-      event.currentTarget.reset();
+      formElement.reset();
       await load();
     }
   }
@@ -128,7 +129,8 @@ function CourseAdminContent() {
   async function createCourse(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!profile) return;
-    const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
     const title = String(form.get("title"));
     const created = await supabase
       .from("courses")
@@ -155,13 +157,14 @@ function CourseAdminContent() {
         sort_order: Number(form.get("sortOrder") || 0),
       });
     toast.success("تم إنشاء الكورس");
-    event.currentTarget.reset();
+    formElement.reset();
     await load();
   }
 
   async function createLesson(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
     const title = String(form.get("title"));
     const result = await supabase.from("lessons").insert({
       course_id: String(form.get("courseId")),
@@ -174,7 +177,7 @@ function CourseAdminContent() {
     if (result.error) toast.error("تعذّر إنشاء الدرس", { description: result.error.message });
     else {
       toast.success("تم إنشاء الدرس");
-      event.currentTarget.reset();
+      formElement.reset();
       await load();
     }
   }
