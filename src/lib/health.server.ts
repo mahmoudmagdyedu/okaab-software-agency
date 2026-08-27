@@ -190,18 +190,12 @@ async function resendCheck(): Promise<CheckResult> {
     status: authenticated ? "healthy" : "degraded",
     latencyMs: Math.round(performance.now() - started),
     statusCode: code,
-    summary: authenticated
-      ? "خدمة Resend جاهزة للإرسال."
-      : "تعذّر تأكيد جاهزية Resend.",
-    impact: authenticated
-      ? "لا يوجد تأثير."
-      : "قد لا تصل تنبيهات حالة النظام والرسائل البريدية.",
+    summary: authenticated ? "خدمة Resend جاهزة للإرسال." : "تعذّر تأكيد جاهزية Resend.",
+    impact: authenticated ? "لا يوجد تأثير." : "قد لا تصل تنبيهات حالة النظام والرسائل البريدية.",
     cause: authenticated
       ? "مفتاح الإرسال مقبول والاتصال يعمل."
       : "مفتاح الإرسال غير موجود أو غير صالح أو خدمة Resend لا تستجيب.",
-    action: authenticated
-      ? "لا يلزم إجراء."
-      : "راجع RESEND_API_KEY داخل Heroku Config Vars.",
+    action: authenticated ? "لا يلزم إجراء." : "راجع RESEND_API_KEY داخل Heroku Config Vars.",
   };
 }
 
