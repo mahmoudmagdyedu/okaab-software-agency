@@ -23,7 +23,7 @@ export const Route = createFileRoute("/slides/$deckId/$")({
             "content-type": asset.content_type,
             "cache-control": "public, max-age=31536000, immutable",
             "content-security-policy":
-              "default-src 'self' data: blob:; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' data: https://cdnjs.cloudflare.com https://fonts.gstatic.com; media-src 'self' blob: https:; connect-src 'none'; frame-ancestors 'self'",
+              "default-src 'self' data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' data: https://cdnjs.cloudflare.com https://fonts.gstatic.com; media-src 'self' blob: https:; connect-src 'none'; frame-ancestors 'self'",
             "x-content-type-options": "nosniff",
           },
         });
