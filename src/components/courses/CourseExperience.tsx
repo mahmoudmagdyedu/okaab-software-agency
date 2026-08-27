@@ -503,31 +503,57 @@ function OkaabVideoPlayer({ video, onEnded }: { video: YouTubeVideo; onEnded: ()
 
 function SlideViewer({ deck }: { deck: SlideDeck }) {
   const base = `/slides/${deck.id}`;
+  const slideUrl = `${base}/${deck.entry_path}`;
+  const frameRef = useRef<HTMLIFrameElement>(null);
+
+  async function openFullscreen() {
+    try {
+      await frameRef.current?.requestFullscreen?.();
+    } catch {
+      window.open(slideUrl, "_blank", "noopener,noreferrer");
+    }
+  }
+
   return (
-    <div className="overflow-hidden rounded-3xl border-2 border-[var(--ok-ink)] bg-[var(--ok-card)]">
+    <div className="overflow-hidden rounded-[2rem] border-2 border-[var(--ok-ink)] bg-[var(--ok-card)] shadow-[0_18px_60px_rgba(24,21,17,0.12)]">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-[var(--ok-ink)] p-4">
         <div className="flex items-center gap-2">
           <FileCode2 size={19} className="text-[var(--ok-accent-text)]" />
           <strong>{deck.title}</strong>
         </div>
-        {deck.allow_download && deck.archive_name && (
-          <a
-            href={`/api/slides/${deck.id}/download`}
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center gap-2 rounded-full border-2 border-[var(--ok-ink)] px-4 py-2 text-xs font-bold"
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={openFullscreen}
+            className="flex items-center gap-2 rounded-full border-2 border-[var(--ok-ink)] bg-[var(--ok-ink)] px-4 py-2 text-xs font-bold text-[var(--ok-paper)] transition-transform hover:-translate-y-0.5"
           >
-            <Download size={15} />
-            تنزيل الملفات
-          </a>
-        )}
+            <Expand size={15} />
+            ملء الشاشة
+          </button>
+          {deck.allow_download && deck.archive_name && (
+            <a
+              href={`/api/slides/${deck.id}/download`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-2 rounded-full border-2 border-[var(--ok-ink)] px-4 py-2 text-xs font-bold transition-colors hover:bg-[var(--ok-paper-2)]"
+            >
+              <Download size={15} />
+              تنزيل الملفات
+            </a>
+          )}
+        </div>
       </div>
       <iframe
+        ref={frameRef}
         title={deck.title}
-        src={`${base}/${deck.entry_path}`}
+        src={slideUrl}
         sandbox="allow-scripts allow-forms allow-pointer-lock allow-popups-to-escape-sandbox allow-downloads"
         allowFullScreen
-        className="h-[70vh] min-h-[520px] w-full bg-white"
+        className="block w-full border-0 bg-[#050505]"
+        style={{
+          height: "clamp(360px, min(72vh, 56.25vw), 820px)",
+          minHeight: "360px",
+        }}
       />
     </div>
   );
