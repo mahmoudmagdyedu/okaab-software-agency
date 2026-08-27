@@ -12,7 +12,6 @@ import {
   Search,
   Tag,
   Send,
-  MessageCircle,
   Languages,
   Sun,
   Moon,
@@ -22,6 +21,7 @@ import {
 import { useI18n, LOCALE_LABELS, LOCALE_ORDER } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
 import { submitQuoteRequest } from "@/lib/quote.functions";
+import { WhatsAppIcon } from "@/components/okaab/WhatsAppIcon";
 
 const LOCALE_SHORT: Record<string, string> = {
   "ar-EG": "مصري",
@@ -59,7 +59,8 @@ const CARD_META = [
   { rotate: -1.5, mt: 8 },
 ];
 
-const WHATSAPP = "+201555317977";
+const WHATSAPP = "+201228086441";
+const WHATSAPP_DISPLAY = "01228086441";
 const EMAIL = "hello@okaab.org";
 const EMAIL_SALES = "sales@okaab.org";
 const EMAIL_SUPPORT = "support@okaab.org";
@@ -1052,10 +1053,10 @@ export default function OkaabLanding() {
                 rel="noreferrer"
                 className="group inline-flex items-center gap-3 bg-[#0A6B3F] text-[#FFF8ED] border-2 border-[var(--ok-ink)] font-semibold px-6 py-4 sm:px-8 sm:py-5 rounded-full text-base sm:text-lg shadow-[5px_5px_0_var(--ok-ink)] hover:shadow-[1px_1px_0_var(--ok-ink)] hover:translate-x-[4px] hover:translate-y-[4px] transition-all"
               >
-                <MessageCircle size={20} className="group-hover:rotate-12 transition-transform" />
+                <WhatsAppIcon className="size-5 transition-transform group-hover:rotate-12" />
                 {t.quote.whatsapp}
                 <span dir="ltr" className="text-base">
-                  {WHATSAPP}
+                  {WHATSAPP_DISPLAY}
                 </span>
               </a>
             </div>

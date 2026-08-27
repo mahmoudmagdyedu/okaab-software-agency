@@ -102,7 +102,7 @@ export const Route = createRootRoute({
           image: "https://okaab.org/favicon.png",
           slogan: "الأداء. الرؤية. السرعة.",
           email: "hello@okaab.org",
-          telephone: "+201555317977",
+          telephone: "+201228086441",
           description:
             "شركة تطوير مواقع وتطوير تطبيقات في مصر والخليج، مع رفع وإدارة السيرفرات وتحسين محركات البحث ودعم فني 24/7.",
           areaServed: ["EG", "SA", "AE", "KW", "QA", "EU"],
@@ -111,7 +111,7 @@ export const Route = createRootRoute({
               "@type": "ContactPoint",
               contactType: "customer support",
               email: "support@okaab.org",
-              telephone: "+201555317977",
+              telephone: "+201228086441",
               availableLanguage: ["ar", "en", "fr", "es"],
             },
           ],

@@ -38,7 +38,7 @@ export const Route = createFileRoute("/")({
           image: "https://okaab.org/og-image.jpg",
           logo: "https://okaab.org/favicon.png",
           email: "hello@okaab.org",
-          telephone: "+201555317977",
+          telephone: "+201228086441",
           priceRange: "$$",
           address: { "@type": "PostalAddress", addressCountry: "EG" },
           areaServed: ["EG", "SA", "AE", "KW", "QA", "EU"],
@@ -110,4 +110,3 @@ function Index() {
     </ThemeProvider>
   );
 }
-

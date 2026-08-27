@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft, ArrowRight, Mail, MessageCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, Mail } from "lucide-react";
+import { WhatsAppIcon } from "@/components/okaab/WhatsAppIcon";
 import { ThemeProvider } from "@/lib/theme";
 import {
   OkaabStyles,
@@ -156,7 +157,10 @@ export function ServiceLanding({ content: c }: { content: ServicePageContent }) 
         dir={c.dir}
         lang={c.htmlLang}
         className="min-h-screen bg-[var(--ok-paper)] text-[var(--ok-ink)] antialiased overflow-x-hidden"
-        style={{ fontFamily: "'Space Grotesk', 'IBM Plex Sans Arabic', sans-serif", lineHeight: 1.7 }}
+        style={{
+          fontFamily: "'Space Grotesk', 'IBM Plex Sans Arabic', sans-serif",
+          lineHeight: 1.7,
+        }}
       >
         <OkaabStyles />
         <SiteHeader lang={c.lang} alternates={c.alternates} path={c.path} />
@@ -181,7 +185,9 @@ export function ServiceLanding({ content: c }: { content: ServicePageContent }) 
               </p>
               <h1 className="ok-in font-display font-black leading-[0.95] tracking-tight text-[2.25rem] sm:text-[3rem] md:text-[3.75rem] lg:text-[4.5rem] max-w-4xl">
                 {c.hero.h1}{" "}
-                <span className="italic font-medium squiggle-underline inline-block">{c.hero.h1Italic}</span>
+                <span className="italic font-medium squiggle-underline inline-block">
+                  {c.hero.h1Italic}
+                </span>
               </h1>
               <p className="ok-in mt-7 max-w-2xl text-base sm:text-lg leading-relaxed text-[var(--ok-ink)]/75">
                 {c.hero.intro}
@@ -205,7 +211,7 @@ export function ServiceLanding({ content: c }: { content: ServicePageContent }) 
                   rel="noreferrer"
                   className="group inline-flex items-center gap-3 bg-[#0A6B3F] text-[#FFF8ED] border-2 border-[var(--ok-ink)] font-semibold px-5 py-3 sm:px-7 sm:py-4 rounded-full text-base sm:text-lg shadow-[4px_4px_0_var(--ok-ink)] hover:shadow-[1px_1px_0_var(--ok-ink)] hover:translate-x-[3px] hover:translate-y-[3px] transition-all"
                 >
-                  <MessageCircle size={20} className="group-hover:rotate-12 transition-transform" />
+                  <WhatsAppIcon className="size-5 transition-transform group-hover:rotate-12" />
                   {c.hero.ctaWhatsapp}
                 </a>
               </div>
@@ -219,7 +225,10 @@ export function ServiceLanding({ content: c }: { content: ServicePageContent }) 
             aria-labelledby="features-heading"
           >
             <div className="ok-container py-16 sm:py-20 md:py-24 lg:py-28">
-              <p className="font-hand text-xl sm:text-2xl lg:text-3xl -rotate-1 mb-2" style={{ color: ACCENT }}>
+              <p
+                className="font-hand text-xl sm:text-2xl lg:text-3xl -rotate-1 mb-2"
+                style={{ color: ACCENT }}
+              >
                 {c.features.kicker}
               </p>
               <h2
@@ -234,8 +243,12 @@ export function ServiceLanding({ content: c }: { content: ServicePageContent }) 
                     key={f.title}
                     className="bg-[var(--ok-card)] border-2 border-[var(--ok-ink)] rounded-2xl p-6 sm:p-7 shadow-[5px_5px_0_var(--ok-ink)] hover:shadow-[2px_2px_0_var(--ok-ink)] hover:translate-x-[3px] hover:translate-y-[3px] transition-all"
                   >
-                    <h3 className="font-display font-bold text-xl sm:text-2xl tracking-tight">{f.title}</h3>
-                    <p className="mt-3 text-sm sm:text-base leading-relaxed text-[var(--ok-ink)]/75">{f.body}</p>
+                    <h3 className="font-display font-bold text-xl sm:text-2xl tracking-tight">
+                      {f.title}
+                    </h3>
+                    <p className="mt-3 text-sm sm:text-base leading-relaxed text-[var(--ok-ink)]/75">
+                      {f.body}
+                    </p>
                   </article>
                 ))}
               </div>
@@ -244,7 +257,10 @@ export function ServiceLanding({ content: c }: { content: ServicePageContent }) 
 
           {/* ───── STEPS ───── */}
           <section className="ok-container py-16 sm:py-20 md:py-24" aria-labelledby="steps-heading">
-            <p className="font-hand text-xl sm:text-2xl lg:text-3xl -rotate-1 mb-2" style={{ color: "#2B5BE3" }}>
+            <p
+              className="font-hand text-xl sm:text-2xl lg:text-3xl -rotate-1 mb-2"
+              style={{ color: "#2B5BE3" }}
+            >
               {c.steps.kicker}
             </p>
             <h2
@@ -282,7 +298,10 @@ export function ServiceLanding({ content: c }: { content: ServicePageContent }) 
             aria-labelledby="faq-heading"
           >
             <div className="ok-container py-16 sm:py-20 md:py-24">
-              <p className="font-hand text-xl sm:text-2xl lg:text-3xl -rotate-1 mb-2" style={{ color: ACCENT }}>
+              <p
+                className="font-hand text-xl sm:text-2xl lg:text-3xl -rotate-1 mb-2"
+                style={{ color: ACCENT }}
+              >
                 {c.faq.kicker}
               </p>
               <h2
@@ -293,9 +312,14 @@ export function ServiceLanding({ content: c }: { content: ServicePageContent }) 
               </h2>
               <div className="border-t-2 border-[var(--ok-ink)]">
                 {c.faq.items.map((f) => (
-                  <details key={f.q} className="group border-b-2 border-[var(--ok-ink)] py-5 sm:py-6">
+                  <details
+                    key={f.q}
+                    className="group border-b-2 border-[var(--ok-ink)] py-5 sm:py-6"
+                  >
                     <summary className="cursor-pointer list-none flex items-start justify-between gap-4">
-                      <h3 className="font-display font-bold text-lg sm:text-xl md:text-2xl tracking-tight">{f.q}</h3>
+                      <h3 className="font-display font-bold text-lg sm:text-xl md:text-2xl tracking-tight">
+                        {f.q}
+                      </h3>
                       <span className="shrink-0 w-8 h-8 rounded-full border-2 border-[var(--ok-ink)] flex items-center justify-center group-open:rotate-45 transition-transform">
                         +
                       </span>
@@ -339,8 +363,6 @@ export function ServiceLanding({ content: c }: { content: ServicePageContent }) 
               </a>
             </div>
           </section>
-
-
         </main>
 
         <SiteFooter lang={c.lang} />

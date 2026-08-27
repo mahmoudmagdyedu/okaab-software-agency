@@ -5,7 +5,7 @@ import { useTheme } from "@/lib/theme";
 
 export const ACCENT = "#E8A33D";
 export const ACCENT_HOVER = "#F2B95C";
-export const WHATSAPP = "+201555317977";
+export const WHATSAPP = "+201228086441";
 export const EMAIL = "hello@okaab.org";
 export const EMAIL_SALES = "sales@okaab.org";
 export const EMAIL_SUPPORT = "support@okaab.org";

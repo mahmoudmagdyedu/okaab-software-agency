@@ -1,7 +1,7 @@
 import arEG from "@/locales/ar-EG";
 import en from "@/locales/en";
 
-export const WHATSAPP = "+201555317977";
+export const WHATSAPP = "+201228086441";
 export const EMAIL_GENERAL = "hello@okaab.org";
 export const EMAIL_SALES = "sales@okaab.org";
 export const EMAIL_SUPPORT = "support@okaab.org";
