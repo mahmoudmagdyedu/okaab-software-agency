@@ -561,10 +561,23 @@ function CourseAdminContent() {
         </div>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {decks.map((deck) => (
-            <article key={deck.id} className="rounded-2xl border border-[var(--ok-ink)]/20 p-4">
+            <article
+              key={deck.id}
+              className="rounded-2xl border border-[var(--ok-ink)]/20 bg-[var(--ok-paper)]/45 p-4"
+            >
               <h3 className="font-bold">{deck.title}</h3>
+              <p className="mt-1 text-xs font-bold text-[var(--ok-accent-text)]">
+                {(() => {
+                  const lesson = lessons.find((item) => item.id === deck.lesson_id);
+                  const course = courses.find((item) => item.id === lesson?.course_id);
+                  return (
+                    [course?.title, lesson?.title].filter(Boolean).join(" — ") || "درس غير محدد"
+                  );
+                })()}
+              </p>
               <p className="mt-2 text-xs opacity-55">
-                {deck.file_count} ملف · {deck.is_published ? "منشور" : "مسودة"} ·{" "}
+                تم الرفع {new Date(deck.created_at).toLocaleString("ar-EG")} · {deck.file_count} ملف
+                · {deck.is_published ? "منشور" : "مسودة"} ·{" "}
                 {deck.allow_download ? "التنزيل متاح" : "عرض فقط"}
               </p>
               <div className="mt-4 flex items-center gap-2">

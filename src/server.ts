@@ -190,13 +190,14 @@ function appendVary(headers: Headers, value: string) {
 function withPerformanceHeaders(request: Request, response: Response): Response {
   const headers = new Headers(response.headers);
   const pathname = new URL(request.url).pathname;
+  const isSlideAsset = /^\/slides\/[^/]+\/.+/.test(pathname);
   const secureRequest = getForwardedProtocol(request) === "https";
 
   if (secureRequest) {
     headers.set("strict-transport-security", "max-age=31536000; includeSubDomains");
   }
   headers.set("x-content-type-options", "nosniff");
-  headers.set("x-frame-options", "DENY");
+  headers.set("x-frame-options", isSlideAsset ? "SAMEORIGIN" : "DENY");
   headers.set("referrer-policy", "strict-origin-when-cross-origin");
   headers.set("permissions-policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()");
 
@@ -207,7 +208,7 @@ function withPerformanceHeaders(request: Request, response: Response): Response 
   }
 
   const contentType = headers.get("content-type")?.toLowerCase() ?? "";
-  if (contentType.includes("text/html")) {
+  if (contentType.includes("text/html") && !isSlideAsset) {
     headers.set("content-security-policy", SECURITY_POLICY);
     headers.set("cache-control", "no-cache, max-age=0, must-revalidate");
   }

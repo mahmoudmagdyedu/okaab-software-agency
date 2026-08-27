@@ -1,5 +1,12 @@
 import { unzipSync } from "fflate";
-import { AlertCircle, FileArchive, LoaderCircle, UploadCloud } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  ExternalLink,
+  FileArchive,
+  LoaderCircle,
+  UploadCloud,
+} from "lucide-react";
 import { useMemo, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
@@ -66,6 +73,13 @@ const MIME: Record<string, string> = {
 };
 
 type PreparedFile = { path: string; bytes: Uint8Array; contentType: string };
+type UploadedSlide = {
+  id: string;
+  title: string;
+  sourceName: string;
+  fileCount: number;
+  isPublished: boolean;
+};
 
 function safePath(raw: string) {
   const path = raw.replaceAll("\\", "/").replace(/^\.\//, "");
@@ -201,6 +215,7 @@ export function SlideUploader({
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [uploadError, setUploadError] = useState("");
+  const [lastUpload, setLastUpload] = useState<UploadedSlide | null>(null);
   const [roadmapId, setRoadmapId] = useState("");
   const [courseId, setCourseId] = useState("");
 
@@ -225,6 +240,7 @@ export function SlideUploader({
       return;
     }
     setUploadError("");
+    setLastUpload(null);
     setUploading(true);
     setProgress(2);
     try {
@@ -271,14 +287,30 @@ export function SlideUploader({
       );
       setProgress(35);
       const response = await fetch("/api/admin/slides/upload", { method: "POST", body: upload });
-      const payload = await response.json().catch(() => ({}));
+      const payload = (await response.json().catch(() => ({}))) as {
+        id?: string;
+        fileCount?: number;
+        error?: string;
+      };
       if (!response.ok) throw new Error(payload.error || "تعذّر رفع الحزمة");
+      if (!payload.id) throw new Error("تم استلام الملف لكن لم يصل رقم الحفظ من الخادم");
       setProgress(100);
+      setLastUpload({
+        id: payload.id,
+        title: String(form.get("title")),
+        sourceName: prepared.sourceName,
+        fileCount: payload.fileCount ?? prepared.files.length,
+        isPublished: publishNow,
+      });
       toast.success("تم رفع الـSlides وفحصها بنجاح", {
         description: `${prepared.files.length} ملف — ${prepared.sourceName}`,
       });
       formElement.reset();
-      await onUploaded();
+      try {
+        await onUploaded();
+      } catch {
+        toast.warning("تم حفظ الـSlides، لكن تعذّر تحديث القائمة تلقائيًا. حدّث الصفحة لرؤيتها.");
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : "خطأ غير متوقع";
       setUploadError(message);
@@ -440,6 +472,34 @@ export function SlideUploader({
             <strong className="block">لم يكتمل رفع الـSlides</strong>
             <span>{uploadError}</span>
           </div>
+        </div>
+      )}
+      {lastUpload && (
+        <div
+          role="status"
+          className="mt-4 flex flex-col gap-3 rounded-2xl border-2 border-emerald-600/50 bg-emerald-500/10 p-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div className="flex items-start gap-3">
+            <CheckCircle2 className="mt-0.5 shrink-0 text-emerald-600" size={21} />
+            <div>
+              <strong className="block">تم رفع الملف وحفظه بنجاح</strong>
+              <span className="mt-1 block text-xs opacity-65">
+                {lastUpload.title} · {lastUpload.sourceName} · {lastUpload.fileCount} ملف
+                {lastUpload.isPublished ? " · منشور الآن" : " · محفوظ كمسودة"}
+              </span>
+            </div>
+          </div>
+          {lastUpload.isPublished && (
+            <a
+              href={`/slides/${lastUpload.id}/index.html`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border-2 border-[var(--ok-ink)] px-4 text-xs font-bold"
+            >
+              <ExternalLink size={15} />
+              فتح الـSlides
+            </a>
+          )}
         </div>
       )}
       <button
