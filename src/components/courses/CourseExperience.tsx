@@ -51,6 +51,42 @@ function EmptyCourses({ error }: { error?: string }) {
   );
 }
 
+function CourseCard({ course, index }: { course: Course; index: number }) {
+  return (
+    <Link
+      to="/courses/$courseSlug"
+      params={{ courseSlug: course.slug }}
+      className="group overflow-hidden rounded-3xl border-2 border-[var(--ok-ink)] bg-[var(--ok-card)] transition-transform hover:-translate-y-1"
+    >
+      <div className="relative aspect-[16/8] overflow-hidden bg-[#181511]">
+        {course.cover_url ? (
+          <img
+            src={course.cover_url}
+            alt=""
+            className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+            loading="lazy"
+          />
+        ) : (
+          <div className="grid size-full place-items-center paper-grain">
+            <span className="font-display text-7xl font-bold text-[#E8A33D]">{index + 1}</span>
+          </div>
+        )}
+      </div>
+      <div className="p-5">
+        <span className="text-xs font-bold text-[var(--ok-accent-text)]">
+          {course.level === "all" ? "لكل المستويات" : course.level}
+        </span>
+        <h3 className="mt-2 font-display text-2xl font-bold">{course.title}</h3>
+        <p className="mt-2 line-clamp-2 text-sm leading-6 opacity-65">{course.description}</p>
+        <span className="mt-5 flex items-center gap-2 text-sm font-bold">
+          ابدأ الكورس
+          <ArrowLeft size={16} className="transition-transform group-hover:-translate-x-1" />
+        </span>
+      </div>
+    </Link>
+  );
+}
+
 export function CoursesCatalog() {
   const [roadmaps, setRoadmaps] = useState<Roadmap[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -102,6 +138,9 @@ export function CoursesCatalog() {
     );
   if (!roadmaps.length && !courses.length && !latest.length) return <EmptyCourses error={error} />;
 
+  const linkedCourseIds = new Set(links.map((link) => link.course_id));
+  const standaloneCourses = courses.filter((course) => !linkedCourseIds.has(course.id));
+
   return (
     <div className="space-y-14">
       {roadmaps.map((roadmap, roadmapIndex) => {
@@ -130,50 +169,37 @@ export function CoursesCatalog() {
             </div>
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {roadmapCourses.map((course, index) => (
-                <Link
-                  key={course.id}
-                  to="/courses/$courseSlug"
-                  params={{ courseSlug: course.slug }}
-                  className="group overflow-hidden rounded-3xl border-2 border-[var(--ok-ink)] bg-[var(--ok-card)] transition-transform hover:-translate-y-1"
-                >
-                  <div className="relative aspect-[16/8] overflow-hidden bg-[#181511]">
-                    {course.cover_url ? (
-                      <img
-                        src={course.cover_url}
-                        alt=""
-                        className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="grid size-full place-items-center paper-grain">
-                        <span className="font-display text-7xl font-bold text-[#E8A33D]">
-                          {index + 1}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-5">
-                    <span className="text-xs font-bold text-[var(--ok-accent-text)]">
-                      {course.level === "all" ? "لكل المستويات" : course.level}
-                    </span>
-                    <h3 className="mt-2 font-display text-2xl font-bold">{course.title}</h3>
-                    <p className="mt-2 line-clamp-2 text-sm leading-6 opacity-65">
-                      {course.description}
-                    </p>
-                    <span className="mt-5 flex items-center gap-2 text-sm font-bold">
-                      ابدأ الكورس{" "}
-                      <ArrowLeft
-                        size={16}
-                        className="transition-transform group-hover:-translate-x-1"
-                      />
-                    </span>
-                  </div>
-                </Link>
+                <CourseCard key={course.id} course={course} index={index} />
               ))}
             </div>
           </section>
         );
       })}
+
+      {standaloneCourses.length > 0 && (
+        <section aria-labelledby="standalone-courses">
+          <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-sm font-bold text-[var(--ok-accent-text)]">تعلّم حسب اختيارك</p>
+              <h2
+                id="standalone-courses"
+                className="mt-1 font-display text-3xl font-bold sm:text-4xl"
+              >
+                كورسات مستقلة
+              </h2>
+              <p className="mt-2 max-w-2xl leading-7 opacity-65">
+                كورسات كاملة يمكنك البدء بها مباشرة دون الارتباط بمسار تعليمي.
+              </p>
+            </div>
+            <span className="text-sm font-bold opacity-55">{standaloneCourses.length} كورس</span>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {standaloneCourses.map((course, index) => (
+              <CourseCard key={course.id} course={course} index={index} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {latest.length > 0 && (
         <section>

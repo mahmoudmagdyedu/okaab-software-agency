@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { requireAdminProfile } from "@/lib/admin-auth.server";
+import { publishLessonHierarchy } from "@/lib/course-publication.server";
 import { getDb, sql } from "@/lib/db.server";
 
 const MAX_TOTAL_BYTES = 40 * 1024 * 1024;
@@ -73,6 +74,9 @@ export const Route = createFileRoute("/api/admin/slides/upload")({
               .input("uploaded_by", sql.NVarChar(64), profile.id)
               .query(`insert into okaab.slide_decks (id, lesson_id, video_id, title, storage_root, entry_path, archive_name, archive_size_bytes, file_count, allow_download, is_published, sort_order, uploaded_by)
                 values (@id,@lesson_id,@video_id,@title,@storage_root,'index.html',@archive_name,@archive_size,@file_count,@allow_download,@is_published,@sort_order,@uploaded_by)`);
+            const publishedHierarchy = metadata.isPublished
+              ? await publishLessonHierarchy(transaction, metadata.lessonId)
+              : null;
             for (const asset of assets) {
               const bytes = Buffer.from(await asset.file.arrayBuffer());
               await new sql.Request(transaction)
@@ -95,11 +99,15 @@ export const Route = createFileRoute("/api/admin/slides/upload")({
                 );
             }
             await transaction.commit();
+            return Response.json({
+              id: deckId,
+              fileCount: assets.length,
+              publishedHierarchy,
+            });
           } catch (error) {
             await transaction.rollback();
             throw error;
           }
-          return Response.json({ id: deckId, fileCount: assets.length });
         } catch (error) {
           if (error instanceof Response) return error;
           console.error("Slide upload failed", error);

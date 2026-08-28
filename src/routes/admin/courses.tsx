@@ -67,6 +67,7 @@ function CourseAdminContent() {
   const [syncState, setSyncState] = useState<SyncState | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [publishingDeckId, setPublishingDeckId] = useState<string | null>(null);
 
   async function load() {
     const [
@@ -248,16 +249,29 @@ function CourseAdminContent() {
   }
 
   async function toggleDeckPublished(deck: SlideDeck) {
-    const result = await supabase
-      .from("slide_decks")
-      .update({ is_published: !deck.is_published })
-      .eq("id", deck.id);
-    if (result.error) {
-      toast.error("تعذّر تغيير حالة النشر", { description: result.error.message });
-      return;
+    setPublishingDeckId(deck.id);
+    try {
+      const nextPublished = !deck.is_published;
+      const response = await fetch(`/api/admin/slides/${deck.id}/publication`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ isPublished: nextPublished }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+      if (!response.ok) throw new Error(payload.error || "تعذّر تغيير حالة النشر");
+      toast.success(
+        nextPublished
+          ? "تم نشر الـSlides والدرس والكورس والمسارات المرتبطة"
+          : "تم إلغاء نشر الـSlides مع إبقاء المحتوى الأب منشورًا",
+      );
+      await load();
+    } catch (error) {
+      toast.error("تعذّر تغيير حالة النشر", {
+        description: error instanceof Error ? error.message : "خطأ غير متوقع",
+      });
+    } finally {
+      setPublishingDeckId(null);
     }
-    toast.success(deck.is_published ? "تم إلغاء نشر الـSlides" : "تم نشر الـSlides");
-    await load();
   }
 
   async function createHierarchyForUpload(input: {
@@ -583,12 +597,17 @@ function CourseAdminContent() {
               <div className="mt-4 flex items-center gap-2">
                 <button
                   type="button"
+                  disabled={publishingDeckId === deck.id}
                   onClick={() => void toggleDeckPublished(deck)}
-                  className={`h-9 rounded-xl border-2 border-[var(--ok-ink)] px-4 text-xs font-bold ${
+                  className={`h-9 rounded-xl border-2 border-[var(--ok-ink)] px-4 text-xs font-bold disabled:opacity-50 ${
                     deck.is_published ? "bg-[var(--ok-paper)]" : "bg-[#E8A33D] text-[#181511]"
                   }`}
                 >
-                  {deck.is_published ? "إلغاء النشر" : "نشر الآن"}
+                  {publishingDeckId === deck.id
+                    ? "جاري الحفظ…"
+                    : deck.is_published
+                      ? "إلغاء نشر الـSlides"
+                      : "نشر المحتوى كاملًا"}
                 </button>
                 {deck.is_published && (
                   <a

@@ -302,8 +302,10 @@ export function SlideUploader({
         fileCount: payload.fileCount ?? prepared.files.length,
         isPublished: publishNow,
       });
-      toast.success("تم رفع الـSlides وفحصها بنجاح", {
-        description: `${prepared.files.length} ملف — ${prepared.sourceName}`,
+      toast.success(publishNow ? "تم رفع ونشر المحتوى كاملًا" : "تم رفع الـSlides وحفظها كمسودة", {
+        description: publishNow
+          ? `${prepared.files.length} ملف — نُشر الدرس والكورس والمسارات المرتبطة`
+          : `${prepared.files.length} ملف — ${prepared.sourceName}`,
       });
       formElement.reset();
       try {
@@ -334,7 +336,9 @@ export function SlideUploader({
         </span>
         <div>
           <h2 className="font-display text-2xl font-bold">رفع Slides</h2>
-          <p className="text-sm opacity-60">HTML مستقل أو ZIP يحتوي index.html.</p>
+          <p className="text-sm opacity-60">
+            HTML مستقل أو ZIP يحتوي index.html. النشر الفوري ينشر المحتوى الأب تلقائيًا.
+          </p>
         </div>
       </div>
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -408,7 +412,7 @@ export function SlideUploader({
           />
         </label>
         <label className="flex items-center gap-2 rounded-xl border border-[var(--ok-ink)]/20 p-3 text-sm font-bold">
-          <input name="published" type="checkbox" /> نشر فورًا
+          <input name="published" type="checkbox" /> نشر الملف والدرس والكورس فورًا
         </label>
         <label className="flex items-center gap-2 rounded-xl border border-[var(--ok-ink)]/20 p-3 text-sm font-bold">
           <input name="allowDownload" type="checkbox" /> السماح بتنزيل الأصل
@@ -482,7 +486,11 @@ export function SlideUploader({
           <div className="flex items-start gap-3">
             <CheckCircle2 className="mt-0.5 shrink-0 text-emerald-600" size={21} />
             <div>
-              <strong className="block">تم رفع الملف وحفظه بنجاح</strong>
+              <strong className="block">
+                {lastUpload.isPublished
+                  ? "تم رفع الملف ونشر المحتوى كاملًا"
+                  : "تم رفع الملف وحفظه كمسودة"}
+              </strong>
               <span className="mt-1 block text-xs opacity-65">
                 {lastUpload.title} · {lastUpload.sourceName} · {lastUpload.fileCount} ملف
                 {lastUpload.isPublished ? " · منشور الآن" : " · محفوظ كمسودة"}

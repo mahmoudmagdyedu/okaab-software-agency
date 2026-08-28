@@ -14,7 +14,13 @@ export const Route = createFileRoute("/slides/$deckId/$")({
           .input("deck_id", sql.NVarChar(64), params.deckId)
           .input("path", sql.NVarChar(600), path)
           .query<{ content: Buffer; content_type: string }>(
-            `select top (1) a.content, a.content_type from okaab.slide_assets a join okaab.slide_decks d on d.id=a.deck_id where a.deck_id=@deck_id and a.path=@path and d.is_published=1 and a.is_source=0`,
+            `select top (1) a.content, a.content_type
+             from okaab.slide_assets a
+             join okaab.slide_decks d on d.id=a.deck_id
+             join okaab.lessons l on l.id=d.lesson_id
+             join okaab.courses c on c.id=l.course_id
+             where a.deck_id=@deck_id and a.path=@path and d.is_published=1
+               and l.is_published=1 and c.is_published=1 and a.is_source=0`,
           );
         const asset = result.recordset[0];
         if (!asset) return new Response("Not found", { status: 404 });

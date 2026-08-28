@@ -56,6 +56,7 @@ import { Route as ApiSlidesDeckIdDownloadRouteImport } from './routes/api/slides
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
+import { Route as ApiAdminSlidesDeckIdPublicationRouteImport } from './routes/api/admin/slides/$deckId/publication'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -306,6 +307,12 @@ const LovableEmailTransactionalPreviewRoute =
     path: '/lovable/email/transactional/preview',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiAdminSlidesDeckIdPublicationRoute =
+  ApiAdminSlidesDeckIdPublicationRouteImport.update({
+    id: '/api/admin/slides/$deckId/publication',
+    path: '/api/admin/slides/$deckId/publication',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -355,6 +362,7 @@ export interface FileRoutesByFullPath {
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/api/admin/slides/$deckId/publication': typeof ApiAdminSlidesDeckIdPublicationRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -404,6 +412,7 @@ export interface FileRoutesByTo {
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/api/admin/slides/$deckId/publication': typeof ApiAdminSlidesDeckIdPublicationRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -454,6 +463,7 @@ export interface FileRoutesById {
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/api/admin/slides/$deckId/publication': typeof ApiAdminSlidesDeckIdPublicationRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -505,6 +515,7 @@ export interface FileRouteTypes {
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/transactional/preview'
+    | '/api/admin/slides/$deckId/publication'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -554,6 +565,7 @@ export interface FileRouteTypes {
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/transactional/preview'
+    | '/api/admin/slides/$deckId/publication'
   id:
     | '__root__'
     | '/'
@@ -603,6 +615,7 @@ export interface FileRouteTypes {
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/transactional/preview'
+    | '/api/admin/slides/$deckId/publication'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -653,6 +666,7 @@ export interface RootRouteChildren {
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
+  ApiAdminSlidesDeckIdPublicationRoute: typeof ApiAdminSlidesDeckIdPublicationRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -986,6 +1000,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/slides/$deckId/publication': {
+      id: '/api/admin/slides/$deckId/publication'
+      path: '/api/admin/slides/$deckId/publication'
+      fullPath: '/api/admin/slides/$deckId/publication'
+      preLoaderRoute: typeof ApiAdminSlidesDeckIdPublicationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -1038,6 +1059,7 @@ const rootRouteChildren: RootRouteChildren = {
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
+  ApiAdminSlidesDeckIdPublicationRoute: ApiAdminSlidesDeckIdPublicationRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
