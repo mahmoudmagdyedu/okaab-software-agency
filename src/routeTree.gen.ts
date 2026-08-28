@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AboutRouteImport } from './routes/about'
 import { Route as ClerkBrowserDotjsRouteImport } from './routes/clerk-browser[.]js'
 import { Route as EcommerceDevelopmentEgyptRouteImport } from './routes/ecommerce-development-egypt'
 import { Route as McpRouteImport } from './routes/mcp'
@@ -17,6 +18,7 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SoftwareDevelopmentEgyptRouteImport } from './routes/software-development-egypt'
 import { Route as SsoCallbackRouteImport } from './routes/sso-callback'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
@@ -29,8 +31,11 @@ import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as ClerkProxySplatRouteImport } from './routes/clerk-proxy/$'
 import { Route as ClerkUiAssetsSplatRouteImport } from './routes/clerk-ui-assets/$'
 import { Route as CoursesIndexRouteImport } from './routes/courses/index'
+import { Route as EnAboutRouteImport } from './routes/en.about'
 import { Route as EnEcommerceDevelopmentEgyptRouteImport } from './routes/en.ecommerce-development-egypt'
+import { Route as EnPrivacyRouteImport } from './routes/en.privacy'
 import { Route as EnSoftwareDevelopmentEgyptRouteImport } from './routes/en.software-development-egypt'
+import { Route as EnTermsRouteImport } from './routes/en.terms'
 import { Route as EsEcommerceDevelopmentEgyptRouteImport } from './routes/es.ecommerce-development-egypt'
 import { Route as EsSoftwareDevelopmentEgyptRouteImport } from './routes/es.software-development-egypt'
 import { Route as FrEcommerceDevelopmentEgyptRouteImport } from './routes/fr.ecommerce-development-egypt'
@@ -61,6 +66,11 @@ import { Route as ApiAdminSlidesDeckIdPublicationRouteImport } from './routes/ap
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ClerkBrowserDotjsRoute = ClerkBrowserDotjsRouteImport.update({
@@ -98,6 +108,11 @@ const SoftwareDevelopmentEgyptRoute =
 const SsoCallbackRoute = SsoCallbackRouteImport.update({
   id: '/sso-callback',
   path: '/sso-callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const Char91DotmcpChar93ListToolsRoute =
@@ -162,18 +177,33 @@ const CoursesIndexRoute = CoursesIndexRouteImport.update({
   path: '/courses/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EnAboutRoute = EnAboutRouteImport.update({
+  id: '/en/about',
+  path: '/en/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EnEcommerceDevelopmentEgyptRoute =
   EnEcommerceDevelopmentEgyptRouteImport.update({
     id: '/en/ecommerce-development-egypt',
     path: '/en/ecommerce-development-egypt',
     getParentRoute: () => rootRouteImport,
   } as any)
+const EnPrivacyRoute = EnPrivacyRouteImport.update({
+  id: '/en/privacy',
+  path: '/en/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EnSoftwareDevelopmentEgyptRoute =
   EnSoftwareDevelopmentEgyptRouteImport.update({
     id: '/en/software-development-egypt',
     path: '/en/software-development-egypt',
     getParentRoute: () => rootRouteImport,
   } as any)
+const EnTermsRoute = EnTermsRouteImport.update({
+  id: '/en/terms',
+  path: '/en/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EsEcommerceDevelopmentEgyptRoute =
   EsEcommerceDevelopmentEgyptRouteImport.update({
     id: '/es/ecommerce-development-egypt',
@@ -316,6 +346,7 @@ const ApiAdminSlidesDeckIdPublicationRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/clerk-browser.js': typeof ClerkBrowserDotjsRoute
   '/ecommerce-development-egypt': typeof EcommerceDevelopmentEgyptRoute
   '/mcp': typeof McpRoute
@@ -323,6 +354,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/software-development-egypt': typeof SoftwareDevelopmentEgyptRoute
   '/sso-callback': typeof SsoCallbackRoute
+  '/terms': typeof TermsRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/admin/courses': typeof AdminCoursesRoute
@@ -333,8 +365,11 @@ export interface FileRoutesByFullPath {
   '/api/health': typeof ApiHealthRoute
   '/clerk-proxy/$': typeof ClerkProxySplatRoute
   '/clerk-ui-assets/$': typeof ClerkUiAssetsSplatRoute
+  '/en/about': typeof EnAboutRoute
   '/en/ecommerce-development-egypt': typeof EnEcommerceDevelopmentEgyptRoute
+  '/en/privacy': typeof EnPrivacyRoute
   '/en/software-development-egypt': typeof EnSoftwareDevelopmentEgyptRoute
+  '/en/terms': typeof EnTermsRoute
   '/es/ecommerce-development-egypt': typeof EsEcommerceDevelopmentEgyptRoute
   '/es/software-development-egypt': typeof EsSoftwareDevelopmentEgyptRoute
   '/fr/ecommerce-development-egypt': typeof FrEcommerceDevelopmentEgyptRoute
@@ -366,6 +401,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/clerk-browser.js': typeof ClerkBrowserDotjsRoute
   '/ecommerce-development-egypt': typeof EcommerceDevelopmentEgyptRoute
   '/mcp': typeof McpRoute
@@ -373,6 +409,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/software-development-egypt': typeof SoftwareDevelopmentEgyptRoute
   '/sso-callback': typeof SsoCallbackRoute
+  '/terms': typeof TermsRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/admin/courses': typeof AdminCoursesRoute
@@ -383,8 +420,11 @@ export interface FileRoutesByTo {
   '/api/health': typeof ApiHealthRoute
   '/clerk-proxy/$': typeof ClerkProxySplatRoute
   '/clerk-ui-assets/$': typeof ClerkUiAssetsSplatRoute
+  '/en/about': typeof EnAboutRoute
   '/en/ecommerce-development-egypt': typeof EnEcommerceDevelopmentEgyptRoute
+  '/en/privacy': typeof EnPrivacyRoute
   '/en/software-development-egypt': typeof EnSoftwareDevelopmentEgyptRoute
+  '/en/terms': typeof EnTermsRoute
   '/es/ecommerce-development-egypt': typeof EsEcommerceDevelopmentEgyptRoute
   '/es/software-development-egypt': typeof EsSoftwareDevelopmentEgyptRoute
   '/fr/ecommerce-development-egypt': typeof FrEcommerceDevelopmentEgyptRoute
@@ -417,6 +457,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/clerk-browser.js': typeof ClerkBrowserDotjsRoute
   '/ecommerce-development-egypt': typeof EcommerceDevelopmentEgyptRoute
   '/mcp': typeof McpRoute
@@ -424,6 +465,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/software-development-egypt': typeof SoftwareDevelopmentEgyptRoute
   '/sso-callback': typeof SsoCallbackRoute
+  '/terms': typeof TermsRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/admin/courses': typeof AdminCoursesRoute
@@ -434,8 +476,11 @@ export interface FileRoutesById {
   '/api/health': typeof ApiHealthRoute
   '/clerk-proxy/$': typeof ClerkProxySplatRoute
   '/clerk-ui-assets/$': typeof ClerkUiAssetsSplatRoute
+  '/en/about': typeof EnAboutRoute
   '/en/ecommerce-development-egypt': typeof EnEcommerceDevelopmentEgyptRoute
+  '/en/privacy': typeof EnPrivacyRoute
   '/en/software-development-egypt': typeof EnSoftwareDevelopmentEgyptRoute
+  '/en/terms': typeof EnTermsRoute
   '/es/ecommerce-development-egypt': typeof EsEcommerceDevelopmentEgyptRoute
   '/es/software-development-egypt': typeof EsSoftwareDevelopmentEgyptRoute
   '/fr/ecommerce-development-egypt': typeof FrEcommerceDevelopmentEgyptRoute
@@ -469,6 +514,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/about'
     | '/clerk-browser.js'
     | '/ecommerce-development-egypt'
     | '/mcp'
@@ -476,6 +522,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/software-development-egypt'
     | '/sso-callback'
+    | '/terms'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/admin/courses'
@@ -486,8 +533,11 @@ export interface FileRouteTypes {
     | '/api/health'
     | '/clerk-proxy/$'
     | '/clerk-ui-assets/$'
+    | '/en/about'
     | '/en/ecommerce-development-egypt'
+    | '/en/privacy'
     | '/en/software-development-egypt'
+    | '/en/terms'
     | '/es/ecommerce-development-egypt'
     | '/es/software-development-egypt'
     | '/fr/ecommerce-development-egypt'
@@ -519,6 +569,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/about'
     | '/clerk-browser.js'
     | '/ecommerce-development-egypt'
     | '/mcp'
@@ -526,6 +577,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/software-development-egypt'
     | '/sso-callback'
+    | '/terms'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/admin/courses'
@@ -536,8 +588,11 @@ export interface FileRouteTypes {
     | '/api/health'
     | '/clerk-proxy/$'
     | '/clerk-ui-assets/$'
+    | '/en/about'
     | '/en/ecommerce-development-egypt'
+    | '/en/privacy'
     | '/en/software-development-egypt'
+    | '/en/terms'
     | '/es/ecommerce-development-egypt'
     | '/es/software-development-egypt'
     | '/fr/ecommerce-development-egypt'
@@ -569,6 +624,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/about'
     | '/clerk-browser.js'
     | '/ecommerce-development-egypt'
     | '/mcp'
@@ -576,6 +632,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/software-development-egypt'
     | '/sso-callback'
+    | '/terms'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/admin/courses'
@@ -586,8 +643,11 @@ export interface FileRouteTypes {
     | '/api/health'
     | '/clerk-proxy/$'
     | '/clerk-ui-assets/$'
+    | '/en/about'
     | '/en/ecommerce-development-egypt'
+    | '/en/privacy'
     | '/en/software-development-egypt'
+    | '/en/terms'
     | '/es/ecommerce-development-egypt'
     | '/es/software-development-egypt'
     | '/fr/ecommerce-development-egypt'
@@ -620,6 +680,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
   ClerkBrowserDotjsRoute: typeof ClerkBrowserDotjsRoute
   EcommerceDevelopmentEgyptRoute: typeof EcommerceDevelopmentEgyptRoute
   McpRoute: typeof McpRoute
@@ -627,6 +688,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SoftwareDevelopmentEgyptRoute: typeof SoftwareDevelopmentEgyptRoute
   SsoCallbackRoute: typeof SsoCallbackRoute
+  TermsRoute: typeof TermsRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   AdminCoursesRoute: typeof AdminCoursesRoute
@@ -637,8 +699,11 @@ export interface RootRouteChildren {
   ApiHealthRoute: typeof ApiHealthRoute
   ClerkProxySplatRoute: typeof ClerkProxySplatRoute
   ClerkUiAssetsSplatRoute: typeof ClerkUiAssetsSplatRoute
+  EnAboutRoute: typeof EnAboutRoute
   EnEcommerceDevelopmentEgyptRoute: typeof EnEcommerceDevelopmentEgyptRoute
+  EnPrivacyRoute: typeof EnPrivacyRoute
   EnSoftwareDevelopmentEgyptRoute: typeof EnSoftwareDevelopmentEgyptRoute
+  EnTermsRoute: typeof EnTermsRoute
   EsEcommerceDevelopmentEgyptRoute: typeof EsEcommerceDevelopmentEgyptRoute
   EsSoftwareDevelopmentEgyptRoute: typeof EsSoftwareDevelopmentEgyptRoute
   FrEcommerceDevelopmentEgyptRoute: typeof FrEcommerceDevelopmentEgyptRoute
@@ -676,6 +741,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/clerk-browser.js': {
@@ -725,6 +797,13 @@ declare module '@tanstack/react-router' {
       path: '/sso-callback'
       fullPath: '/sso-callback'
       preLoaderRoute: typeof SsoCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/.mcp/list-tools': {
@@ -811,6 +890,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CoursesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/en/about': {
+      id: '/en/about'
+      path: '/en/about'
+      fullPath: '/en/about'
+      preLoaderRoute: typeof EnAboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/en/ecommerce-development-egypt': {
       id: '/en/ecommerce-development-egypt'
       path: '/en/ecommerce-development-egypt'
@@ -818,11 +904,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EnEcommerceDevelopmentEgyptRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/en/privacy': {
+      id: '/en/privacy'
+      path: '/en/privacy'
+      fullPath: '/en/privacy'
+      preLoaderRoute: typeof EnPrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/en/software-development-egypt': {
       id: '/en/software-development-egypt'
       path: '/en/software-development-egypt'
       fullPath: '/en/software-development-egypt'
       preLoaderRoute: typeof EnSoftwareDevelopmentEgyptRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/en/terms': {
+      id: '/en/terms'
+      path: '/en/terms'
+      fullPath: '/en/terms'
+      preLoaderRoute: typeof EnTermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/es/ecommerce-development-egypt': {
@@ -1012,6 +1112,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutRoute: AboutRoute,
   ClerkBrowserDotjsRoute: ClerkBrowserDotjsRoute,
   EcommerceDevelopmentEgyptRoute: EcommerceDevelopmentEgyptRoute,
   McpRoute: McpRoute,
@@ -1019,6 +1120,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SoftwareDevelopmentEgyptRoute: SoftwareDevelopmentEgyptRoute,
   SsoCallbackRoute: SsoCallbackRoute,
+  TermsRoute: TermsRoute,
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
@@ -1030,8 +1132,11 @@ const rootRouteChildren: RootRouteChildren = {
   ApiHealthRoute: ApiHealthRoute,
   ClerkProxySplatRoute: ClerkProxySplatRoute,
   ClerkUiAssetsSplatRoute: ClerkUiAssetsSplatRoute,
+  EnAboutRoute: EnAboutRoute,
   EnEcommerceDevelopmentEgyptRoute: EnEcommerceDevelopmentEgyptRoute,
+  EnPrivacyRoute: EnPrivacyRoute,
   EnSoftwareDevelopmentEgyptRoute: EnSoftwareDevelopmentEgyptRoute,
+  EnTermsRoute: EnTermsRoute,
   EsEcommerceDevelopmentEgyptRoute: EsEcommerceDevelopmentEgyptRoute,
   EsSoftwareDevelopmentEgyptRoute: EsSoftwareDevelopmentEgyptRoute,
   FrEcommerceDevelopmentEgyptRoute: FrEcommerceDevelopmentEgyptRoute,

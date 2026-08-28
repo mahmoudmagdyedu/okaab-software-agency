@@ -10,13 +10,13 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "عُقاب: شركة تطوير مواقع وتطوير تطبيقات في مصر والخليج — مواقع ويب متكاملة، متاجر ومنصات، تطبيقات Android و iOS، رفع وإدارة سيرفرات، توافق SEO، ودعم فني 24/7.",
+          "عُقاب: وكالة تطوير مواقع وتطبيقات في مصر والخليج — مواقع ويب متكاملة، متاجر ومنصات، تطبيقات Android و iOS، رفع وإدارة سيرفرات، توافق SEO، ودعم فني 24/7.",
       },
       { property: "og:title", content: "تطوير مواقع وتطبيقات في مصر والخليج — عُقاب OKAAB" },
       {
         property: "og:description",
         content:
-          "عُقاب: شركة تطوير مواقع وتطوير تطبيقات في مصر والخليج — مواقع ويب متكاملة، تطبيقات Android و iOS، رفع وإدارة سيرفرات، ودعم فني 24/7.",
+          "عُقاب: وكالة تطوير مواقع وتطبيقات في مصر والخليج — مواقع ويب متكاملة، تطبيقات Android و iOS، رفع وإدارة سيرفرات، ودعم فني 24/7.",
       },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://okaab.org/" },
@@ -34,6 +34,7 @@ export const Route = createFileRoute("/")({
           "@id": "https://okaab.org/#service",
           name: "عُقاب OKAAB",
           alternateName: "Okaab",
+          founder: { "@type": "Person", name: "محمود مجدي", alternateName: "Mahmoud Magdy" },
           url: "https://okaab.org/",
           image: "https://okaab.org/og-image.jpg",
           logo: "https://okaab.org/favicon.png",
@@ -59,7 +60,7 @@ export const Route = createFileRoute("/")({
             },
           ],
           description:
-            "شركة تطوير مواقع وتطوير تطبيقات في مصر والخليج، مع رفع وإدارة السيرفرات وتحسين محركات البحث ودعم فني 24/7.",
+            "وكالة تطوير مواقع وتطبيقات في مصر والخليج، مع رفع وإدارة السيرفرات وتحسين محركات البحث ودعم فني 24/7.",
         }),
       },
       {

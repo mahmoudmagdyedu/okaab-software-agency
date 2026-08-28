@@ -21,6 +21,7 @@ type ChromeCopy = {
   closeMenu: string;
   brandTagline: string;
   footerLinks: { label: string; hash: string }[];
+  legalLinks: { label: string; href: string; hrefLang: "ar" | "en" }[];
   courses: string;
   projects: string;
 };
@@ -42,6 +43,11 @@ export const CHROME: Record<ChromeLang, ChromeCopy> = {
       { label: "ليه عُقاب", hash: "services" },
       { label: "اطلب عرض سعر", hash: "quote" },
     ],
+    legalLinks: [
+      { label: "من نحن", href: "/about", hrefLang: "ar" },
+      { label: "الشروط والأحكام", href: "/terms", hrefLang: "ar" },
+      { label: "الخصوصية", href: "/privacy", hrefLang: "ar" },
+    ],
   },
   en: {
     dir: "ltr",
@@ -58,6 +64,11 @@ export const CHROME: Record<ChromeLang, ChromeCopy> = {
       { label: "How we work", hash: "about" },
       { label: "Why OKAAB", hash: "services" },
       { label: "Get a quote", hash: "quote" },
+    ],
+    legalLinks: [
+      { label: "About", href: "/en/about", hrefLang: "en" },
+      { label: "Terms", href: "/en/terms", hrefLang: "en" },
+      { label: "Privacy", href: "/en/privacy", hrefLang: "en" },
     ],
   },
   fr: {
@@ -76,6 +87,11 @@ export const CHROME: Record<ChromeLang, ChromeCopy> = {
       { label: "Pourquoi OKAAB", hash: "services" },
       { label: "Demander un devis", hash: "quote" },
     ],
+    legalLinks: [
+      { label: "À propos (EN)", href: "/en/about", hrefLang: "en" },
+      { label: "Conditions (EN)", href: "/en/terms", hrefLang: "en" },
+      { label: "Confidentialité (EN)", href: "/en/privacy", hrefLang: "en" },
+    ],
   },
   es: {
     dir: "ltr",
@@ -92,6 +108,11 @@ export const CHROME: Record<ChromeLang, ChromeCopy> = {
       { label: "Cómo trabajamos", hash: "about" },
       { label: "Por qué OKAAB", hash: "services" },
       { label: "Pedir presupuesto", hash: "quote" },
+    ],
+    legalLinks: [
+      { label: "Nosotros (EN)", href: "/en/about", hrefLang: "en" },
+      { label: "Términos (EN)", href: "/en/terms", hrefLang: "en" },
+      { label: "Privacidad (EN)", href: "/en/privacy", hrefLang: "en" },
     ],
   },
 };
@@ -390,6 +411,16 @@ export function SiteFooter({ lang = "ar" }: { lang?: ChromeLang }) {
             >
               {l.label}
             </Link>
+          ))}
+          {c.legalLinks.map((link) => (
+            <a
+              key={link.href}
+              href={link.href}
+              hrefLang={link.hrefLang}
+              className="text-[var(--ok-ink)]/75 accent-link transition-colors"
+            >
+              {link.label}
+            </a>
           ))}
         </div>
         <p className="text-[var(--ok-ink)]/75">© {new Date().getFullYear()} عُقاب OKAAB</p>

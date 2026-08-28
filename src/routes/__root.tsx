@@ -97,6 +97,7 @@ export const Route = createRootRoute({
           "@id": "https://okaab.org/#organization",
           name: "عُقاب OKAAB",
           alternateName: "Okaab",
+          founder: { "@type": "Person", name: "محمود مجدي", alternateName: "Mahmoud Magdy" },
           url: "https://okaab.org",
           logo: "https://okaab.org/favicon.png",
           image: "https://okaab.org/favicon.png",
@@ -104,7 +105,7 @@ export const Route = createRootRoute({
           email: "hello@okaab.org",
           telephone: "+201228086441",
           description:
-            "شركة تطوير مواقع وتطوير تطبيقات في مصر والخليج، مع رفع وإدارة السيرفرات وتحسين محركات البحث ودعم فني 24/7.",
+            "وكالة تطوير مواقع وتطبيقات في مصر والخليج، مع رفع وإدارة السيرفرات وتحسين محركات البحث ودعم فني 24/7.",
           areaServed: ["EG", "SA", "AE", "KW", "QA", "EU"],
           contactPoint: [
             {

@@ -66,6 +66,20 @@ const EMAIL_SUPPORT = "support@okaab.org";
 const MAWID_URL = "/maw'id";
 const POS_URL = "/bun-al-deerah";
 
+const LEGAL_LINKS: Record<string, { about: string; terms: string; privacy: string; base: string }> =
+  {
+    "ar-EG": { about: "من نحن", terms: "الشروط والأحكام", privacy: "الخصوصية", base: "" },
+    ar: { about: "من نحن", terms: "الشروط والأحكام", privacy: "الخصوصية", base: "" },
+    en: { about: "About", terms: "Terms", privacy: "Privacy", base: "/en" },
+    fr: {
+      about: "À propos (EN)",
+      terms: "Conditions (EN)",
+      privacy: "Confidentialité (EN)",
+      base: "/en",
+    },
+    es: { about: "Nosotros (EN)", terms: "Términos (EN)", privacy: "Privacidad (EN)", base: "/en" },
+  };
+
 function initials(name: string) {
   return name
     .trim()
@@ -85,6 +99,7 @@ export default function OkaabLanding() {
   const [menuOpen, setMenuOpen] = useState(false);
   const quoteStartedAtRef = useRef(Date.now());
   const rtl = t.dir === "rtl";
+  const legalLinks = LEGAL_LINKS[locale] ?? LEGAL_LINKS["en"]!;
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -1066,6 +1081,19 @@ export default function OkaabLanding() {
                 {t.quote.failed}
               </p>
             )}
+            <p className="sm:col-span-2 text-center text-xs leading-6 text-[var(--ok-ink)]/60">
+              {rtl
+                ? "إرسال الطلب لا ينشئ عقدًا. سنستخدم بياناتك للرد وفق "
+                : "Submitting a request does not create a contract. We use your details to reply under our "}
+              <a href={`${legalLinks.base}/privacy`} className="underline underline-offset-4">
+                {legalLinks.privacy}
+              </a>
+              {rtl ? " و" : " and "}
+              <a href={`${legalLinks.base}/terms`} className="underline underline-offset-4">
+                {legalLinks.terms}
+              </a>
+              .
+            </p>
           </form>
         </section>
 
@@ -1149,6 +1177,27 @@ export default function OkaabLanding() {
                 {l}
               </a>
             ))}
+            <a
+              href={`${legalLinks.base}/about`}
+              hrefLang={legalLinks.base ? "en" : "ar"}
+              className="text-[var(--ok-ink)]/75 accent-link transition-colors"
+            >
+              {legalLinks.about}
+            </a>
+            <a
+              href={`${legalLinks.base}/terms`}
+              hrefLang={legalLinks.base ? "en" : "ar"}
+              className="text-[var(--ok-ink)]/75 accent-link transition-colors"
+            >
+              {legalLinks.terms}
+            </a>
+            <a
+              href={`${legalLinks.base}/privacy`}
+              hrefLang={legalLinks.base ? "en" : "ar"}
+              className="text-[var(--ok-ink)]/75 accent-link transition-colors"
+            >
+              {legalLinks.privacy}
+            </a>
           </div>
           <p className="text-[var(--ok-ink)]/75">{t.footer.copyright}</p>
         </div>
