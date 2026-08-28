@@ -6,8 +6,9 @@ import {
   FileArchive,
   LoaderCircle,
   UploadCloud,
+  X,
 } from "lucide-react";
-import { useMemo, useState, type FormEvent } from "react";
+import { useMemo, useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
 import type { Course, Lesson, Profile, Roadmap, YouTubeVideo } from "@/integrations/supabase/types";
@@ -80,6 +81,12 @@ type UploadedSlide = {
   fileCount: number;
   isPublished: boolean;
 };
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 function safePath(raw: string) {
   const path = raw.replaceAll("\\", "/").replace(/^\.\//, "");
@@ -216,8 +223,10 @@ export function SlideUploader({
   const [progress, setProgress] = useState(0);
   const [uploadError, setUploadError] = useState("");
   const [lastUpload, setLastUpload] = useState<UploadedSlide | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [roadmapId, setRoadmapId] = useState("");
   const [courseId, setCourseId] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filteredCourses = useMemo(() => {
     if (!roadmapId) return courses;
@@ -234,7 +243,7 @@ export function SlideUploader({
     event.preventDefault();
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
-    const file = form.get("file");
+    const file = selectedFile ?? form.get("file");
     if (!(file instanceof File) || !file.size) {
       toast.error("اختر ملف HTML أو ZIP");
       return;
@@ -308,6 +317,7 @@ export function SlideUploader({
           : `${prepared.files.length} ملف — ${prepared.sourceName}`,
       });
       formElement.reset();
+      setSelectedFile(null);
       try {
         await onUploaded();
       } catch {
@@ -400,17 +410,70 @@ export function SlideUploader({
             </option>
           ))}
         </select>
-        <label className="flex min-h-24 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[var(--ok-ink)] bg-[var(--ok-paper)] p-4 text-center sm:col-span-2">
-          <FileArchive size={25} />
-          <span className="mt-2 text-sm font-bold">اختر HTML أو ZIP</span>
-          <input
-            name="file"
-            type="file"
-            required
-            accept=".html,.htm,.zip,text/html,application/zip"
-            className="mt-2 max-w-full text-xs"
-          />
-        </label>
+        <input
+          ref={fileInputRef}
+          id="slides-file"
+          name="file"
+          type="file"
+          required
+          accept=".html,.htm,.zip,text/html,application/zip"
+          disabled={uploading}
+          onChange={(event) => {
+            setSelectedFile(event.target.files?.[0] ?? null);
+            setUploadError("");
+            setLastUpload(null);
+          }}
+          className="sr-only"
+        />
+        {selectedFile ? (
+          <div className="flex min-h-24 items-center gap-4 rounded-2xl border-2 border-[var(--ok-ink)] bg-[var(--ok-paper)] p-4 sm:col-span-2">
+            <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-[#E8A33D]/20 text-[#D88C20]">
+              <FileArchive size={24} />
+            </span>
+            <div className="min-w-0 flex-1 text-start">
+              <strong className="block truncate text-sm" title={selectedFile.name}>
+                {selectedFile.name}
+              </strong>
+              <span className="mt-1 block text-xs opacity-60">
+                {selectedFile.name.toLowerCase().endsWith(".zip") ? "ملف ZIP" : "ملف HTML"} ·{" "}
+                {formatFileSize(selectedFile.size)} · جاهز للرفع
+              </span>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                disabled={uploading}
+                onClick={() => fileInputRef.current?.click()}
+                className="h-9 rounded-xl border-2 border-[var(--ok-ink)] px-3 text-xs font-bold disabled:opacity-50"
+              >
+                تغيير
+              </button>
+              <button
+                type="button"
+                disabled={uploading}
+                aria-label="إلغاء اختيار الملف"
+                title="إلغاء اختيار الملف"
+                onClick={() => {
+                  if (fileInputRef.current) fileInputRef.current.value = "";
+                  setSelectedFile(null);
+                  setUploadError("");
+                }}
+                className="grid size-9 place-items-center rounded-xl border-2 border-red-500/50 text-red-600 disabled:opacity-50 dark:text-red-300"
+              >
+                <X size={17} />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <label
+            htmlFor="slides-file"
+            className="flex min-h-24 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[var(--ok-ink)] bg-[var(--ok-paper)] p-4 text-center sm:col-span-2"
+          >
+            <FileArchive size={25} />
+            <span className="mt-2 text-sm font-bold">اختر HTML أو ZIP</span>
+            <span className="mt-1 text-xs opacity-55">سيظهر الملف هنا قبل بدء الرفع</span>
+          </label>
+        )}
         <label className="flex items-center gap-2 rounded-xl border border-[var(--ok-ink)]/20 p-3 text-sm font-bold">
           <input name="published" type="checkbox" /> نشر الملف والدرس والكورس فورًا
         </label>
