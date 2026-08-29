@@ -24,6 +24,7 @@ type ChromeCopy = {
   legalLinks: { label: string; href: string; hrefLang: "ar" | "en" }[];
   courses: string;
   projects: string;
+  leaderboard: string;
 };
 
 export const CHROME: Record<ChromeLang, ChromeCopy> = {
@@ -37,6 +38,7 @@ export const CHROME: Record<ChromeLang, ChromeCopy> = {
     brandTagline: "— تطوير مواقع وتطبيقات في مصر والخليج",
     courses: "الكورسات",
     projects: "المشاريع",
+    leaderboard: "المتصدرون",
     footerLinks: [
       { label: "الخدمات", hash: "catalog" },
       { label: "طريقة شغلنا", hash: "about" },
@@ -59,6 +61,7 @@ export const CHROME: Record<ChromeLang, ChromeCopy> = {
     brandTagline: "— Web & mobile development in Egypt and the Gulf",
     courses: "Courses",
     projects: "Projects",
+    leaderboard: "Leaderboard",
     footerLinks: [
       { label: "Services", hash: "catalog" },
       { label: "How we work", hash: "about" },
@@ -81,6 +84,7 @@ export const CHROME: Record<ChromeLang, ChromeCopy> = {
     brandTagline: "— Développement web et mobile en Égypte et dans le Golfe",
     courses: "Cours",
     projects: "Projets",
+    leaderboard: "Classement",
     footerLinks: [
       { label: "Services", hash: "catalog" },
       { label: "Notre méthode", hash: "about" },
@@ -103,6 +107,7 @@ export const CHROME: Record<ChromeLang, ChromeCopy> = {
     brandTagline: "— Desarrollo web y móvil en Egipto y el Golfo",
     courses: "Cursos",
     projects: "Proyectos",
+    leaderboard: "Clasificación",
     footerLinks: [
       { label: "Servicios", hash: "catalog" },
       { label: "Cómo trabajamos", hash: "about" },
@@ -264,6 +269,9 @@ export function SiteHeader({
           <Link to="/courses" className="accent-link transition-colors whitespace-nowrap">
             {c.courses}
           </Link>
+          <Link to="/leaderboard" className="accent-link transition-colors whitespace-nowrap">
+            {c.leaderboard}
+          </Link>
           {navLinks.map((l) => (
             <Link
               key={l.hash}
@@ -327,6 +335,9 @@ export function SiteHeader({
             className="accent-link transition-colors py-1"
           >
             {c.courses}
+          </Link>
+          <Link to="/leaderboard" onClick={() => setMenuOpen(false)} className="accent-link transition-colors py-1">
+            {c.leaderboard}
           </Link>
           {alternates && path && (
             <div className="flex items-center justify-between pt-3 mt-1 border-t border-[var(--ok-ink)]/20">
@@ -394,6 +405,9 @@ export function SiteFooter({ lang = "ar" }: { lang?: ChromeLang }) {
         <div className="flex flex-wrap items-center justify-center gap-4">
           <Link to="/courses" className="text-[var(--ok-ink)]/75 accent-link transition-colors">
             {c.courses}
+          </Link>
+          <Link to="/leaderboard" className="text-[var(--ok-ink)]/75 accent-link transition-colors">
+            {c.leaderboard}
           </Link>
           <Link
             to="/"

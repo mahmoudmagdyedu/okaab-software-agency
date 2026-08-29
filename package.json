@@ -13,6 +13,7 @@
     "build:site": "vite build",
     "build:mawid": "npm run build --workspace=okaab-mawid",
     "build:bun-pos": "npm run build --workspace=okaab-bun-al-deerah-pos",
+    "build:mobile": "npm --prefix apps/okaab-learning-mobile run typecheck",
     "build:dev": "vite build --mode development",
     "start": "node scripts/start-production.mjs",
     "preview": "vite preview",

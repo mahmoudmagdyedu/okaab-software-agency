@@ -25,6 +25,11 @@ import type {
 } from "@/integrations/supabase/types";
 
 type RoadmapCourse = { roadmap_id: string; course_id: string; sort_order: number };
+type LearningEvent = { type: string; [key: string]: unknown };
+
+function learningEventKey(prefix: string) {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
 
 function EmptyCourses({ error }: { error?: string }) {
   return (
@@ -96,33 +101,17 @@ export function CoursesCatalog() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    void Promise.all([
-      supabase.from("roadmaps").select("*").eq("is_published", true).order("sort_order"),
-      supabase.from("courses").select("*").eq("is_published", true).order("created_at"),
-      supabase.from("roadmap_courses").select("*").order("sort_order"),
-      supabase
-        .from("youtube_videos")
-        .select("*")
-        .is("course_id", null)
-        .eq("is_available", true)
-        .order("published_at", { ascending: false })
-        .limit(8),
-    ]).then(([roadmapResult, courseResult, linkResult, videoResult]) => {
-      if (roadmapResult.error || courseResult.error || linkResult.error || videoResult.error) {
-        console.error("Courses catalog query failed", {
-          roadmaps: roadmapResult.error?.message,
-          courses: courseResult.error?.message,
-          links: linkResult.error?.message,
-          videos: videoResult.error?.message,
-        });
-      }
-      setRoadmaps((roadmapResult.data ?? []) as Roadmap[]);
-      setCourses((courseResult.data ?? []) as Course[]);
-      setLinks((linkResult.data ?? []) as RoadmapCourse[]);
-      setLatest((videoResult.data ?? []) as YouTubeVideo[]);
-      setError(roadmapResult.error?.message ?? courseResult.error?.message ?? "");
-      setLoading(false);
-    });
+    void fetch("/api/v1/catalog", { credentials: "same-origin" })
+      .then(async (response) => {
+        const payload = await response.json() as { data?: { roadmaps: Roadmap[]; courses: Course[]; roadmapCourses: RoadmapCourse[]; videos: YouTubeVideo[] }; error?: { message?: string } };
+        if (!response.ok || !payload.data) throw new Error(payload.error?.message || "تعذّر تحميل الكتالوج");
+        setRoadmaps(payload.data.roadmaps);
+        setCourses(payload.data.courses);
+        setLinks(payload.data.roadmapCourses);
+        setLatest(payload.data.videos.filter((video) => !video.course_id).slice(0, 8));
+      })
+      .catch((value) => setError(value instanceof Error ? value.message : "تعذّر تحميل الكتالوج"))
+      .finally(() => setLoading(false));
   }, []);
 
   if (loading)
@@ -398,6 +387,8 @@ type YouTubePlayerInstance = {
   setVolume: (volume: number) => void;
   setPlaybackRate: (rate: number) => void;
   getIframe: () => HTMLIFrameElement;
+  getCurrentTime: () => number;
+  getDuration: () => number;
 };
 
 let youtubeApiPromise: Promise<void> | null = null;
@@ -420,10 +411,11 @@ function loadYouTubeApi() {
   return youtubeApiPromise;
 }
 
-function OkaabVideoPlayer({ video, onEnded }: { video: YouTubeVideo; onEnded: () => void }) {
+function OkaabVideoPlayer({ video, onEnded, onProgress }: { video: YouTubeVideo; onEnded: () => void; onProgress: (percent: number) => void }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YouTubePlayerInstance | null>(null);
   const onEndedRef = useRef(onEnded);
+  const onProgressRef = useRef(onProgress);
   const [ready, setReady] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(false);
@@ -431,7 +423,8 @@ function OkaabVideoPlayer({ video, onEnded }: { video: YouTubeVideo; onEnded: ()
 
   useEffect(() => {
     onEndedRef.current = onEnded;
-  }, [onEnded]);
+    onProgressRef.current = onProgress;
+  }, [onEnded, onProgress]);
 
   useEffect(() => {
     let cancelled = false;
@@ -453,8 +446,14 @@ function OkaabVideoPlayer({ video, onEnded }: { video: YouTubeVideo; onEnded: ()
         },
       });
     });
+    const progressTimer = window.setInterval(() => {
+      const duration = playerRef.current?.getDuration?.() ?? 0;
+      const current = playerRef.current?.getCurrentTime?.() ?? 0;
+      if (duration > 0 && current > 0) onProgressRef.current(Math.min(100, (current / duration) * 100));
+    }, 10_000);
     return () => {
       cancelled = true;
+      window.clearInterval(progressTimer);
       playerRef.current?.destroy();
       playerRef.current = null;
     };
@@ -527,10 +526,20 @@ function OkaabVideoPlayer({ video, onEnded }: { video: YouTubeVideo; onEnded: ()
   );
 }
 
-function SlideViewer({ deck }: { deck: SlideDeck }) {
+function SlideViewer({ deck, onEvent }: { deck: SlideDeck; onEvent: (event: LearningEvent) => void }) {
   const base = `/slides/${deck.id}`;
   const slideUrl = `${base}/${deck.entry_path}`;
   const frameRef = useRef<HTMLIFrameElement>(null);
+
+  useEffect(() => {
+    const receive = (message: MessageEvent) => {
+      if (message.origin !== window.location.origin || message.source !== frameRef.current?.contentWindow) return;
+      const payload = message.data as { source?: string; event?: LearningEvent };
+      if (payload?.source === "okaab-lesson" && payload.event) onEvent(payload.event);
+    };
+    window.addEventListener("message", receive);
+    return () => window.removeEventListener("message", receive);
+  }, [onEvent]);
 
   async function openFullscreen() {
     try {
@@ -598,6 +607,7 @@ export function LessonExperience({
   const [slides, setSlides] = useState<SlideDeck[]>([]);
   const [stage, setStage] = useState<"video" | "slides">("video");
   const [loading, setLoading] = useState(true);
+  const [progressMessage, setProgressMessage] = useState("");
 
   useEffect(() => {
     void supabase
@@ -652,6 +662,26 @@ export function LessonExperience({
   if (loading) return <div className="h-[60vh] animate-pulse rounded-3xl bg-[var(--ok-card)]" />;
   if (!course || !lesson) return <EmptyCourses />;
 
+  async function sendLearningEvent(event: LearningEvent, endpoint = "events") {
+    const response = await fetch(`/api/v1/lessons/${encodeURIComponent(lessonSlug)}/${endpoint}`, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ...event, idempotencyKey: event.idempotencyKey ?? learningEventKey(event.type) }),
+    });
+    const payload = await response.json().catch(() => null);
+    if (response.status === 401) {
+      setProgressMessage("سجّل دخولك عشان تقدّمك ونقاطك يفضلوا محفوظين على الموقع والموبايل.");
+      return false;
+    }
+    if (!response.ok) {
+      setProgressMessage(payload?.error?.message || "تعذّر حفظ التقدّم. حاول مرة تانية.");
+      return false;
+    }
+    setProgressMessage(endpoint === "complete" ? "تم اعتماد إكمال الدرس وحفظ نقاطك." : "تم حفظ تقدّمك.");
+    return true;
+  }
+
   return (
     <div>
       <div className="mb-6">
@@ -667,7 +697,14 @@ export function LessonExperience({
       </div>
       {stage === "video" && firstVideo ? (
         <div className="space-y-4">
-          <OkaabVideoPlayer video={firstVideo} onEnded={() => hasSlides && setStage("slides")} />
+          <OkaabVideoPlayer
+            video={firstVideo}
+            onProgress={(percent) => void sendLearningEvent({ type: "video_progress", percent })}
+            onEnded={() => {
+              void sendLearningEvent({ type: "video_progress", percent: 100 });
+              if (hasSlides) setStage("slides");
+            }}
+          />
           {hasSlides && (
             <button
               type="button"
@@ -682,7 +719,7 @@ export function LessonExperience({
       ) : hasSlides ? (
         <div className="space-y-5">
           {slides.map((deck) => (
-            <SlideViewer key={deck.id} deck={deck} />
+            <SlideViewer key={deck.id} deck={deck} onEvent={(event) => void sendLearningEvent(event)} />
           ))}
           {firstVideo && (
             <button
@@ -701,6 +738,21 @@ export function LessonExperience({
           <h2 className="mt-4 font-display text-2xl font-bold">محتوى الدرس قيد الإعداد</h2>
         </div>
       )}
+      <div className="mt-5 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={() => void sendLearningEvent({ type: "lesson_finished" }, "complete")}
+          className="min-h-11 rounded-full border-2 border-[var(--ok-ink)] bg-[var(--ok-ink)] px-5 py-2.5 font-bold text-[var(--ok-paper)]"
+        >
+          اعتماد إكمال الدرس
+        </button>
+        {progressMessage && (
+          <p role="status" className="text-sm font-medium">
+            {progressMessage}{" "}
+            {progressMessage.startsWith("سجّل") && <a className="font-bold text-[var(--ok-accent-text)] underline" href="/sign-in/">تسجيل الدخول</a>}
+          </p>
+        )}
+      </div>
     </div>
   );
 }

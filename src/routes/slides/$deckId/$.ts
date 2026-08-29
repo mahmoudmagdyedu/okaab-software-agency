@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { createBridgeScript } from "../../../../packages/bridge/index.js";
 
 import { getDb, sql } from "@/lib/db.server";
 
@@ -24,10 +25,17 @@ export const Route = createFileRoute("/slides/$deckId/$")({
           );
         const asset = result.recordset[0];
         if (!asset) return new Response("Not found", { status: 404 });
-        return new Response(new Uint8Array(asset.content), {
+        const isHtml = asset.content_type.toLowerCase().includes("text/html") || path.toLowerCase().endsWith(".html");
+        let body: Uint8Array | string = new Uint8Array(asset.content);
+        if (isHtml) {
+          const source = asset.content.toString("utf8");
+          const bridge = `<script data-okaab-bridge>${createBridgeScript()}</script>`;
+          body = source.includes("</body>") ? source.replace("</body>", `${bridge}</body>`) : `${source}${bridge}`;
+        }
+        return new Response(body, {
           headers: {
             "content-type": asset.content_type,
-            "cache-control": "public, max-age=31536000, immutable",
+            "cache-control": isHtml ? "public, max-age=300" : "public, max-age=31536000, immutable",
             "content-security-policy":
               "default-src 'self' data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' data: https://cdnjs.cloudflare.com https://fonts.gstatic.com; media-src 'self' blob: https:; connect-src 'none'; frame-ancestors 'self'",
             "x-content-type-options": "nosniff",

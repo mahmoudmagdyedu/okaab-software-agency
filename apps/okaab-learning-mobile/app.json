@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "name": "عُقاب للتعلّم",
+    "slug": "okaab-learning",
+    "version": "1.0.0",
+    "icon": "./assets/icon.png",
+    "orientation": "portrait",
+    "scheme": "okaab",
+    "userInterfaceStyle": "automatic",
+    "android": {
+      "package": "org.okaab.learning",
+      "adaptiveIcon": { "foregroundImage": "./assets/icon.png", "backgroundColor": "#141210" }
+    },
+    "plugins": ["expo-router", "expo-secure-store", "@clerk/expo"],
+    "experiments": { "typedRoutes": true },
+    "extra": { "apiUrl": "https://okaab.org/api/v1" }
+  }
+}
