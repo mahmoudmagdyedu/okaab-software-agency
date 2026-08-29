@@ -67,6 +67,7 @@ import { Route as ApiAdminYoutubeSyncRouteImport } from './routes/api/admin/yout
 import { Route as ApiInternalHealthDeepRouteImport } from './routes/api/internal/health/deep'
 import { Route as ApiInternalYoutubeSyncRouteImport } from './routes/api/internal/youtube/sync'
 import { Route as ApiSlidesDeckIdDownloadRouteImport } from './routes/api/slides/$deckId/download'
+import { Route as ApiV1AdminLearnersRouteImport } from './routes/api/v1/admin/learners'
 import { Route as ApiV1AdminPlatformRouteImport } from './routes/api/v1/admin/platform'
 import { Route as ApiV1CoursesSlugRouteImport } from './routes/api/v1/courses/$slug'
 import { Route as ApiV1LessonsSlugRouteImport } from './routes/api/v1/lessons/$slug'
@@ -385,6 +386,11 @@ const ApiSlidesDeckIdDownloadRoute = ApiSlidesDeckIdDownloadRouteImport.update({
   path: '/api/slides/$deckId/download',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1AdminLearnersRoute = ApiV1AdminLearnersRouteImport.update({
+  id: '/api/v1/admin/learners',
+  path: '/api/v1/admin/learners',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1AdminPlatformRoute = ApiV1AdminPlatformRouteImport.update({
   id: '/api/v1/admin/platform',
   path: '/api/v1/admin/platform',
@@ -519,6 +525,7 @@ export interface FileRoutesByFullPath {
   '/api/internal/health/deep': typeof ApiInternalHealthDeepRoute
   '/api/internal/youtube/sync': typeof ApiInternalYoutubeSyncRoute
   '/api/slides/$deckId/download': typeof ApiSlidesDeckIdDownloadRoute
+  '/api/v1/admin/learners': typeof ApiV1AdminLearnersRoute
   '/api/v1/admin/platform': typeof ApiV1AdminPlatformRoute
   '/api/v1/courses/$slug': typeof ApiV1CoursesSlugRoute
   '/api/v1/lessons/$slug': typeof ApiV1LessonsSlugRouteWithChildren
@@ -593,6 +600,7 @@ export interface FileRoutesByTo {
   '/api/internal/health/deep': typeof ApiInternalHealthDeepRoute
   '/api/internal/youtube/sync': typeof ApiInternalYoutubeSyncRoute
   '/api/slides/$deckId/download': typeof ApiSlidesDeckIdDownloadRoute
+  '/api/v1/admin/learners': typeof ApiV1AdminLearnersRoute
   '/api/v1/admin/platform': typeof ApiV1AdminPlatformRoute
   '/api/v1/courses/$slug': typeof ApiV1CoursesSlugRoute
   '/api/v1/lessons/$slug': typeof ApiV1LessonsSlugRouteWithChildren
@@ -668,6 +676,7 @@ export interface FileRoutesById {
   '/api/internal/health/deep': typeof ApiInternalHealthDeepRoute
   '/api/internal/youtube/sync': typeof ApiInternalYoutubeSyncRoute
   '/api/slides/$deckId/download': typeof ApiSlidesDeckIdDownloadRoute
+  '/api/v1/admin/learners': typeof ApiV1AdminLearnersRoute
   '/api/v1/admin/platform': typeof ApiV1AdminPlatformRoute
   '/api/v1/courses/$slug': typeof ApiV1CoursesSlugRoute
   '/api/v1/lessons/$slug': typeof ApiV1LessonsSlugRouteWithChildren
@@ -744,6 +753,7 @@ export interface FileRouteTypes {
     | '/api/internal/health/deep'
     | '/api/internal/youtube/sync'
     | '/api/slides/$deckId/download'
+    | '/api/v1/admin/learners'
     | '/api/v1/admin/platform'
     | '/api/v1/courses/$slug'
     | '/api/v1/lessons/$slug'
@@ -818,6 +828,7 @@ export interface FileRouteTypes {
     | '/api/internal/health/deep'
     | '/api/internal/youtube/sync'
     | '/api/slides/$deckId/download'
+    | '/api/v1/admin/learners'
     | '/api/v1/admin/platform'
     | '/api/v1/courses/$slug'
     | '/api/v1/lessons/$slug'
@@ -892,6 +903,7 @@ export interface FileRouteTypes {
     | '/api/internal/health/deep'
     | '/api/internal/youtube/sync'
     | '/api/slides/$deckId/download'
+    | '/api/v1/admin/learners'
     | '/api/v1/admin/platform'
     | '/api/v1/courses/$slug'
     | '/api/v1/lessons/$slug'
@@ -967,6 +979,7 @@ export interface RootRouteChildren {
   ApiInternalHealthDeepRoute: typeof ApiInternalHealthDeepRoute
   ApiInternalYoutubeSyncRoute: typeof ApiInternalYoutubeSyncRoute
   ApiSlidesDeckIdDownloadRoute: typeof ApiSlidesDeckIdDownloadRoute
+  ApiV1AdminLearnersRoute: typeof ApiV1AdminLearnersRoute
   ApiV1AdminPlatformRoute: typeof ApiV1AdminPlatformRoute
   ApiV1CoursesSlugRoute: typeof ApiV1CoursesSlugRoute
   ApiV1LessonsSlugRoute: typeof ApiV1LessonsSlugRouteWithChildren
@@ -1387,6 +1400,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSlidesDeckIdDownloadRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/admin/learners': {
+      id: '/api/v1/admin/learners'
+      path: '/api/v1/admin/learners'
+      fullPath: '/api/v1/admin/learners'
+      preLoaderRoute: typeof ApiV1AdminLearnersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/admin/platform': {
       id: '/api/v1/admin/platform'
       path: '/api/v1/admin/platform'
@@ -1565,6 +1585,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiInternalHealthDeepRoute: ApiInternalHealthDeepRoute,
   ApiInternalYoutubeSyncRoute: ApiInternalYoutubeSyncRoute,
   ApiSlidesDeckIdDownloadRoute: ApiSlidesDeckIdDownloadRoute,
+  ApiV1AdminLearnersRoute: ApiV1AdminLearnersRoute,
   ApiV1AdminPlatformRoute: ApiV1AdminPlatformRoute,
   ApiV1CoursesSlugRoute: ApiV1CoursesSlugRoute,
   ApiV1LessonsSlugRoute: ApiV1LessonsSlugRouteWithChildren,
