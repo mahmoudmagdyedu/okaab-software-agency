@@ -11,7 +11,19 @@
       "package": "org.okaab.learning",
       "adaptiveIcon": { "foregroundImage": "./assets/icon.png", "backgroundColor": "#141210" }
     },
-    "plugins": ["expo-router", "expo-secure-store", "@clerk/expo"],
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "@clerk/expo",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "اسمح لعُقاب باختيار صورة لحسابك فقط.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ]
+    ],
     "experiments": { "typedRoutes": true },
     "extra": { "apiUrl": "https://okaab.org/api/v1" }
   }

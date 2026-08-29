@@ -873,6 +873,22 @@ export async function updateLearner(input: {
   return result.recordset[0];
 }
 
+export async function syncLearnerAvatar() {
+  const learner = await requireLearnerProfile();
+  const user = await clerkClient().users.getUser(learner.id);
+  const avatarUrl = user.imageUrl || null;
+  const result = await (
+    await getDb()
+  )
+    .request()
+    .input("id", sql.NVarChar(64), learner.id)
+    .input("avatar_url", sql.NVarChar(1000), avatarUrl)
+    .query<LearnerProfile>(
+      "update okaab.learner_profiles set avatar_url=@avatar_url,updated_at=sysutcdatetime() output inserted.* where id=@id",
+    );
+  return result.recordset[0];
+}
+
 export async function deleteLearner() {
   const learner = await requireLearnerProfile();
   await (await getDb()).request().input("id", sql.NVarChar(64), learner.id).query(`

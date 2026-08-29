@@ -1,8 +1,10 @@
-import { useAuth, useClerk } from "@clerk/expo";
+import { useAuth, useClerk, useUser } from "@clerk/expo";
+import * as ImagePicker from "expo-image-picker";
 import { Redirect, router } from "expo-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -18,29 +20,40 @@ import { theme } from "@/theme";
 import type { Overview } from "@/types";
 
 export default function Profile() {
-  const { isLoaded, isSignedIn, getToken } = useAuth();
+  const { isLoaded, isSignedIn, getToken, sessionId } = useAuth();
   const { signOut } = useClerk();
+  const { user } = useUser();
   const [data, setData] = useState<Overview | null>(null);
   const [name, setName] = useState("");
   const [birthdate, setBirthdate] = useState("");
   const [visible, setVisible] = useState(true);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const load = async () => {
+  const [avatarBusy, setAvatarBusy] = useState(false);
+  const [sessions, setSessions] = useState<
+    Array<{
+      id: string;
+      lastActiveAt: Date;
+      latestActivity: { deviceType?: string; browserName?: string };
+      revoke: () => Promise<unknown>;
+    }>
+  >([]);
+  const load = useCallback(async () => {
     try {
       const next = await apiRequest<Overview>("/me/overview", getToken);
       setData(next);
       setName(next.profile.display_name);
       setBirthdate(next.profile.birthdate?.slice(0, 10) || "");
       setVisible(Boolean(next.profile.leaderboard_visible));
+      if (user) setSessions(await user.getSessions());
       setError("");
     } catch (value) {
       setError(value instanceof Error ? value.message : "تعذّر التحميل");
     }
-  };
+  }, [getToken, user]);
   useEffect(() => {
     if (isSignedIn) void load();
-  }, [isSignedIn]);
+  }, [isSignedIn, load]);
   if (!isLoaded) return <Loading />;
   if (!isSignedIn) return <Redirect href="/sign-in" />;
   if (!data && !error) return <Loading />;
@@ -69,6 +82,55 @@ export default function Profile() {
       setBusy(false);
     }
   };
+  const pickAvatar = async () => {
+    if (!user) return;
+    setAvatarBusy(true);
+    setError("");
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) throw new Error("اسمح للتطبيق بالوصول للصور عشان تختار صورة حسابك.");
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.85,
+      });
+      if (result.canceled) return;
+      const asset = result.assets[0];
+      if (!asset) return;
+      if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024)
+        throw new Error("الصورة أكبر من 5MB. اختَر صورة أصغر.");
+      const image = await fetch(asset.uri);
+      const blob = await image.blob();
+      if (blob.size > 5 * 1024 * 1024) throw new Error("الصورة أكبر من 5MB. اختَر صورة أصغر.");
+      if (!["image/jpeg", "image/png", "image/webp"].includes(blob.type))
+        throw new Error("استخدم صورة JPG أو PNG أو WebP.");
+      await user.setProfileImage({ file: blob });
+      await user.reload();
+      await apiRequest("/me/avatar", getToken, { method: "POST" });
+      await load();
+    } catch (value) {
+      setError(value instanceof Error ? value.message : "تعذّر تحديث الصورة");
+    } finally {
+      setAvatarBusy(false);
+    }
+  };
+  const revokeSession = (session: (typeof sessions)[number]) =>
+    Alert.alert("تسجيل خروج الجهاز؟", "الجلسة هتتقفل فورًا على الجهاز المختار.", [
+      { text: "إلغاء", style: "cancel" },
+      {
+        text: "تسجيل الخروج",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await session.revoke();
+            if (user) setSessions(await user.getSessions());
+          } catch (value) {
+            setError(value instanceof Error ? value.message : "تعذّر إغلاق الجلسة");
+          }
+        },
+      },
+    ]);
   const levelProgress = data!.level.next
     ? Math.min(
         100,
@@ -106,6 +168,21 @@ export default function Profile() {
     <Screen>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.head}>
+          <Image
+            accessibilityLabel="صورة الحساب"
+            source={{ uri: data!.profile.avatar_url || user?.imageUrl }}
+            style={styles.avatar}
+          />
+          <Pressable
+            accessibilityRole="button"
+            disabled={avatarBusy}
+            onPress={() => void pickAvatar()}
+            style={styles.avatarButton}
+          >
+            <Text style={styles.avatarButtonText}>
+              {avatarBusy ? "جاري رفع الصورة…" : "تغيير الصورة الشخصية"}
+            </Text>
+          </Pressable>
           <Title>{data!.profile.display_name}</Title>
           <Muted>{data!.profile.email}</Muted>
           <Text style={styles.points}>
@@ -118,6 +195,34 @@ export default function Profile() {
           {data!.level.next && (
             <Muted>فاضل {data!.level.next - data!.points} نقطة للرتبة التالية.</Muted>
           )}
+        </View>
+        <View style={styles.sessions}>
+          <Text style={styles.label}>الأجهزة والجلسات</Text>
+          <Muted>راجع الأجهزة المسجّلة، واقفل أي جلسة مش عارفها.</Muted>
+          {sessions.map((item) => {
+            const current = item.id === sessionId;
+            const device = item.latestActivity.deviceType || "جهاز غير معروف";
+            const browser = item.latestActivity.browserName || "تطبيق عُقاب";
+            return (
+              <View key={item.id} style={styles.sessionRow}>
+                <View style={styles.sessionText}>
+                  <Text style={styles.sessionTitle}>
+                    {device} · {browser} {current ? "· الجهاز الحالي" : ""}
+                  </Text>
+                  <Muted>آخر نشاط {new Date(item.lastActiveAt).toLocaleString("ar-EG")}</Muted>
+                </View>
+                {!current && (
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => revokeSession(item)}
+                    style={styles.revokeButton}
+                  >
+                    <Text style={styles.revokeText}>خروج</Text>
+                  </Pressable>
+                )}
+              </View>
+            );
+          })}
         </View>
         {data!.badges.length > 0 && (
           <View style={styles.badges}>
@@ -185,6 +290,15 @@ export default function Profile() {
 const styles = StyleSheet.create({
   content: { gap: 16, paddingBottom: 32 },
   head: { gap: 8 },
+  avatar: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    alignSelf: "flex-end",
+    backgroundColor: theme.colors.paperAlt,
+  },
+  avatarButton: { minHeight: 44, alignSelf: "flex-end", justifyContent: "center" },
+  avatarButtonText: { color: theme.colors.gold, fontWeight: "800" },
   points: { color: theme.colors.gold, fontWeight: "800", textAlign: "right" },
   level: { color: theme.colors.ink, fontWeight: "800", textAlign: "right" },
   track: {
@@ -223,6 +337,35 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
+  sessions: {
+    gap: 10,
+    backgroundColor: theme.colors.card,
+    borderWidth: 1,
+    borderColor: `${theme.colors.ink}22`,
+    padding: 16,
+    borderRadius: 16,
+  },
+  sessionRow: {
+    minHeight: 62,
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 10,
+    borderTopWidth: 1,
+    borderTopColor: `${theme.colors.ink}18`,
+    paddingTop: 10,
+  },
+  sessionText: { flex: 1, gap: 3 },
+  sessionTitle: { color: theme.colors.ink, fontWeight: "800", textAlign: "right" },
+  revokeButton: {
+    minHeight: 44,
+    minWidth: 64,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: theme.colors.error,
+    borderRadius: 10,
+  },
+  revokeText: { color: theme.colors.error, fontWeight: "800" },
   danger: {
     borderWidth: 1,
     borderColor: theme.colors.error,

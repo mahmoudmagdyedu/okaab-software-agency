@@ -126,6 +126,14 @@ const paths = {
       responses: responses(),
     },
   },
+  "/api/v1/me/avatar": {
+    post: {
+      tags: ["الحساب"],
+      summary: "مزامنة صورة الحساب الموثقة من Clerk بعد رفعها",
+      security: bearer,
+      responses: responses("تم تحديث صورة الحساب"),
+    },
+  },
   "/api/v1/leaderboard": {
     get: {
       tags: ["المنصة"],

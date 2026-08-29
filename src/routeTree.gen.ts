@@ -74,6 +74,7 @@ import { Route as ApiV1AdminQuestionsRouteImport } from './routes/api/v1/admin/q
 import { Route as ApiV1CoursesSlugRouteImport } from './routes/api/v1/courses/$slug'
 import { Route as ApiV1LessonsSlugRouteImport } from './routes/api/v1/lessons/$slug'
 import { Route as ApiV1MeIndexRouteImport } from './routes/api/v1/me/index'
+import { Route as ApiV1MeAvatarRouteImport } from './routes/api/v1/me/avatar'
 import { Route as ApiV1MeOverviewRouteImport } from './routes/api/v1/me/overview'
 import { Route as ApiV1QuizAnswersRouteImport } from './routes/api/v1/quiz/answers'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
@@ -423,6 +424,11 @@ const ApiV1MeIndexRoute = ApiV1MeIndexRouteImport.update({
   path: '/api/v1/me/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1MeAvatarRoute = ApiV1MeAvatarRouteImport.update({
+  id: '/api/v1/me/avatar',
+  path: '/api/v1/me/avatar',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1MeOverviewRoute = ApiV1MeOverviewRouteImport.update({
   id: '/api/v1/me/overview',
   path: '/api/v1/me/overview',
@@ -543,6 +549,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/admin/questions': typeof ApiV1AdminQuestionsRoute
   '/api/v1/courses/$slug': typeof ApiV1CoursesSlugRoute
   '/api/v1/lessons/$slug': typeof ApiV1LessonsSlugRouteWithChildren
+  '/api/v1/me/avatar': typeof ApiV1MeAvatarRoute
   '/api/v1/me/overview': typeof ApiV1MeOverviewRoute
   '/api/v1/quiz/answers': typeof ApiV1QuizAnswersRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -620,6 +627,7 @@ export interface FileRoutesByTo {
   '/api/v1/admin/questions': typeof ApiV1AdminQuestionsRoute
   '/api/v1/courses/$slug': typeof ApiV1CoursesSlugRoute
   '/api/v1/lessons/$slug': typeof ApiV1LessonsSlugRouteWithChildren
+  '/api/v1/me/avatar': typeof ApiV1MeAvatarRoute
   '/api/v1/me/overview': typeof ApiV1MeOverviewRoute
   '/api/v1/quiz/answers': typeof ApiV1QuizAnswersRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -698,6 +706,7 @@ export interface FileRoutesById {
   '/api/v1/admin/questions': typeof ApiV1AdminQuestionsRoute
   '/api/v1/courses/$slug': typeof ApiV1CoursesSlugRoute
   '/api/v1/lessons/$slug': typeof ApiV1LessonsSlugRouteWithChildren
+  '/api/v1/me/avatar': typeof ApiV1MeAvatarRoute
   '/api/v1/me/overview': typeof ApiV1MeOverviewRoute
   '/api/v1/quiz/answers': typeof ApiV1QuizAnswersRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -777,6 +786,7 @@ export interface FileRouteTypes {
     | '/api/v1/admin/questions'
     | '/api/v1/courses/$slug'
     | '/api/v1/lessons/$slug'
+    | '/api/v1/me/avatar'
     | '/api/v1/me/overview'
     | '/api/v1/quiz/answers'
     | '/lovable/email/auth/preview'
@@ -854,6 +864,7 @@ export interface FileRouteTypes {
     | '/api/v1/admin/questions'
     | '/api/v1/courses/$slug'
     | '/api/v1/lessons/$slug'
+    | '/api/v1/me/avatar'
     | '/api/v1/me/overview'
     | '/api/v1/quiz/answers'
     | '/lovable/email/auth/preview'
@@ -931,6 +942,7 @@ export interface FileRouteTypes {
     | '/api/v1/admin/questions'
     | '/api/v1/courses/$slug'
     | '/api/v1/lessons/$slug'
+    | '/api/v1/me/avatar'
     | '/api/v1/me/overview'
     | '/api/v1/quiz/answers'
     | '/lovable/email/auth/preview'
@@ -1009,6 +1021,7 @@ export interface RootRouteChildren {
   ApiV1AdminQuestionsRoute: typeof ApiV1AdminQuestionsRoute
   ApiV1CoursesSlugRoute: typeof ApiV1CoursesSlugRoute
   ApiV1LessonsSlugRoute: typeof ApiV1LessonsSlugRouteWithChildren
+  ApiV1MeAvatarRoute: typeof ApiV1MeAvatarRoute
   ApiV1MeOverviewRoute: typeof ApiV1MeOverviewRoute
   ApiV1QuizAnswersRoute: typeof ApiV1QuizAnswersRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
@@ -1475,6 +1488,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1MeIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/me/avatar': {
+      id: '/api/v1/me/avatar'
+      path: '/api/v1/me/avatar'
+      fullPath: '/api/v1/me/avatar'
+      preLoaderRoute: typeof ApiV1MeAvatarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/me/overview': {
       id: '/api/v1/me/overview'
       path: '/api/v1/me/overview'
@@ -1631,6 +1651,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1AdminQuestionsRoute: ApiV1AdminQuestionsRoute,
   ApiV1CoursesSlugRoute: ApiV1CoursesSlugRoute,
   ApiV1LessonsSlugRoute: ApiV1LessonsSlugRouteWithChildren,
+  ApiV1MeAvatarRoute: ApiV1MeAvatarRoute,
   ApiV1MeOverviewRoute: ApiV1MeOverviewRoute,
   ApiV1QuizAnswersRoute: ApiV1QuizAnswersRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
