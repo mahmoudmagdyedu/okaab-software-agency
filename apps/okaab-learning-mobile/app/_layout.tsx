@@ -11,7 +11,6 @@ import { Action, Loading, Muted, Title } from "@/components";
 import { theme } from "@/theme";
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
-if (!publishableKey) throw new Error("أضف EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY إلى ملف .env");
 
 I18nManager.allowRTL(true);
 
@@ -101,8 +100,19 @@ function SystemState({
 }
 
 export default function RootLayout() {
+  if (!publishableKey) {
+    return (
+      <SystemState
+        title="التطبيق يحتاج إعدادًا صغيرًا"
+        message="تعذّر تحميل إعدادات تسجيل الدخول. نحن نعمل على إصلاحها، ويمكنك المتابعة من الموقع مؤقتًا."
+        action="فتح منصة عُقاب"
+        onPress={() => void Linking.openURL("https://okaab.org/courses")}
+      />
+    );
+  }
+
   return (
-    <ClerkProvider publishableKey={publishableKey!} tokenCache={tokenCache}>
+    <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
       <SystemGate>
         <StatusBar style="dark" />
         <Stack
