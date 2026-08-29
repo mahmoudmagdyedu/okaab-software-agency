@@ -725,24 +725,102 @@ export async function getOverview() {
 export async function getLeaderboard(period: "weekly" | "monthly" | "all") {
   const learner = await getLearnerProfile();
   const pool = await getDb();
-  const since =
-    period === "weekly"
-      ? "dateadd(day,-7,sysutcdatetime())"
-      : period === "monthly"
-        ? "dateadd(month,-1,sysutcdatetime())"
-        : "convert(datetimeoffset,'2000-01-01')";
-  const result = await pool.request().input("user_id", sql.NVarChar(64), learner?.id ?? "").query(`
+  const now = new Date();
+  const cairoParts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Africa/Cairo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    })
+      .formatToParts(now)
+      .filter((part) => part.type !== "literal")
+      .map((part) => [part.type, Number(part.value)]),
+  ) as { year: number; month: number; day: number };
+  let boundary = { ...cairoParts };
+  if (period === "weekly") {
+    const weekday = new Date(
+      Date.UTC(cairoParts.year, cairoParts.month - 1, cairoParts.day),
+    ).getUTCDay();
+    const daysSinceMonday = (weekday + 6) % 7;
+    const monday = new Date(
+      Date.UTC(cairoParts.year, cairoParts.month - 1, cairoParts.day - daysSinceMonday),
+    );
+    boundary = {
+      year: monday.getUTCFullYear(),
+      month: monday.getUTCMonth() + 1,
+      day: monday.getUTCDate(),
+    };
+  } else if (period === "monthly") {
+    boundary.day = 1;
+  } else {
+    boundary = { year: 2000, month: 1, day: 1 };
+  }
+  const target = Date.UTC(boundary.year, boundary.month - 1, boundary.day);
+  let sinceMs = target;
+  const cairoClock = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Africa/Cairo",
+    hourCycle: "h23",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const local = Object.fromEntries(
+      cairoClock
+        .formatToParts(new Date(sinceMs))
+        .filter((part) => part.type !== "literal")
+        .map((part) => [part.type, Number(part.value)]),
+    ) as Record<string, number>;
+    const observed = Date.UTC(
+      local.year ?? boundary.year,
+      (local.month ?? boundary.month) - 1,
+      local.day ?? boundary.day,
+      local.hour ?? 0,
+      local.minute ?? 0,
+      local.second ?? 0,
+    );
+    sinceMs -= observed - target;
+  }
+  const result = await pool
+    .request()
+    .input("user_id", sql.NVarChar(64), learner?.id ?? "")
+    .input("since", sql.DateTimeOffset, new Date(sinceMs)).query(`
     with scores as (
       select p.id,p.display_name,p.avatar_url,sum(l.amount) points,min(l.created_at) reached_at
       from okaab.learner_profiles p join okaab.points_ledger l on l.user_id=p.id
-      where p.status='active' and p.leaderboard_visible=1 and l.created_at>=${since}
+      where p.status='active' and p.leaderboard_visible=1 and l.created_at>=@since
       group by p.id,p.display_name,p.avatar_url
     ), ranked as (select *,row_number() over(order by points desc,reached_at asc) rank from scores)
     select top (20) id,display_name,avatar_url,points,rank from ranked order by rank;
-    with scores as (select p.id,p.display_name,p.avatar_url,sum(l.amount) points,min(l.created_at) reached_at from okaab.learner_profiles p join okaab.points_ledger l on l.user_id=p.id where p.status='active' and p.leaderboard_visible=1 and l.created_at>=${since} group by p.id,p.display_name,p.avatar_url), ranked as (select *,row_number() over(order by points desc,reached_at asc) rank from scores) select id,display_name,avatar_url,points,rank from ranked where id=@user_id;
+    with scores as (select p.id,p.display_name,p.avatar_url,sum(l.amount) points,min(l.created_at) reached_at from okaab.learner_profiles p join okaab.points_ledger l on l.user_id=p.id where p.status='active' and p.leaderboard_visible=1 and l.created_at>=@since group by p.id,p.display_name,p.avatar_url), ranked as (select *,row_number() over(order by points desc,reached_at asc) rank from scores) select id,display_name,avatar_url,points,rank from ranked where id=@user_id;
   `);
   const sets = result.recordsets as unknown as Array<Array<Record<string, unknown>>>;
-  return { period, leaders: sets[0] ?? [], me: sets[1]?.[0] ?? null };
+  const hideSurname = (row: Record<string, unknown>) => {
+    const names = String(row["display_name"] ?? "متعلّم عُقاب")
+      .trim()
+      .split(/\s+/u)
+      .filter(Boolean);
+    return {
+      ...row,
+      display_name:
+        names.length > 1
+          ? `${names[0]} ${names
+              .slice(1)
+              .map((name) => `${name[0]}.`)
+              .join(" ")}`
+          : names[0],
+    };
+  };
+  return {
+    period,
+    startsAt: new Date(sinceMs).toISOString(),
+    leaders: (sets[0] ?? []).map(hideSurname),
+    me: sets[1]?.[0] ? hideSurname(sets[1][0]) : null,
+  };
 }
 
 export async function getPublicConfig() {

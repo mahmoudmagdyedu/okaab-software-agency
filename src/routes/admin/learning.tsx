@@ -42,6 +42,21 @@ type PlatformData = {
       started: number;
       completed: number;
     }>;
+    engagement: { dau: number; wau: number; mau: number };
+    retention: Array<{
+      day_number: number;
+      eligible: number;
+      returned: number;
+      retention_percent: number;
+    }>;
+    funnel: {
+      registered: number;
+      started_lesson: number;
+      attempted_quiz: number;
+      passed_task: number;
+      completed_lesson: number;
+    };
+    pointsDistribution: Array<{ band: string; learners: number }>;
   };
 };
 type Learner = {
@@ -217,7 +232,10 @@ function LearningAdminContent() {
   };
   return (
     <div className="space-y-6">
-      <section aria-label="ملخص نشاط منصة التعلّم" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      <section
+        aria-label="ملخص نشاط منصة التعلّم"
+        className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5"
+      >
         {[
           ["المتعلمون", data.analytics.summary.total_learners],
           ["نشطون خلال 7 أيام", data.analytics.summary.active_7d],
@@ -233,6 +251,65 @@ function LearningAdminContent() {
             <p className="mt-1 text-sm font-bold opacity-65">{label}</p>
           </article>
         ))}
+      </section>
+      <section className="grid gap-5 xl:grid-cols-3">
+        <article className="rounded-3xl border-2 border-[var(--ok-ink)] bg-[var(--ok-card)] p-5">
+          <h2 className="font-display text-2xl font-bold">النشاط</h2>
+          <p className="mt-1 text-sm opacity-60">مستخدمون فريدون نفّذوا نشاطًا تعليميًا.</p>
+          <dl className="mt-5 grid grid-cols-3 gap-2 text-center">
+            {[
+              ["يومي", data.analytics.engagement.dau],
+              ["أسبوعي", data.analytics.engagement.wau],
+              ["شهري", data.analytics.engagement.mau],
+            ].map(([label, value]) => (
+              <div key={String(label)} className="rounded-xl bg-[var(--ok-paper)] p-3">
+                <dt className="text-xs font-bold opacity-60">{label}</dt>
+                <dd className="mt-1 font-display text-2xl font-bold">{value}</dd>
+              </div>
+            ))}
+          </dl>
+        </article>
+        <article className="rounded-3xl border-2 border-[var(--ok-ink)] bg-[var(--ok-card)] p-5">
+          <h2 className="font-display text-2xl font-bold">الاحتفاظ</h2>
+          <p className="mt-1 text-sm opacity-60">نسبة من عادوا للنشاط بعد إنشاء الحساب.</p>
+          <dl className="mt-5 space-y-3">
+            {data.analytics.retention.map((item) => (
+              <div
+                key={item.day_number}
+                className="flex items-center justify-between border-b border-[var(--ok-ink)]/15 pb-2 last:border-0"
+              >
+                <dt className="font-bold">اليوم {item.day_number}</dt>
+                <dd className="font-mono font-bold" dir="ltr">
+                  {item.retention_percent}%
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </article>
+        <article className="rounded-3xl border-2 border-[var(--ok-ink)] bg-[var(--ok-card)] p-5">
+          <h2 className="font-display text-2xl font-bold">مسار التعلّم</h2>
+          <p className="mt-1 text-sm opacity-60">انتقال المتعلّم من الحساب إلى إكمال الدرس.</p>
+          <ol className="mt-5 space-y-2 text-sm">
+            {[
+              ["حساب نشط", data.analytics.funnel.registered],
+              ["بدأ درسًا", data.analytics.funnel.started_lesson],
+              ["جرّب اختبارًا", data.analytics.funnel.attempted_quiz],
+              ["نجح في مهمة", data.analytics.funnel.passed_task],
+              ["أكمل درسًا", data.analytics.funnel.completed_lesson],
+            ].map(([label, value], index) => (
+              <li
+                key={String(label)}
+                className="flex items-center gap-3 rounded-xl bg-[var(--ok-paper)] px-3 py-2"
+              >
+                <span className="grid size-7 place-items-center rounded-full bg-[#E8A33D] font-mono font-bold text-[#181511]">
+                  {index + 1}
+                </span>
+                <span className="flex-1 font-bold">{label}</span>
+                <strong className="font-mono">{value}</strong>
+              </li>
+            ))}
+          </ol>
+        </article>
       </section>
       <section className="grid gap-5 xl:grid-cols-2">
         <div className="rounded-3xl border-2 border-[var(--ok-ink)] bg-[var(--ok-card)] p-5">

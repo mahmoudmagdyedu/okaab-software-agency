@@ -67,6 +67,47 @@ export const Route = createFileRoute("/api/v1/admin/platform")({
           where l.is_published=1
           group by l.id,l.title,c.title
           order by started desc,l.title;
+          select
+            count(distinct case when e.created_at>=dateadd(day,-1,sysutcdatetime()) then e.user_id end) dau,
+            count(distinct case when e.created_at>=dateadd(day,-7,sysutcdatetime()) then e.user_id end) wau,
+            count(distinct case when e.created_at>=dateadd(day,-30,sysutcdatetime()) then e.user_id end) mau
+          from okaab.lesson_events e;
+          with retention as (
+            select 1 day_number,
+              count(distinct case when p.created_at<=dateadd(day,-1,sysutcdatetime()) then p.id end) eligible,
+              count(distinct case when convert(date,e.created_at)=dateadd(day,1,convert(date,p.created_at)) then p.id end) returned
+            from okaab.learner_profiles p left join okaab.lesson_events e on e.user_id=p.id
+            union all
+            select 7,
+              count(distinct case when p.created_at<=dateadd(day,-7,sysutcdatetime()) then p.id end),
+              count(distinct case when convert(date,e.created_at)=dateadd(day,7,convert(date,p.created_at)) then p.id end)
+            from okaab.learner_profiles p left join okaab.lesson_events e on e.user_id=p.id
+            union all
+            select 30,
+              count(distinct case when p.created_at<=dateadd(day,-30,sysutcdatetime()) then p.id end),
+              count(distinct case when convert(date,e.created_at)=dateadd(day,30,convert(date,p.created_at)) then p.id end)
+            from okaab.learner_profiles p left join okaab.lesson_events e on e.user_id=p.id
+          ) select day_number,eligible,returned,
+            cast(case when eligible=0 then 0 else returned*100.0/eligible end as decimal(5,1)) retention_percent
+          from retention order by day_number;
+          select
+            (select count(*) from okaab.learner_profiles where status='active') registered,
+            (select count(distinct user_id) from okaab.lesson_progress where status in ('in_progress','completed')) started_lesson,
+            (select count(distinct user_id) from okaab.quiz_attempts) attempted_quiz,
+            (select count(distinct user_id) from okaab.lesson_progress where task_passed=1) passed_task,
+            (select count(distinct user_id) from okaab.lesson_progress where status='completed') completed_lesson;
+          with balances as (
+            select p.id,coalesce(sum(l.amount),0) points
+            from okaab.learner_profiles p left join okaab.points_ledger l on l.user_id=p.id
+            where p.status='active' group by p.id
+          )
+          select
+            case when points=0 then '0' when points<300 then '1-299' when points<800 then '300-799'
+              when points<2000 then '800-1999' when points<5000 then '2000-4999' else '5000+' end band,
+            count(*) learners
+          from balances
+          group by case when points=0 then '0' when points<300 then '1-299' when points<800 then '300-799'
+              when points<2000 then '800-1999' when points<5000 then '2000-4999' else '5000+' end;
         `);
           const sets = result.recordsets as unknown as Array<Array<Record<string, unknown>>>;
           const config = Object.fromEntries(
@@ -81,7 +122,14 @@ export const Route = createFileRoute("/api/v1/admin/platform")({
           return apiData({
             config,
             announcements: sets[1] ?? [],
-            analytics: { summary: sets[2]?.[0] ?? {}, lessons: sets[3] ?? [] },
+            analytics: {
+              summary: sets[2]?.[0] ?? {},
+              lessons: sets[3] ?? [],
+              engagement: sets[4]?.[0] ?? { dau: 0, wau: 0, mau: 0 },
+              retention: sets[5] ?? [],
+              funnel: sets[6]?.[0] ?? {},
+              pointsDistribution: sets[7] ?? [],
+            },
           });
         } catch (error) {
           return apiError(error, "تعذّر تحميل إعدادات المنصة");
