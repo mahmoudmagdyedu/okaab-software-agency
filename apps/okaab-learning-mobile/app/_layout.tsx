@@ -1,5 +1,6 @@
 import { ClerkProvider } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
+import * as Notifications from "expo-notifications";
 import { Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import { I18nManager, Linking, StyleSheet, Text, View } from "react-native";
@@ -13,6 +14,15 @@ const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
 if (!publishableKey) throw new Error("أضف EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY إلى ملف .env");
 
 I18nManager.allowRTL(true);
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
 
 type MobileConfig = {
   mobile?: {

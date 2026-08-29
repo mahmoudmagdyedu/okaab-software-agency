@@ -99,6 +99,11 @@ function LearningAdminContent() {
   const [saving, setSaving] = useState("");
   const [learners, setLearners] = useState<Learner[]>([]);
   const [learnerSearch, setLearnerSearch] = useState("");
+  const [pushPreview, setPushPreview] = useState({
+    title: "",
+    body: "",
+    audience: "all",
+  });
   const load = async () => {
     try {
       const response = await fetch("/api/v1/admin/platform", { cache: "no-store" });
@@ -229,6 +234,43 @@ function LearningAdminContent() {
       toast.success("تم حذف الإعلان");
       await load();
     } else toast.error("تعذّر حذف الإعلان");
+  };
+  const sendPush = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const labels = {
+      all: "كل المتعلمين",
+      active: "النشطون خلال 7 أيام",
+      inactive_7d: "المنقطعون 7 أيام",
+    } as const;
+    if (
+      !window.confirm(
+        `إرسال هذا الإشعار الآن إلى ${labels[pushPreview.audience as keyof typeof labels]}؟\n\n${pushPreview.title}\n${pushPreview.body}`,
+      )
+    )
+      return;
+    setSaving("push");
+    try {
+      const response = await fetch("/api/v1/admin/push", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(pushPreview),
+      });
+      const payload = await response.json();
+      if (!response.ok || payload.error)
+        throw new Error(payload.error?.message || "تعذّر إرسال الإشعار");
+      toast.success("اكتمل إرسال الإشعار", {
+        description:
+          payload.data.message ||
+          `وصل إلى ${payload.data.sent} جهاز، وتعذّر على ${payload.data.failed}.`,
+      });
+      setPushPreview({ title: "", body: "", audience: "all" });
+    } catch (value) {
+      toast.error("تعذّر إرسال الإشعار", {
+        description: value instanceof Error ? value.message : undefined,
+      });
+    } finally {
+      setSaving("");
+    }
   };
   return (
     <div className="space-y-6">
@@ -654,6 +696,71 @@ function LearningAdminContent() {
             </button>
           </div>
         </form>
+      </section>
+      <section className="grid gap-5 rounded-3xl border-2 border-[var(--ok-ink)] bg-[var(--ok-card)] p-5 lg:grid-cols-[minmax(0,1fr)_minmax(300px,0.7fr)]">
+        <form onSubmit={sendPush} className="grid gap-3">
+          <div className="flex items-center gap-2">
+            <Bell />
+            <div>
+              <h2 className="font-display text-2xl font-bold">إشعار للتطبيق</h2>
+              <p className="text-sm opacity-60">
+                رسالة فورية اختيارية بحد أقصى 3 مرات خلال 7 أيام.
+              </p>
+            </div>
+          </div>
+          <input
+            required
+            minLength={3}
+            maxLength={100}
+            value={pushPreview.title}
+            onChange={(event) => setPushPreview({ ...pushPreview, title: event.target.value })}
+            placeholder="عنوان الإشعار"
+            className={input}
+          />
+          <textarea
+            required
+            minLength={3}
+            maxLength={500}
+            value={pushPreview.body}
+            onChange={(event) => setPushPreview({ ...pushPreview, body: event.target.value })}
+            placeholder="النص المختصر الذي سيظهر على الهاتف"
+            className={`${input} h-28 py-3`}
+          />
+          <select
+            value={pushPreview.audience}
+            onChange={(event) => setPushPreview({ ...pushPreview, audience: event.target.value })}
+            className={input}
+          >
+            <option value="all">كل المتعلمين</option>
+            <option value="active">النشطون خلال 7 أيام</option>
+            <option value="inactive_7d">المنقطعون 7 أيام</option>
+          </select>
+          <button
+            disabled={saving === "push"}
+            className="h-11 rounded-xl bg-[var(--ok-ink)] font-bold text-[var(--ok-paper)] disabled:opacity-50"
+          >
+            {saving === "push" ? "جاري الإرسال…" : "مراجعة وإرسال"}
+          </button>
+        </form>
+        <aside className="rounded-2xl bg-[var(--ok-paper)] p-5" aria-label="معاينة الإشعار">
+          <p className="text-xs font-bold opacity-55">معاينة على الهاتف</p>
+          <div className="mt-4 rounded-2xl border border-[var(--ok-ink)]/20 bg-[var(--ok-card)] p-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#E8A33D] font-black text-black">
+                ع
+              </div>
+              <div className="min-w-0">
+                <h3 className="truncate font-bold">{pushPreview.title || "عنوان الإشعار"}</h3>
+                <p className="mt-1 text-sm opacity-65">
+                  {pushPreview.body || "سيظهر نص الرسالة هنا قبل الإرسال."}
+                </p>
+              </div>
+            </div>
+          </div>
+          <p className="mt-4 text-xs leading-6 opacity-55">
+            سيظهر تأكيد أخير قبل الإرسال، وتُسجّل العملية والنتيجة في سجل التدقيق.
+          </p>
+        </aside>
       </section>
     </div>
   );

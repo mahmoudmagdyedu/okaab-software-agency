@@ -1,10 +1,15 @@
 import { useAuth, useClerk, useUser } from "@clerk/expo";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import Constants from "expo-constants";
+import * as Device from "expo-device";
 import * as ImagePicker from "expo-image-picker";
+import * as Notifications from "expo-notifications";
 import { Redirect, router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   Image,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -19,6 +24,8 @@ import { Action, ErrorState, Loading, Muted, Screen, Title } from "@/components"
 import { theme } from "@/theme";
 import type { Overview } from "@/types";
 
+const PUSH_TOKEN_KEY = "okaab-learning-fcm-token-v1";
+
 export default function Profile() {
   const { isLoaded, isSignedIn, getToken, sessionId } = useAuth();
   const { signOut } = useClerk();
@@ -30,6 +37,8 @@ export default function Profile() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [avatarBusy, setAvatarBusy] = useState(false);
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
   const [sessions, setSessions] = useState<
     Array<{
       id: string;
@@ -54,6 +63,10 @@ export default function Profile() {
   useEffect(() => {
     if (isSignedIn) void load();
   }, [isSignedIn, load]);
+  useEffect(() => {
+    if (!isSignedIn) return;
+    void AsyncStorage.getItem(PUSH_TOKEN_KEY).then((token) => setPushEnabled(Boolean(token)));
+  }, [isSignedIn]);
   if (!isLoaded) return <Loading />;
   if (!isSignedIn) return <Redirect href="/sign-in" />;
   if (!data && !error) return <Loading />;
@@ -131,6 +144,58 @@ export default function Profile() {
         },
       },
     ]);
+  const togglePush = async (enabled: boolean) => {
+    setPushBusy(true);
+    setError("");
+    try {
+      const savedToken = await AsyncStorage.getItem(PUSH_TOKEN_KEY);
+      if (!enabled) {
+        if (savedToken) {
+          await apiRequest("/devices", getToken, {
+            method: "DELETE",
+            body: JSON.stringify({ token: savedToken }),
+          });
+        }
+        await AsyncStorage.removeItem(PUSH_TOKEN_KEY);
+        setPushEnabled(false);
+        return;
+      }
+      if (!Device.isDevice)
+        throw new Error("الإشعارات تحتاج هاتفًا حقيقيًا، ولن تعمل على المحاكي.");
+      if (Platform.OS === "android") {
+        await Notifications.setNotificationChannelAsync("learning", {
+          name: "تحديثات التعلّم",
+          importance: Notifications.AndroidImportance.HIGH,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: "#E8A33D",
+        });
+      }
+      let permission = await Notifications.getPermissionsAsync();
+      if (permission.status !== "granted") {
+        permission = await Notifications.requestPermissionsAsync();
+      }
+      if (permission.status !== "granted") {
+        throw new Error("لم يتم السماح بالإشعارات من إعدادات الهاتف.");
+      }
+      const deviceToken = await Notifications.getDevicePushTokenAsync();
+      const token = String(deviceToken.data);
+      await apiRequest("/devices", getToken, {
+        method: "POST",
+        body: JSON.stringify({
+          token,
+          platform: Platform.OS === "ios" ? "ios" : "android",
+          appVersion: Constants.expoConfig?.version || "1.0.0",
+        }),
+      });
+      await AsyncStorage.setItem(PUSH_TOKEN_KEY, token);
+      setPushEnabled(true);
+    } catch (value) {
+      setPushEnabled(false);
+      setError(value instanceof Error ? value.message : "تعذّر تغيير إعداد الإشعارات");
+    } finally {
+      setPushBusy(false);
+    }
+  };
   const levelProgress = data!.level.next
     ? Math.min(
         100,
@@ -195,6 +260,25 @@ export default function Profile() {
           {data!.level.next && (
             <Muted>فاضل {data!.level.next - data!.points} نقطة للرتبة التالية.</Muted>
           )}
+        </View>
+        <View style={styles.notifications}>
+          <View style={styles.switchRow}>
+            <Switch
+              accessibilityLabel="إشعارات التعلّم"
+              disabled={pushBusy}
+              value={pushEnabled}
+              onValueChange={(value) => void togglePush(value)}
+              trackColor={{ true: theme.colors.gold }}
+            />
+            <View style={styles.notificationText}>
+              <Text style={styles.label}>إشعارات التعلّم</Text>
+              <Muted>
+                {pushEnabled
+                  ? "مفعّلة لهذا الهاتف. ستصلك أهم تحديثات الكورسات."
+                  : "فعّلها باختيارك؛ لن نطلب الإذن عند فتح التطبيق."}
+              </Muted>
+            </View>
+          </View>
         </View>
         <View style={styles.sessions}>
           <Text style={styles.label}>الأجهزة والجلسات</Text>
@@ -345,6 +429,14 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 16,
   },
+  notifications: {
+    backgroundColor: theme.colors.card,
+    borderWidth: 1,
+    borderColor: `${theme.colors.ink}22`,
+    padding: 16,
+    borderRadius: 16,
+  },
+  notificationText: { flex: 1, gap: 3 },
   sessionRow: {
     minHeight: 62,
     flexDirection: "row-reverse",

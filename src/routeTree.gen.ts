@@ -70,6 +70,7 @@ import { Route as ApiInternalYoutubeSyncRouteImport } from './routes/api/interna
 import { Route as ApiSlidesDeckIdDownloadRouteImport } from './routes/api/slides/$deckId/download'
 import { Route as ApiV1AdminLearnersRouteImport } from './routes/api/v1/admin/learners'
 import { Route as ApiV1AdminPlatformRouteImport } from './routes/api/v1/admin/platform'
+import { Route as ApiV1AdminPushRouteImport } from './routes/api/v1/admin/push'
 import { Route as ApiV1AdminQuestionsRouteImport } from './routes/api/v1/admin/questions'
 import { Route as ApiV1CoursesSlugRouteImport } from './routes/api/v1/courses/$slug'
 import { Route as ApiV1LessonsSlugRouteImport } from './routes/api/v1/lessons/$slug'
@@ -404,6 +405,11 @@ const ApiV1AdminPlatformRoute = ApiV1AdminPlatformRouteImport.update({
   path: '/api/v1/admin/platform',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1AdminPushRoute = ApiV1AdminPushRouteImport.update({
+  id: '/api/v1/admin/push',
+  path: '/api/v1/admin/push',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1AdminQuestionsRoute = ApiV1AdminQuestionsRouteImport.update({
   id: '/api/v1/admin/questions',
   path: '/api/v1/admin/questions',
@@ -546,6 +552,7 @@ export interface FileRoutesByFullPath {
   '/api/slides/$deckId/download': typeof ApiSlidesDeckIdDownloadRoute
   '/api/v1/admin/learners': typeof ApiV1AdminLearnersRoute
   '/api/v1/admin/platform': typeof ApiV1AdminPlatformRoute
+  '/api/v1/admin/push': typeof ApiV1AdminPushRoute
   '/api/v1/admin/questions': typeof ApiV1AdminQuestionsRoute
   '/api/v1/courses/$slug': typeof ApiV1CoursesSlugRoute
   '/api/v1/lessons/$slug': typeof ApiV1LessonsSlugRouteWithChildren
@@ -624,6 +631,7 @@ export interface FileRoutesByTo {
   '/api/slides/$deckId/download': typeof ApiSlidesDeckIdDownloadRoute
   '/api/v1/admin/learners': typeof ApiV1AdminLearnersRoute
   '/api/v1/admin/platform': typeof ApiV1AdminPlatformRoute
+  '/api/v1/admin/push': typeof ApiV1AdminPushRoute
   '/api/v1/admin/questions': typeof ApiV1AdminQuestionsRoute
   '/api/v1/courses/$slug': typeof ApiV1CoursesSlugRoute
   '/api/v1/lessons/$slug': typeof ApiV1LessonsSlugRouteWithChildren
@@ -703,6 +711,7 @@ export interface FileRoutesById {
   '/api/slides/$deckId/download': typeof ApiSlidesDeckIdDownloadRoute
   '/api/v1/admin/learners': typeof ApiV1AdminLearnersRoute
   '/api/v1/admin/platform': typeof ApiV1AdminPlatformRoute
+  '/api/v1/admin/push': typeof ApiV1AdminPushRoute
   '/api/v1/admin/questions': typeof ApiV1AdminQuestionsRoute
   '/api/v1/courses/$slug': typeof ApiV1CoursesSlugRoute
   '/api/v1/lessons/$slug': typeof ApiV1LessonsSlugRouteWithChildren
@@ -783,6 +792,7 @@ export interface FileRouteTypes {
     | '/api/slides/$deckId/download'
     | '/api/v1/admin/learners'
     | '/api/v1/admin/platform'
+    | '/api/v1/admin/push'
     | '/api/v1/admin/questions'
     | '/api/v1/courses/$slug'
     | '/api/v1/lessons/$slug'
@@ -861,6 +871,7 @@ export interface FileRouteTypes {
     | '/api/slides/$deckId/download'
     | '/api/v1/admin/learners'
     | '/api/v1/admin/platform'
+    | '/api/v1/admin/push'
     | '/api/v1/admin/questions'
     | '/api/v1/courses/$slug'
     | '/api/v1/lessons/$slug'
@@ -939,6 +950,7 @@ export interface FileRouteTypes {
     | '/api/slides/$deckId/download'
     | '/api/v1/admin/learners'
     | '/api/v1/admin/platform'
+    | '/api/v1/admin/push'
     | '/api/v1/admin/questions'
     | '/api/v1/courses/$slug'
     | '/api/v1/lessons/$slug'
@@ -1018,6 +1030,7 @@ export interface RootRouteChildren {
   ApiSlidesDeckIdDownloadRoute: typeof ApiSlidesDeckIdDownloadRoute
   ApiV1AdminLearnersRoute: typeof ApiV1AdminLearnersRoute
   ApiV1AdminPlatformRoute: typeof ApiV1AdminPlatformRoute
+  ApiV1AdminPushRoute: typeof ApiV1AdminPushRoute
   ApiV1AdminQuestionsRoute: typeof ApiV1AdminQuestionsRoute
   ApiV1CoursesSlugRoute: typeof ApiV1CoursesSlugRoute
   ApiV1LessonsSlugRoute: typeof ApiV1LessonsSlugRouteWithChildren
@@ -1460,6 +1473,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1AdminPlatformRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/admin/push': {
+      id: '/api/v1/admin/push'
+      path: '/api/v1/admin/push'
+      fullPath: '/api/v1/admin/push'
+      preLoaderRoute: typeof ApiV1AdminPushRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/admin/questions': {
       id: '/api/v1/admin/questions'
       path: '/api/v1/admin/questions'
@@ -1648,6 +1668,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSlidesDeckIdDownloadRoute: ApiSlidesDeckIdDownloadRoute,
   ApiV1AdminLearnersRoute: ApiV1AdminLearnersRoute,
   ApiV1AdminPlatformRoute: ApiV1AdminPlatformRoute,
+  ApiV1AdminPushRoute: ApiV1AdminPushRoute,
   ApiV1AdminQuestionsRoute: ApiV1AdminQuestionsRoute,
   ApiV1CoursesSlugRoute: ApiV1CoursesSlugRoute,
   ApiV1LessonsSlugRoute: ApiV1LessonsSlugRouteWithChildren,

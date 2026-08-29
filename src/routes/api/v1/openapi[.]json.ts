@@ -162,6 +162,34 @@ const paths = {
       requestBody: jsonBody({ $ref: "#/components/schemas/Device" }),
       responses: responses("تم تسجيل الجهاز"),
     },
+    delete: {
+      tags: ["المنصة"],
+      summary: "إلغاء تسجيل جهاز من الإشعارات",
+      security: bearer,
+      requestBody: jsonBody({
+        type: "object",
+        required: ["token"],
+        properties: { token: { type: "string", minLength: 20, maxLength: 500 } },
+      }),
+      responses: responses("تم إيقاف إشعارات الجهاز"),
+    },
+  },
+  "/api/v1/admin/push": {
+    post: {
+      tags: ["الإدارة"],
+      summary: "إرسال Push للفئة المختارة بحد أقصى 3 مرات خلال 7 أيام",
+      security: bearer,
+      requestBody: jsonBody({
+        type: "object",
+        required: ["title", "body", "audience"],
+        properties: {
+          title: { type: "string", minLength: 3, maxLength: 100 },
+          body: { type: "string", minLength: 3, maxLength: 500 },
+          audience: { type: "string", enum: ["all", "active", "inactive_7d"] },
+        },
+      }),
+      responses: responses("نتيجة إرسال الإشعار"),
+    },
   },
   "/api/v1/admin/learners": {
     get: {
@@ -244,7 +272,7 @@ const document = {
   openapi: "3.1.0",
   info: {
     title: "Okaab Learning API",
-    version: "1.1.0",
+    version: "1.2.0",
     description:
       "واجهة عُقاب الموحّدة للموقع وتطبيق Android. المصادقة الخاصة تستخدم Clerk Bearer JWT، والنقاط والتصحيح يُعتمدان على الخادم فقط.",
   },

@@ -34,7 +34,8 @@
 - [x] تطبيق Expo: onboarding، الدخول/التسجيل/استعادة كلمة المرور، الكتالوج، الدرس، offline queue، الاختبار، المهمة العملية، المتصدرون والبروفايل والصورة الشخصية وإدارة الجلسات وحذف الحساب.
 - [x] لوحة إدارة: المتعلّمون والنقاط، Remote Config والإعلانات والتحليلات، بنك الأسئلة والمهام العملية.
 - [x] OpenAPI ومجموعة Postman ودليل تشغيل عربي.
-- [ ] FCM وإرسال Push فعلي: ينتظر Firebase project و`google-services.json` واعتمادات الخادم.
+- [x] تجهيز تسجيل/إلغاء أجهزة FCM من التطبيق وإرسال الإدارة الموجّه مع حد أسبوعي وتنظيف الرموز التالفة.
+- [ ] تفعيل Push فعليًا: ينتظر Firebase project و`google-services.json` و`FIREBASE_SERVICE_ACCOUNT_JSON` على Heroku.
 - [ ] تصحيح NVIDIA الفعلي: endpoint والواجهة جاهزان، وينتظر `NVIDIA_NIM_API_KEY` على Heroku.
 - [ ] APK/AAB وتجربة جهاز حقيقي: ينتظر تسجيل دخول Expo/EAS؛ لا يوجد Android SDK محلي على الجهاز الحالي.
 - [ ] النشر على Google Play: ينتظر حساب Google Play Developer ومفتاح توقيع الإصدار.

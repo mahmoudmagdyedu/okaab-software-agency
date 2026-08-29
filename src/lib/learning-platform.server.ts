@@ -936,3 +936,15 @@ export async function registerDevice(input: {
   `);
   return { registered: true };
 }
+
+export async function unregisterDevice(token: string) {
+  const learner = await requireLearnerProfile();
+  const result = await (
+    await getDb()
+  )
+    .request()
+    .input("user_id", sql.NVarChar(64), learner.id)
+    .input("token", sql.NVarChar(500), token)
+    .query("delete from okaab.learning_devices where user_id=@user_id and fcm_token=@token");
+  return { unregistered: result.rowsAffected[0] > 0 };
+}

@@ -14,6 +14,13 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "color": "#E8A33D",
+          "defaultChannel": "learning"
+        }
+      ],
       "@clerk/expo",
       [
         "expo-image-picker",
