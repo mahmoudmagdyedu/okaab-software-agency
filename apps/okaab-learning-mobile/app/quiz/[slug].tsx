@@ -11,7 +11,7 @@ type QuizOption = { id: string; option_text: string };
 type QuizQuestion = {
   id: string;
   question_text: string;
-  level: number;
+  level: "easy" | "medium" | "apply";
   options: QuizOption[];
 };
 type AnswerResult = { correct: boolean; explanation: string; pointsAwarded: number };
@@ -147,7 +147,10 @@ export default function QuizScreen() {
           <Text style={styles.progressText}>
             السؤال {index + 1} من {questions.length}
           </Text>
-          <Text style={styles.level}>المستوى {question!.level}</Text>
+          <Text style={styles.level}>
+            المستوى{" "}
+            {question!.level === "easy" ? "سهل" : question!.level === "apply" ? "تطبيق" : "متوسط"}
+          </Text>
         </View>
         <View style={styles.track}>
           <View style={[styles.fill, { width: `${((index + 1) / questions.length) * 100}%` }]} />
@@ -173,8 +176,12 @@ export default function QuizScreen() {
         </View>
         {result && (
           <View style={[styles.feedback, result.correct ? styles.correct : styles.wrong]}>
-            <Text style={styles.feedbackTitle}>{result.correct ? "إجابة صحيحة" : "إجابة غير صحيحة"}</Text>
-            <Text style={styles.feedbackText}>{result.explanation || "راجع النقطة في الدرس وجرب تاني."}</Text>
+            <Text style={styles.feedbackTitle}>
+              {result.correct ? "إجابة صحيحة" : "إجابة غير صحيحة"}
+            </Text>
+            <Text style={styles.feedbackText}>
+              {result.explanation || "راجع النقطة في الدرس وجرب تاني."}
+            </Text>
             {result.pointsAwarded > 0 && (
               <Text style={styles.points}>+{result.pointsAwarded} نقاط</Text>
             )}
@@ -182,7 +189,11 @@ export default function QuizScreen() {
         )}
         {error && <Text style={styles.error}>{error}</Text>}
         {!result ? (
-          <Action title="تأكيد الإجابة" onPress={() => void submit()} disabled={!selected || busy} />
+          <Action
+            title="تأكيد الإجابة"
+            onPress={() => void submit()}
+            disabled={!selected || busy}
+          />
         ) : (
           <Action
             title={index === questions.length - 1 ? "عرض النتيجة" : "السؤال التالي"}
@@ -201,7 +212,12 @@ const styles = StyleSheet.create({
   progressRow: { flexDirection: "row-reverse", justifyContent: "space-between" },
   progressText: { color: theme.colors.ink, fontWeight: "800" },
   level: { color: theme.colors.gold, fontWeight: "800" },
-  track: { height: 8, backgroundColor: `${theme.colors.ink}20`, borderRadius: 8, overflow: "hidden" },
+  track: {
+    height: 8,
+    backgroundColor: `${theme.colors.ink}20`,
+    borderRadius: 8,
+    overflow: "hidden",
+  },
   fill: { height: "100%", backgroundColor: theme.colors.gold },
   options: { gap: 10 },
   option: {
@@ -216,9 +232,21 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.card,
   },
   optionActive: { borderColor: theme.colors.gold, borderWidth: 2 },
-  radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: `${theme.colors.ink}70` },
+  radio: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: `${theme.colors.ink}70`,
+  },
   radioActive: { borderColor: theme.colors.gold, backgroundColor: theme.colors.gold },
-  optionText: { flex: 1, color: theme.colors.ink, textAlign: "right", fontWeight: "700", lineHeight: 22 },
+  optionText: {
+    flex: 1,
+    color: theme.colors.ink,
+    textAlign: "right",
+    fontWeight: "700",
+    lineHeight: 22,
+  },
   feedback: { padding: 14, borderRadius: theme.radius.md, gap: 6, borderWidth: 1 },
   correct: { borderColor: theme.colors.success, backgroundColor: `${theme.colors.success}12` },
   wrong: { borderColor: theme.colors.error, backgroundColor: `${theme.colors.error}12` },

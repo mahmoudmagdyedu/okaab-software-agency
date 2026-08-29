@@ -9,7 +9,13 @@ import { apiRequest, enqueueEvent, flushEvents } from "@/api";
 import { ErrorState, Loading, Muted, Screen, Title } from "@/components";
 import { theme } from "@/theme";
 type Result = {
-  lesson: { title: string; description: string; quiz_count: number };
+  lesson: {
+    title: string;
+    description: string;
+    quiz_count: number;
+    task_enabled: boolean;
+    task_prompt: string | null;
+  };
   videos: { youtube_video_id: string }[];
   slideDecks: { id: string; title: string }[];
   progress: unknown;
@@ -77,7 +83,9 @@ export default function LessonScreen() {
           body: JSON.stringify(event),
         });
       else await enqueueEvent(slug, event);
-    } catch {}
+    } catch {
+      return;
+    }
   };
   return (
     <Screen>
@@ -110,6 +118,13 @@ export default function LessonScreen() {
           </Pressable>
         </Link>
       )}
+      {data!.lesson.task_enabled && (
+        <Link href={{ pathname: "/task/[slug]", params: { slug } }} asChild>
+          <Pressable accessibilityRole="button" style={s.taskButton}>
+            <Text style={s.taskButtonText}>حل المهمة العملية</Text>
+          </Pressable>
+        </Link>
+      )}
     </Screen>
   );
 }
@@ -133,4 +148,15 @@ const s = StyleSheet.create({
     backgroundColor: theme.colors.gold,
   },
   quizButtonText: { color: theme.colors.ink, fontWeight: "900", fontSize: 16 },
+  taskButton: {
+    minHeight: 50,
+    marginBottom: 12,
+    borderRadius: theme.radius.md,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: theme.colors.gold,
+    backgroundColor: theme.colors.card,
+  },
+  taskButtonText: { color: theme.colors.ink, fontWeight: "900", fontSize: 16 },
 });

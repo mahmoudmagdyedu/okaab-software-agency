@@ -1,11 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { CircleHelp, Pencil, Plus, Save, Trash2, Upload } from "lucide-react";
+import { CircleHelp, ClipboardCheck, Pencil, Plus, Save, Trash2, Upload } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
 import { AdminLayout } from "@/components/admin/AdminShell";
 
-type Lesson = { id: string; title: string; course_title: string };
+type Lesson = {
+  id: string;
+  title: string;
+  course_title: string;
+  task_enabled: boolean;
+  task_prompt: string | null;
+  required_slide_index: number | null;
+};
 type Option = {
   id?: string;
   option_text: string;
@@ -61,6 +68,10 @@ function QuestionsContent() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [importText, setImportText] = useState("");
+  const [taskLessonId, setTaskLessonId] = useState("");
+  const [taskEnabled, setTaskEnabled] = useState(false);
+  const [taskPrompt, setTaskPrompt] = useState("");
+  const [requiredSlideIndex, setRequiredSlideIndex] = useState("");
 
   const load = async () => {
     try {
@@ -73,6 +84,7 @@ function QuestionsContent() {
         ...current,
         lessonId: current.lessonId || payload.data.lessons[0]?.id || "",
       }));
+      setTaskLessonId((current) => current || payload.data.lessons[0]?.id || "");
       setError("");
     } catch (value) {
       setError(value instanceof Error ? value.message : "تعذّر تحميل بنك الأسئلة");
@@ -82,6 +94,44 @@ function QuestionsContent() {
   useEffect(() => {
     void load();
   }, []);
+
+  useEffect(() => {
+    const lesson = lessons.find((item) => item.id === taskLessonId);
+    if (!lesson) return;
+    setTaskEnabled(Boolean(lesson.task_enabled));
+    setTaskPrompt(lesson.task_prompt || "");
+    setRequiredSlideIndex(
+      lesson.required_slide_index === null ? "" : String(lesson.required_slide_index),
+    );
+  }, [lessons, taskLessonId]);
+
+  const saveTask = async (event: FormEvent) => {
+    event.preventDefault();
+    setBusy(true);
+    try {
+      const response = await fetch("/api/v1/admin/questions", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          lessonId: taskLessonId,
+          enabled: taskEnabled,
+          prompt: taskPrompt,
+          requiredSlideIndex: requiredSlideIndex === "" ? null : Number(requiredSlideIndex),
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok || payload.error)
+        throw new Error(payload.error?.message || "تعذّر حفظ المهمة");
+      toast.success("تم حفظ إعداد المهمة العملية");
+      await load();
+    } catch (value) {
+      toast.error("تعذّر حفظ المهمة العملية", {
+        description: value instanceof Error ? value.message : undefined,
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const save = async (value: FormState) => {
     const response = await fetch("/api/v1/admin/questions", {
@@ -200,6 +250,71 @@ function QuestionsContent() {
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(340px,0.72fr)_minmax(0,1.28fr)]">
       <div className="space-y-5">
+        <form
+          onSubmit={saveTask}
+          className="rounded-3xl border-2 border-[var(--ok-ink)] bg-[var(--ok-card)] p-5"
+        >
+          <div className="flex items-center gap-2">
+            <ClipboardCheck />
+            <div>
+              <h2 className="font-display text-2xl font-bold">المهمة العملية</h2>
+              <p className="text-sm opacity-60">تظهر داخل التطبيق ويصححها النظام للمتعلّم.</p>
+            </div>
+          </div>
+          <div className="mt-5 grid gap-4">
+            <label className="grid gap-2 text-sm font-bold">
+              الدرس
+              <select
+                required
+                value={taskLessonId}
+                onChange={(event) => setTaskLessonId(event.target.value)}
+                className={field}
+              >
+                <option value="">اختر الدرس</option>
+                {lessons.map((lesson) => (
+                  <option key={lesson.id} value={lesson.id}>
+                    {lesson.course_title} — {lesson.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex min-h-11 items-center gap-2 font-bold">
+              <input
+                type="checkbox"
+                checked={taskEnabled}
+                onChange={(event) => setTaskEnabled(event.target.checked)}
+              />
+              تفعيل المهمة لهذا الدرس
+            </label>
+            <label className="grid gap-2 text-sm font-bold">
+              المطلوب من المتعلّم
+              <textarea
+                required={taskEnabled}
+                minLength={taskEnabled ? 10 : undefined}
+                value={taskPrompt}
+                onChange={(event) => setTaskPrompt(event.target.value)}
+                placeholder="اشرح المهمة ومعايير نجاحها بوضوح…"
+                className={`${field} min-h-32 py-3`}
+              />
+            </label>
+            <label className="grid gap-2 text-sm font-bold">
+              آخر شريحة مطلوبة قبل اكتمال الدرس (اختياري)
+              <input
+                type="number"
+                min="0"
+                value={requiredSlideIndex}
+                onChange={(event) => setRequiredSlideIndex(event.target.value)}
+                className={field}
+              />
+            </label>
+            <button
+              disabled={busy || !taskLessonId}
+              className="flex h-11 items-center justify-center gap-2 rounded-xl bg-[#E8A33D] font-bold text-[#181511]"
+            >
+              <Save size={17} /> حفظ المهمة العملية
+            </button>
+          </div>
+        </form>
         <form
           onSubmit={submit}
           className="rounded-3xl border-2 border-[var(--ok-ink)] bg-[var(--ok-card)] p-5"

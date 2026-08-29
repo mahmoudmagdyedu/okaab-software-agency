@@ -169,10 +169,7 @@ export async function getCourse(slug: string) {
 export async function getLesson(slug: string) {
   const learner = await getLearnerProfile();
   const pool = await getDb();
-  const lesson = await pool
-    .request()
-    .input("slug", sql.NVarChar(180), slug)
-    .query(`
+  const lesson = await pool.request().input("slug", sql.NVarChar(180), slug).query(`
       select top (1) l.*,c.slug as course_slug,c.title as course_title,
         (select count(*) from okaab.quiz_questions q where q.lesson_id=l.id and q.is_published=1) as quiz_count
       from okaab.lessons l
@@ -628,6 +625,8 @@ function parseTaskGrade(raw: string): TaskGrade {
 
 export async function gradeLessonTask(slug: string, submission: string, idempotencyKey: string) {
   const learner = await requireLearnerProfile();
+  const key = process.env["NVIDIA_NIM_API_KEY"];
+  if (!key) throw new ApiProblem("مصحّح المهام غير مُجهّز حاليًا. بلّغ إدارة عُقاب", 503);
   const decision = await consumeQuoteRateLimits([
     { identity: `lesson-grade:minute:${learner.id}`, limit: 5, windowMs: 15 * 60 * 1000 },
     { identity: `lesson-grade:day:${learner.id}`, limit: 30, windowMs: 24 * 60 * 60 * 1000 },
@@ -652,8 +651,6 @@ export async function gradeLessonTask(slug: string, submission: string, idempote
   if (!lesson.task_enabled || !lesson.task_prompt)
     throw new ApiProblem("المهمة العملية غير مفعّلة لهذا الدرس", 409);
 
-  const key = process.env["NVIDIA_NIM_API_KEY"];
-  if (!key) throw new ApiProblem("مصحّح المهام غير مُجهّز حاليًا. بلّغ إدارة عُقاب", 503);
   const response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
     method: "POST",
     headers: {

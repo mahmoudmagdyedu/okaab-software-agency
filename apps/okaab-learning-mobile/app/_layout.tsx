@@ -108,8 +108,9 @@ export default function RootLayout() {
           <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
           <Stack.Screen name="sign-in" options={{ title: "الدخول إلى عُقاب" }} />
           <Stack.Screen name="course/[slug]" options={{ title: "الكورس" }} />
-        <Stack.Screen name="lesson/[slug]" options={{ title: "الدرس" }} />
-        <Stack.Screen name="quiz/[slug]" options={{ title: "اختبار الدرس" }} />
+          <Stack.Screen name="lesson/[slug]" options={{ title: "الدرس" }} />
+          <Stack.Screen name="quiz/[slug]" options={{ title: "اختبار الدرس" }} />
+          <Stack.Screen name="task/[slug]" options={{ title: "المهمة العملية" }} />
           <Stack.Screen name="leaderboard" options={{ title: "لوحة المتصدرين" }} />
           <Stack.Screen name="profile" options={{ title: "حسابي" }} />
           <Stack.Screen name="about" options={{ title: "مين عُقاب؟" }} />

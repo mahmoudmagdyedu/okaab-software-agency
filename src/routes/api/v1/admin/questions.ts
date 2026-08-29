@@ -25,6 +25,13 @@ const saveSchema = z
     path: ["options"],
   });
 
+const lessonTaskSchema = z.object({
+  lessonId: z.string().min(1).max(64),
+  enabled: z.boolean(),
+  prompt: z.string().trim().max(12_000),
+  requiredSlideIndex: z.number().int().min(0).max(10_000).nullable(),
+});
+
 async function audit(
   actorId: string,
   action: string,
@@ -53,7 +60,7 @@ export const Route = createFileRoute("/api/v1/admin/questions")({
         try {
           await requireAdminProfile(["super_admin", "admin"]);
           const result = await (await getDb()).request().query(`
-            select l.id,l.title,c.title course_title
+            select l.id,l.title,c.title course_title,l.task_enabled,l.task_prompt,l.required_slide_index
             from okaab.lessons l join okaab.courses c on c.id=l.course_id
             order by c.title,l.sort_order,l.title;
             select q.id,q.lesson_id,q.question_text,q.level,q.sort_order,q.is_published,q.updated_at,
@@ -163,6 +170,39 @@ export const Route = createFileRoute("/api/v1/admin/questions")({
           }
         } catch (error) {
           return apiError(error, "تعذّر حفظ السؤال");
+        }
+      },
+      PATCH: async ({ request }) => {
+        try {
+          const actor = await requireAdminProfile(["super_admin", "admin"]);
+          const input = lessonTaskSchema.parse(await request.json());
+          if (input.enabled && input.prompt.length < 10)
+            throw new Response("Task prompt is required", { status: 400 });
+          const updated = await (
+            await getDb()
+          )
+            .request()
+            .input("id", sql.NVarChar(64), input.lessonId)
+            .input("enabled", sql.Bit, input.enabled)
+            .input("prompt", sql.NVarChar(sql.MAX), input.prompt || null)
+            .input("slide", sql.Int, input.requiredSlideIndex).query<{ title: string }>(`
+              update okaab.lessons
+              set task_enabled=@enabled,task_prompt=@prompt,required_slide_index=@slide,updated_at=sysutcdatetime()
+              output inserted.title
+              where id=@id
+            `);
+          const lesson = updated.recordset[0];
+          if (!lesson) throw new Response("Lesson not found", { status: 404 });
+          await audit(
+            actor.id,
+            "learning.lesson_task.update",
+            input.lessonId,
+            `تم تحديث المهمة العملية لدرس: ${lesson.title}`,
+            { enabled: input.enabled, requiredSlideIndex: input.requiredSlideIndex },
+          );
+          return apiData({ updated: true });
+        } catch (error) {
+          return apiError(error, "تعذّر حفظ إعداد المهمة العملية");
         }
       },
       DELETE: async ({ request }) => {
