@@ -10,7 +10,10 @@
     "android": {
       "package": "org.okaab.learning",
       "googleServicesFile": "./google-services.json",
-      "adaptiveIcon": { "foregroundImage": "./assets/icon.png", "backgroundColor": "#141210" }
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#141210"
+      }
     },
     "plugins": [
       "expo-router",
@@ -32,7 +35,16 @@
         }
       ]
     ],
-    "experiments": { "typedRoutes": true },
-    "extra": { "apiUrl": "https://okaab.org/api/v1" }
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "apiUrl": "https://okaab.org/api/v1",
+      "router": {},
+      "eas": {
+        "projectId": "196cfc7c-471b-4fb9-ba8e-cf7e2be63d3c"
+      }
+    },
+    "owner": "okaaborg"
   }
 }
