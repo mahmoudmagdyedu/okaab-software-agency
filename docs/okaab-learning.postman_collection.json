@@ -1,0 +1,130 @@
+{
+  "info": {
+    "name": "Okaab Learning API",
+    "description": "طلبات فحص منصة تعلّم عُقاب. ضع Clerk JWT مؤقتًا في متغير token للطلبات المحمية.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "https://okaab.org/api/v1", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "courseSlug", "value": "html", "type": "string" },
+    { "key": "lessonSlug", "value": "", "type": "string" },
+    { "key": "questionId", "value": "", "type": "string" },
+    { "key": "optionId", "value": "", "type": "string" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "عام",
+      "auth": { "type": "noauth" },
+      "item": [
+        {
+          "name": "الكتالوج",
+          "request": { "method": "GET", "url": "{{baseUrl}}/catalog" }
+        },
+        {
+          "name": "تفاصيل كورس",
+          "request": { "method": "GET", "url": "{{baseUrl}}/courses/{{courseSlug}}" }
+        },
+        {
+          "name": "تفاصيل درس",
+          "request": { "method": "GET", "url": "{{baseUrl}}/lessons/{{lessonSlug}}" }
+        },
+        {
+          "name": "اختبار الدرس دون الإجابات",
+          "request": { "method": "GET", "url": "{{baseUrl}}/lessons/{{lessonSlug}}/quiz" }
+        },
+        {
+          "name": "لوحة المتصدرين الأسبوعية",
+          "request": { "method": "GET", "url": "{{baseUrl}}/leaderboard?period=weekly" }
+        },
+        {
+          "name": "الإعدادات العامة",
+          "request": { "method": "GET", "url": "{{baseUrl}}/config" }
+        },
+        {
+          "name": "OpenAPI",
+          "request": { "method": "GET", "url": "{{baseUrl}}/openapi.json" }
+        }
+      ]
+    },
+    {
+      "name": "الحساب والتعلّم",
+      "item": [
+        {
+          "name": "حسابي",
+          "request": { "method": "GET", "url": "{{baseUrl}}/me" }
+        },
+        {
+          "name": "ملخص حسابي",
+          "request": { "method": "GET", "url": "{{baseUrl}}/me/overview" }
+        },
+        {
+          "name": "تحديث خصوصية المتصدرين",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"leaderboardVisible\": true\n}" },
+            "url": "{{baseUrl}}/me"
+          }
+        },
+        {
+          "name": "حفظ تقدّم فيديو",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"video_progress\",\n  \"percent\": 20,\n  \"idempotencyKey\": \"postman-video-{{$timestamp}}\"\n}"
+            },
+            "url": "{{baseUrl}}/lessons/{{lessonSlug}}/events"
+          }
+        },
+        {
+          "name": "إجابة اختبار",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionId\": \"{{questionId}}\",\n  \"optionId\": \"{{optionId}}\",\n  \"idempotencyKey\": \"postman-answer-{{$timestamp}}\"\n}"
+            },
+            "url": "{{baseUrl}}/quiz/answers"
+          }
+        },
+        {
+          "name": "تصحيح مهمة عملية",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"submission\": \"اكتب الحل هنا مع شرح الفكرة وخطوات التنفيذ.\",\n  \"idempotencyKey\": \"postman-task-{{$timestamp}}\"\n}"
+            },
+            "url": "{{baseUrl}}/lessons/{{lessonSlug}}/task/grade"
+          }
+        }
+      ]
+    },
+    {
+      "name": "الإدارة",
+      "item": [
+        {
+          "name": "المتعلمون",
+          "request": { "method": "GET", "url": "{{baseUrl}}/admin/learners?q=" }
+        },
+        {
+          "name": "بنك الأسئلة والمهام",
+          "request": { "method": "GET", "url": "{{baseUrl}}/admin/questions" }
+        },
+        {
+          "name": "إعدادات وتحليلات المنصة",
+          "request": { "method": "GET", "url": "{{baseUrl}}/admin/platform" }
+        }
+      ]
+    }
+  ]
+}

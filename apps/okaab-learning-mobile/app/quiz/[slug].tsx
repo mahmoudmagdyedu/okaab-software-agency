@@ -192,13 +192,14 @@ export default function QuizScreen() {
           <Action
             title="تأكيد الإجابة"
             onPress={() => void submit()}
-            disabled={!selected || busy}
+            disabled={!selected}
+            loading={busy}
           />
         ) : (
           <Action
             title={index === questions.length - 1 ? "عرض النتيجة" : "السؤال التالي"}
             onPress={() => void next()}
-            disabled={busy}
+            loading={busy}
           />
         )}
       </ScrollView>

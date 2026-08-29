@@ -123,7 +123,8 @@ export default function TaskScreen() {
             <Action
               title="صحّح إجابتي"
               onPress={() => void submit()}
-              disabled={busy || submission.trim().length < 10}
+              disabled={submission.trim().length < 10}
+              loading={busy}
             />
           </>
         )}

@@ -7,7 +7,7 @@
     "start": "expo start",
     "android": "expo run:android",
     "typecheck": "tsc --noEmit",
-    "doctor": "expo-doctor"
+    "doctor": "npx expo-doctor@latest"
   },
   "dependencies": {
     "@clerk/expo": "^4.6.1",

@@ -1,29 +1,50 @@
-# Welcome to your Lovable project
+# منصة عُقاب
 
-This project was built with [Lovable](https://lovable.dev).
+المستودع الموحّد لموقع `okaab.org` ولوحة الإدارة ومنصة التعلّم وتطبيق Android. التطبيق والموقع يستخدمان حساب Clerk نفسه وواجهة REST واحدة تحت `/api/v1`، بينما تبقى النقاط والتصحيح والتحقق من إكمال الدروس على الخادم.
 
-## Build with Lovable
+## المكوّنات
 
-Open your project in the [Lovable editor](https://lovable.dev) and keep building.
+- الموقع وAPI: TanStack Start + TypeScript على Heroku.
+- الهوية: Clerk للويب وExpo.
+- البيانات: MSSQL في مخطط `okaab`.
+- تطبيق التعلّم: Expo/React Native داخل `apps/okaab-learning-mobile`.
+- التوكنز والجسر: `packages/design-tokens` و`packages/bridge`.
+- مواصفات API الحية: `https://okaab.org/api/v1/openapi.json`.
+- مجموعة Postman: `docs/okaab-learning.postman_collection.json`.
 
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: connect the project to GitHub and every change made in Lovable is committed straight to your repository.
-- **Full ownership**: this code is yours. Push to your repository and your changes sync back into Lovable, ready for your next prompt.
+## تشغيل الموقع محليًا
 
-## Development
-
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+يتطلب Node.js 24 وnpm 11 وقيم البيئة الموجودة في `.env.example`. لا تضف مفاتيح سرية إلى Git.
 
 ```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
+npm install
+npm run db:migrate
 npm run dev
 ```
 
-## Built with
+الفحص قبل النشر:
 
-- TanStack Start
-- TypeScript
-- React
-- Tailwind CSS
+```sh
+npm run build:site
+npm run build:mobile
+```
+
+## تطبيق Android
+
+من داخل `apps/okaab-learning-mobile`:
+
+```sh
+npm install
+npm run typecheck
+npm run doctor
+npx eas-cli build --platform android --profile preview
+```
+
+بناء APK/AAB يحتاج حساب Expo مفعّلًا وبيانات Google/FCM خارج المستودع. مفتاح Clerk العام فقط مسموح به داخل التطبيق؛ مفاتيح Clerk السرية وNVIDIA وFirebase تظل على الخادم أو EAS Secrets.
+
+## النشر
+
+- الدفع إلى `main` يزامن المشروع مع Lovable؛ لا تستخدم force-push أو تعيد كتابة التاريخ المنشور.
+- نشر الويب على Heroku يتم من نفس الفرع.
+- migrations تُشغّل قبل الكود الذي يعتمد على أعمدة جديدة.
+- راجع `PLAN.md` للمرحلة التنفيذية و`DECISIONS.md` للقرارات المعمارية.
