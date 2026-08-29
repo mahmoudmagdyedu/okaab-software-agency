@@ -843,12 +843,26 @@ export async function getPublicConfig() {
 }
 
 export async function getAnnouncements() {
+  const learner = await getLearnerProfile();
   const result = await (
     await getDb()
   )
     .request()
+    .input("user_id", sql.NVarChar(64), learner?.id ?? "")
     .query(
-      "select id,title,body,audience,starts_at,ends_at from okaab.announcements where is_published=1 and starts_at<=sysutcdatetime() and (ends_at is null or ends_at>sysutcdatetime()) order by starts_at desc",
+      `select id,title,body,audience,starts_at,ends_at
+       from okaab.announcements
+       where is_published=1 and starts_at<=sysutcdatetime() and (ends_at is null or ends_at>sysutcdatetime())
+         and (
+           audience='all'
+           or (audience='active' and @user_id<>'' and exists (
+             select 1 from okaab.lesson_events e where e.user_id=@user_id and e.created_at>=dateadd(day,-7,sysutcdatetime())
+           ))
+           or (audience='inactive_7d' and @user_id<>'' and not exists (
+             select 1 from okaab.lesson_events e where e.user_id=@user_id and e.created_at>=dateadd(day,-7,sysutcdatetime())
+           ))
+         )
+       order by starts_at desc`,
     );
   return result.recordset;
 }

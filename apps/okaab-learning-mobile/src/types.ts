@@ -50,3 +50,18 @@ export type Overview = {
   badges: { id: string; title: string; description: string; awarded_at: string }[];
   level: { name: string; minimum: number; next: number | null };
 };
+export type Announcement = {
+  id: string;
+  title: string;
+  body: string;
+  audience: "all" | "active" | "inactive_7d";
+  starts_at: string;
+  ends_at: string | null;
+};
+export type PublicConfig = {
+  features?: {
+    leaderboard?: boolean;
+    streaks?: boolean;
+    signup?: boolean;
+  };
+};
