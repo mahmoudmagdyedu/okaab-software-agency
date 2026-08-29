@@ -207,6 +207,17 @@ async function awardPoints(transaction: InstanceType<typeof sql.Transaction>, in
     `);
 }
 
+async function unlockBadge(transaction: InstanceType<typeof sql.Transaction>, userId: string, badgeId: string, sourceKey: string) {
+  await new sql.Request(transaction)
+    .input("user_id", sql.NVarChar(64), userId)
+    .input("badge_id", sql.NVarChar(64), badgeId)
+    .input("source_key", sql.NVarChar(160), sourceKey).query(`
+      if exists (select 1 from okaab.badges where id=@badge_id and is_active=1)
+         and not exists (select 1 from okaab.user_badges where user_id=@user_id and badge_id=@badge_id)
+        insert into okaab.user_badges (user_id,badge_id,source_key) values (@user_id,@badge_id,@source_key)
+    `);
+}
+
 async function touchDailyStreak(transaction: InstanceType<typeof sql.Transaction>, userId: string) {
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Cairo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
   const rules = await pointsRules(transaction);
@@ -224,6 +235,7 @@ async function touchDailyStreak(transaction: InstanceType<typeof sql.Transaction
     await awardPoints(transaction, { userId, amount: rules.daily_activity, reason: "daily_activity", idempotencyKey: `daily:${userId}:${today}` });
     if (streak.current_days === 7 || streak.current_days === 30) {
       await awardPoints(transaction, { userId, amount: streak.current_days === 7 ? rules.streak_7 : rules.streak_30, reason: `streak_${streak.current_days}`, idempotencyKey: `streak:${userId}:${streak.current_days}:${today}` });
+      if (streak.current_days === 7) await unlockBadge(transaction, userId, "streak_7", `streak:${today}`);
     }
   }
 }
@@ -277,6 +289,17 @@ export async function answerQuiz(input: { questionId: string; optionId: string; 
       update p set quiz_score=(select count(*)*10 from okaab.quiz_attempts a where a.user_id=@user_id and a.is_correct=1 and a.is_first_attempt=1 and a.question_id in (select id from okaab.quiz_questions where lesson_id=@lesson_id)),updated_at=sysutcdatetime()
       from okaab.lesson_progress p where p.user_id=@user_id and p.lesson_id=@lesson_id;
     `);
+    const quiz = await new sql.Request(transaction)
+      .input("user_id", sql.NVarChar(64), learner.id)
+      .input("lesson_id", sql.NVarChar(64), option.lesson_id)
+      .query<{ total: number; first_correct: number }>(`
+        select
+          (select count(*) from okaab.quiz_questions where lesson_id=@lesson_id and is_published=1) total,
+          (select count(*) from okaab.quiz_attempts a join okaab.quiz_questions q on q.id=a.question_id where a.user_id=@user_id and q.lesson_id=@lesson_id and q.is_published=1 and a.is_first_attempt=1 and a.is_correct=1) first_correct
+      `);
+    if ((quiz.recordset[0]?.total ?? 0) > 0 && quiz.recordset[0]?.total === quiz.recordset[0]?.first_correct) {
+      await unlockBadge(transaction, learner.id, "perfect_quiz", `quiz:${option.lesson_id}`);
+    }
     await touchDailyStreak(transaction, learner.id);
     await transaction.commit();
     return { correct: Boolean(option.is_correct), explanation: option.explanation, pointsAwarded: awarded };
@@ -314,6 +337,7 @@ export async function recordLessonEvent(slug: string, event: LessonEvent) {
     if (event.type === "task_result" && event.passed) {
       await new sql.Request(transaction).input("user_id", sql.NVarChar(64), learner.id).input("lesson_id", sql.NVarChar(64), lessonId).query("update okaab.lesson_progress set task_passed=1,updated_at=sysutcdatetime() where user_id=@user_id and lesson_id=@lesson_id");
       await awardPoints(transaction, { userId: learner.id, amount: rules.task_passed, reason: "task_passed", lessonId, idempotencyKey: `task:${learner.id}:${lessonId}` });
+      await unlockBadge(transaction, learner.id, "first_task", `task:${lessonId}`);
     }
     if (event.type === "lesson_finished") {
       await new sql.Request(transaction).input("user_id", sql.NVarChar(64), learner.id).input("lesson_id", sql.NVarChar(64), lessonId).query(`
@@ -327,7 +351,10 @@ export async function recordLessonEvent(slug: string, event: LessonEvent) {
           and (l.task_enabled=0 or p.task_passed=1)
       `);
       const completed = await new sql.Request(transaction).input("user_id", sql.NVarChar(64), learner.id).input("lesson_id", sql.NVarChar(64), lessonId).query("select status from okaab.lesson_progress where user_id=@user_id and lesson_id=@lesson_id");
-      if (completed.recordset[0]?.status === "completed") await awardPoints(transaction, { userId: learner.id, amount: rules.interactive_complete, reason: "interactive_complete", lessonId, idempotencyKey: `lesson:${learner.id}:${lessonId}` });
+      if (completed.recordset[0]?.status === "completed") {
+        await awardPoints(transaction, { userId: learner.id, amount: rules.interactive_complete, reason: "interactive_complete", lessonId, idempotencyKey: `lesson:${learner.id}:${lessonId}` });
+        await unlockBadge(transaction, learner.id, "first_lesson", `lesson:${lessonId}`);
+      }
     }
     await touchDailyStreak(transaction, learner.id);
     await transaction.commit();
@@ -422,9 +449,19 @@ export async function getOverview() {
     select top (1) * from okaab.learner_streaks where user_id=@user_id;
     select top (1) l.slug,l.title,c.slug course_slug,p.last_slide,p.video_percent,p.updated_at from okaab.lesson_progress p join okaab.lessons l on l.id=p.lesson_id join okaab.courses c on c.id=l.course_id where p.user_id=@user_id and p.status='in_progress' order by p.updated_at desc;
     with scores as (select user_id,sum(amount) points from okaab.points_ledger group by user_id), ranked as (select user_id,dense_rank() over(order by points desc) rank from scores) select rank from ranked where user_id=@user_id;
+    select b.id,b.title,b.description,ub.awarded_at from okaab.user_badges ub join okaab.badges b on b.id=ub.badge_id where ub.user_id=@user_id and b.is_active=1 order by ub.awarded_at desc;
   `);
   const sets = result.recordsets as unknown as Array<Array<Record<string, unknown>>>;
-  return { profile: learner, points: sets[0]?.[0]?.["points"] ?? 0, streak: sets[1]?.[0] ?? { current_days: 0, longest_days: 0 }, continueLearning: sets[2]?.[0] ?? null, rank: sets[3]?.[0]?.["rank"] ?? null };
+  const points = Number(sets[0]?.[0]?.["points"] ?? 0);
+  const levels = [
+    { name: "عُقاب ذهبي", minimum: 5000, next: null },
+    { name: "كاسر", minimum: 2000, next: 5000 },
+    { name: "مُحلّق", minimum: 800, next: 2000 },
+    { name: "ناهض", minimum: 300, next: 800 },
+    { name: "هيثم", minimum: 0, next: 300 },
+  ];
+  const level = levels.find((item) => points >= item.minimum) ?? levels[levels.length - 1];
+  return { profile: learner, points, streak: sets[1]?.[0] ?? { current_days: 0, longest_days: 0 }, continueLearning: sets[2]?.[0] ?? null, rank: sets[3]?.[0]?.["rank"] ?? null, badges: sets[4] ?? [], level };
 }
 
 export async function getLeaderboard(period: "weekly" | "monthly" | "all") {

@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 
-const apiUrl = process.env.EXPO_PUBLIC_OKAAB_API_URL || Constants.expoConfig?.extra?.apiUrl || "https://okaab.org/api/v1";
+export const apiUrl = process.env.EXPO_PUBLIC_OKAAB_API_URL || Constants.expoConfig?.extra?.apiUrl || "https://okaab.org/api/v1";
 const QUEUE_KEY = "okaab-learning-event-queue-v1";
 
 type Envelope<T> = { data: T | null; error: { message: string } | null };
