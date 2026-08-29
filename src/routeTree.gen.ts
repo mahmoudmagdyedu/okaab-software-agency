@@ -28,6 +28,7 @@ import { Route as AdminCoursesRouteImport } from './routes/admin/courses'
 import { Route as AdminHealthRouteImport } from './routes/admin/health'
 import { Route as AdminLearningRouteImport } from './routes/admin/learning'
 import { Route as AdminLoginRouteImport } from './routes/admin/login'
+import { Route as AdminQuestionsRouteImport } from './routes/admin/questions'
 import { Route as AdminTasksRouteImport } from './routes/admin/tasks'
 import { Route as AdminTeamRouteImport } from './routes/admin/team'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
@@ -69,6 +70,7 @@ import { Route as ApiInternalYoutubeSyncRouteImport } from './routes/api/interna
 import { Route as ApiSlidesDeckIdDownloadRouteImport } from './routes/api/slides/$deckId/download'
 import { Route as ApiV1AdminLearnersRouteImport } from './routes/api/v1/admin/learners'
 import { Route as ApiV1AdminPlatformRouteImport } from './routes/api/v1/admin/platform'
+import { Route as ApiV1AdminQuestionsRouteImport } from './routes/api/v1/admin/questions'
 import { Route as ApiV1CoursesSlugRouteImport } from './routes/api/v1/courses/$slug'
 import { Route as ApiV1LessonsSlugRouteImport } from './routes/api/v1/lessons/$slug'
 import { Route as ApiV1MeIndexRouteImport } from './routes/api/v1/me/index'
@@ -180,6 +182,11 @@ const AdminLearningRoute = AdminLearningRouteImport.update({
 const AdminLoginRoute = AdminLoginRouteImport.update({
   id: '/admin/login',
   path: '/admin/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminQuestionsRoute = AdminQuestionsRouteImport.update({
+  id: '/admin/questions',
+  path: '/admin/questions',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminTasksRoute = AdminTasksRouteImport.update({
@@ -396,6 +403,11 @@ const ApiV1AdminPlatformRoute = ApiV1AdminPlatformRouteImport.update({
   path: '/api/v1/admin/platform',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1AdminQuestionsRoute = ApiV1AdminQuestionsRouteImport.update({
+  id: '/api/v1/admin/questions',
+  path: '/api/v1/admin/questions',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1CoursesSlugRoute = ApiV1CoursesSlugRouteImport.update({
   id: '/api/v1/courses/$slug',
   path: '/api/v1/courses/$slug',
@@ -485,6 +497,7 @@ export interface FileRoutesByFullPath {
   '/admin/health': typeof AdminHealthRoute
   '/admin/learning': typeof AdminLearningRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/questions': typeof AdminQuestionsRoute
   '/admin/tasks': typeof AdminTasksRoute
   '/admin/team': typeof AdminTeamRoute
   '/api/health': typeof ApiHealthRoute
@@ -527,6 +540,7 @@ export interface FileRoutesByFullPath {
   '/api/slides/$deckId/download': typeof ApiSlidesDeckIdDownloadRoute
   '/api/v1/admin/learners': typeof ApiV1AdminLearnersRoute
   '/api/v1/admin/platform': typeof ApiV1AdminPlatformRoute
+  '/api/v1/admin/questions': typeof ApiV1AdminQuestionsRoute
   '/api/v1/courses/$slug': typeof ApiV1CoursesSlugRoute
   '/api/v1/lessons/$slug': typeof ApiV1LessonsSlugRouteWithChildren
   '/api/v1/me/overview': typeof ApiV1MeOverviewRoute
@@ -560,6 +574,7 @@ export interface FileRoutesByTo {
   '/admin/health': typeof AdminHealthRoute
   '/admin/learning': typeof AdminLearningRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/questions': typeof AdminQuestionsRoute
   '/admin/tasks': typeof AdminTasksRoute
   '/admin/team': typeof AdminTeamRoute
   '/api/health': typeof ApiHealthRoute
@@ -602,6 +617,7 @@ export interface FileRoutesByTo {
   '/api/slides/$deckId/download': typeof ApiSlidesDeckIdDownloadRoute
   '/api/v1/admin/learners': typeof ApiV1AdminLearnersRoute
   '/api/v1/admin/platform': typeof ApiV1AdminPlatformRoute
+  '/api/v1/admin/questions': typeof ApiV1AdminQuestionsRoute
   '/api/v1/courses/$slug': typeof ApiV1CoursesSlugRoute
   '/api/v1/lessons/$slug': typeof ApiV1LessonsSlugRouteWithChildren
   '/api/v1/me/overview': typeof ApiV1MeOverviewRoute
@@ -636,6 +652,7 @@ export interface FileRoutesById {
   '/admin/health': typeof AdminHealthRoute
   '/admin/learning': typeof AdminLearningRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/questions': typeof AdminQuestionsRoute
   '/admin/tasks': typeof AdminTasksRoute
   '/admin/team': typeof AdminTeamRoute
   '/api/health': typeof ApiHealthRoute
@@ -678,6 +695,7 @@ export interface FileRoutesById {
   '/api/slides/$deckId/download': typeof ApiSlidesDeckIdDownloadRoute
   '/api/v1/admin/learners': typeof ApiV1AdminLearnersRoute
   '/api/v1/admin/platform': typeof ApiV1AdminPlatformRoute
+  '/api/v1/admin/questions': typeof ApiV1AdminQuestionsRoute
   '/api/v1/courses/$slug': typeof ApiV1CoursesSlugRoute
   '/api/v1/lessons/$slug': typeof ApiV1LessonsSlugRouteWithChildren
   '/api/v1/me/overview': typeof ApiV1MeOverviewRoute
@@ -713,6 +731,7 @@ export interface FileRouteTypes {
     | '/admin/health'
     | '/admin/learning'
     | '/admin/login'
+    | '/admin/questions'
     | '/admin/tasks'
     | '/admin/team'
     | '/api/health'
@@ -755,6 +774,7 @@ export interface FileRouteTypes {
     | '/api/slides/$deckId/download'
     | '/api/v1/admin/learners'
     | '/api/v1/admin/platform'
+    | '/api/v1/admin/questions'
     | '/api/v1/courses/$slug'
     | '/api/v1/lessons/$slug'
     | '/api/v1/me/overview'
@@ -788,6 +808,7 @@ export interface FileRouteTypes {
     | '/admin/health'
     | '/admin/learning'
     | '/admin/login'
+    | '/admin/questions'
     | '/admin/tasks'
     | '/admin/team'
     | '/api/health'
@@ -830,6 +851,7 @@ export interface FileRouteTypes {
     | '/api/slides/$deckId/download'
     | '/api/v1/admin/learners'
     | '/api/v1/admin/platform'
+    | '/api/v1/admin/questions'
     | '/api/v1/courses/$slug'
     | '/api/v1/lessons/$slug'
     | '/api/v1/me/overview'
@@ -863,6 +885,7 @@ export interface FileRouteTypes {
     | '/admin/health'
     | '/admin/learning'
     | '/admin/login'
+    | '/admin/questions'
     | '/admin/tasks'
     | '/admin/team'
     | '/api/health'
@@ -905,6 +928,7 @@ export interface FileRouteTypes {
     | '/api/slides/$deckId/download'
     | '/api/v1/admin/learners'
     | '/api/v1/admin/platform'
+    | '/api/v1/admin/questions'
     | '/api/v1/courses/$slug'
     | '/api/v1/lessons/$slug'
     | '/api/v1/me/overview'
@@ -939,6 +963,7 @@ export interface RootRouteChildren {
   AdminHealthRoute: typeof AdminHealthRoute
   AdminLearningRoute: typeof AdminLearningRoute
   AdminLoginRoute: typeof AdminLoginRoute
+  AdminQuestionsRoute: typeof AdminQuestionsRoute
   AdminTasksRoute: typeof AdminTasksRoute
   AdminTeamRoute: typeof AdminTeamRoute
   ApiHealthRoute: typeof ApiHealthRoute
@@ -981,6 +1006,7 @@ export interface RootRouteChildren {
   ApiSlidesDeckIdDownloadRoute: typeof ApiSlidesDeckIdDownloadRoute
   ApiV1AdminLearnersRoute: typeof ApiV1AdminLearnersRoute
   ApiV1AdminPlatformRoute: typeof ApiV1AdminPlatformRoute
+  ApiV1AdminQuestionsRoute: typeof ApiV1AdminQuestionsRoute
   ApiV1CoursesSlugRoute: typeof ApiV1CoursesSlugRoute
   ApiV1LessonsSlugRoute: typeof ApiV1LessonsSlugRouteWithChildren
   ApiV1MeOverviewRoute: typeof ApiV1MeOverviewRoute
@@ -1125,6 +1151,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/login'
       fullPath: '/admin/login'
       preLoaderRoute: typeof AdminLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/questions': {
+      id: '/admin/questions'
+      path: '/admin/questions'
+      fullPath: '/admin/questions'
+      preLoaderRoute: typeof AdminQuestionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/tasks': {
@@ -1414,6 +1447,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1AdminPlatformRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/admin/questions': {
+      id: '/api/v1/admin/questions'
+      path: '/api/v1/admin/questions'
+      fullPath: '/api/v1/admin/questions'
+      preLoaderRoute: typeof ApiV1AdminQuestionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/courses/$slug': {
       id: '/api/v1/courses/$slug'
       path: '/api/v1/courses/$slug'
@@ -1545,6 +1585,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminHealthRoute: AdminHealthRoute,
   AdminLearningRoute: AdminLearningRoute,
   AdminLoginRoute: AdminLoginRoute,
+  AdminQuestionsRoute: AdminQuestionsRoute,
   AdminTasksRoute: AdminTasksRoute,
   AdminTeamRoute: AdminTeamRoute,
   ApiHealthRoute: ApiHealthRoute,
@@ -1587,6 +1628,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSlidesDeckIdDownloadRoute: ApiSlidesDeckIdDownloadRoute,
   ApiV1AdminLearnersRoute: ApiV1AdminLearnersRoute,
   ApiV1AdminPlatformRoute: ApiV1AdminPlatformRoute,
+  ApiV1AdminQuestionsRoute: ApiV1AdminQuestionsRoute,
   ApiV1CoursesSlugRoute: ApiV1CoursesSlugRoute,
   ApiV1LessonsSlugRoute: ApiV1LessonsSlugRouteWithChildren,
   ApiV1MeOverviewRoute: ApiV1MeOverviewRoute,

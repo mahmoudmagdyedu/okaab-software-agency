@@ -3,6 +3,7 @@ import { useClerk, useUser } from "@clerk/tanstack-react-start";
 import {
   Activity,
   BookOpen,
+  CircleHelp,
   CalendarDays,
   LayoutDashboard,
   LogOut,
@@ -84,6 +85,7 @@ const navItems = [
   { to: "/admin/tasks", label: "الجدول والمهام", icon: CalendarDays },
   { to: "/admin/team", label: "الفرق والصلاحيات", icon: Users },
   { to: "/admin/courses", label: "الكورسات", icon: BookOpen },
+  { to: "/admin/questions", label: "بنك الأسئلة", icon: CircleHelp },
   { to: "/admin/learning", label: "منصة التعلّم", icon: Settings2 },
   { to: "/admin/health", label: "حالة النظام", icon: Activity },
 ] as const;
@@ -167,6 +169,8 @@ function AdminFrame({ title, children }: { title: string; children: ReactNode })
             return null;
           if (to === "/admin/team" && profile!.role === "employee") return null;
           if (to === "/admin/courses" && !["super_admin", "admin"].includes(profile!.role))
+            return null;
+          if (to === "/admin/questions" && !["super_admin", "admin"].includes(profile!.role))
             return null;
           if (to === "/admin/learning" && !["super_admin", "admin"].includes(profile!.role))
             return null;
