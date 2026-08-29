@@ -500,6 +500,16 @@ export async function updateLearner(input: { displayName?: string | undefined; b
   return result.recordset[0];
 }
 
+export async function deleteLearner() {
+  const learner = await requireLearnerProfile();
+  await (await getDb()).request().input("id", sql.NVarChar(64), learner.id).query(`
+    update okaab.learner_profiles
+    set status='deleted',deleted_at=sysutcdatetime(),leaderboard_visible=0,updated_at=sysutcdatetime()
+    where id=@id
+  `);
+  return { deleted: true, recoverableUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() };
+}
+
 export async function registerDevice(input: { token: string; platform: string; appVersion: string }) {
   const learner = await requireLearnerProfile();
   await (await getDb()).request().input("user_id", sql.NVarChar(64), learner.id).input("token", sql.NVarChar(500), input.token).input("platform", sql.NVarChar(20), input.platform).input("version", sql.NVarChar(40), input.appVersion).query(`
