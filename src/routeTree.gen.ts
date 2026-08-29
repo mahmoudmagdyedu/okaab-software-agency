@@ -26,6 +26,7 @@ import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } fr
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminCoursesRouteImport } from './routes/admin/courses'
 import { Route as AdminHealthRouteImport } from './routes/admin/health'
+import { Route as AdminLearningRouteImport } from './routes/admin/learning'
 import { Route as AdminLoginRouteImport } from './routes/admin/login'
 import { Route as AdminTasksRouteImport } from './routes/admin/tasks'
 import { Route as AdminTeamRouteImport } from './routes/admin/team'
@@ -66,6 +67,7 @@ import { Route as ApiAdminYoutubeSyncRouteImport } from './routes/api/admin/yout
 import { Route as ApiInternalHealthDeepRouteImport } from './routes/api/internal/health/deep'
 import { Route as ApiInternalYoutubeSyncRouteImport } from './routes/api/internal/youtube/sync'
 import { Route as ApiSlidesDeckIdDownloadRouteImport } from './routes/api/slides/$deckId/download'
+import { Route as ApiV1AdminPlatformRouteImport } from './routes/api/v1/admin/platform'
 import { Route as ApiV1CoursesSlugRouteImport } from './routes/api/v1/courses/$slug'
 import { Route as ApiV1LessonsSlugRouteImport } from './routes/api/v1/lessons/$slug'
 import { Route as ApiV1MeIndexRouteImport } from './routes/api/v1/me/index'
@@ -167,6 +169,11 @@ const AdminCoursesRoute = AdminCoursesRouteImport.update({
 const AdminHealthRoute = AdminHealthRouteImport.update({
   id: '/admin/health',
   path: '/admin/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminLearningRoute = AdminLearningRouteImport.update({
+  id: '/admin/learning',
+  path: '/admin/learning',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminLoginRoute = AdminLoginRouteImport.update({
@@ -378,6 +385,11 @@ const ApiSlidesDeckIdDownloadRoute = ApiSlidesDeckIdDownloadRouteImport.update({
   path: '/api/slides/$deckId/download',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1AdminPlatformRoute = ApiV1AdminPlatformRouteImport.update({
+  id: '/api/v1/admin/platform',
+  path: '/api/v1/admin/platform',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1CoursesSlugRoute = ApiV1CoursesSlugRouteImport.update({
   id: '/api/v1/courses/$slug',
   path: '/api/v1/courses/$slug',
@@ -465,6 +477,7 @@ export interface FileRoutesByFullPath {
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/admin/courses': typeof AdminCoursesRoute
   '/admin/health': typeof AdminHealthRoute
+  '/admin/learning': typeof AdminLearningRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/tasks': typeof AdminTasksRoute
   '/admin/team': typeof AdminTeamRoute
@@ -506,6 +519,7 @@ export interface FileRoutesByFullPath {
   '/api/internal/health/deep': typeof ApiInternalHealthDeepRoute
   '/api/internal/youtube/sync': typeof ApiInternalYoutubeSyncRoute
   '/api/slides/$deckId/download': typeof ApiSlidesDeckIdDownloadRoute
+  '/api/v1/admin/platform': typeof ApiV1AdminPlatformRoute
   '/api/v1/courses/$slug': typeof ApiV1CoursesSlugRoute
   '/api/v1/lessons/$slug': typeof ApiV1LessonsSlugRouteWithChildren
   '/api/v1/me/overview': typeof ApiV1MeOverviewRoute
@@ -537,6 +551,7 @@ export interface FileRoutesByTo {
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/admin/courses': typeof AdminCoursesRoute
   '/admin/health': typeof AdminHealthRoute
+  '/admin/learning': typeof AdminLearningRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/tasks': typeof AdminTasksRoute
   '/admin/team': typeof AdminTeamRoute
@@ -578,6 +593,7 @@ export interface FileRoutesByTo {
   '/api/internal/health/deep': typeof ApiInternalHealthDeepRoute
   '/api/internal/youtube/sync': typeof ApiInternalYoutubeSyncRoute
   '/api/slides/$deckId/download': typeof ApiSlidesDeckIdDownloadRoute
+  '/api/v1/admin/platform': typeof ApiV1AdminPlatformRoute
   '/api/v1/courses/$slug': typeof ApiV1CoursesSlugRoute
   '/api/v1/lessons/$slug': typeof ApiV1LessonsSlugRouteWithChildren
   '/api/v1/me/overview': typeof ApiV1MeOverviewRoute
@@ -610,6 +626,7 @@ export interface FileRoutesById {
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/admin/courses': typeof AdminCoursesRoute
   '/admin/health': typeof AdminHealthRoute
+  '/admin/learning': typeof AdminLearningRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/tasks': typeof AdminTasksRoute
   '/admin/team': typeof AdminTeamRoute
@@ -651,6 +668,7 @@ export interface FileRoutesById {
   '/api/internal/health/deep': typeof ApiInternalHealthDeepRoute
   '/api/internal/youtube/sync': typeof ApiInternalYoutubeSyncRoute
   '/api/slides/$deckId/download': typeof ApiSlidesDeckIdDownloadRoute
+  '/api/v1/admin/platform': typeof ApiV1AdminPlatformRoute
   '/api/v1/courses/$slug': typeof ApiV1CoursesSlugRoute
   '/api/v1/lessons/$slug': typeof ApiV1LessonsSlugRouteWithChildren
   '/api/v1/me/overview': typeof ApiV1MeOverviewRoute
@@ -684,6 +702,7 @@ export interface FileRouteTypes {
     | '/.well-known/oauth-protected-resource'
     | '/admin/courses'
     | '/admin/health'
+    | '/admin/learning'
     | '/admin/login'
     | '/admin/tasks'
     | '/admin/team'
@@ -725,6 +744,7 @@ export interface FileRouteTypes {
     | '/api/internal/health/deep'
     | '/api/internal/youtube/sync'
     | '/api/slides/$deckId/download'
+    | '/api/v1/admin/platform'
     | '/api/v1/courses/$slug'
     | '/api/v1/lessons/$slug'
     | '/api/v1/me/overview'
@@ -756,6 +776,7 @@ export interface FileRouteTypes {
     | '/.well-known/oauth-protected-resource'
     | '/admin/courses'
     | '/admin/health'
+    | '/admin/learning'
     | '/admin/login'
     | '/admin/tasks'
     | '/admin/team'
@@ -797,6 +818,7 @@ export interface FileRouteTypes {
     | '/api/internal/health/deep'
     | '/api/internal/youtube/sync'
     | '/api/slides/$deckId/download'
+    | '/api/v1/admin/platform'
     | '/api/v1/courses/$slug'
     | '/api/v1/lessons/$slug'
     | '/api/v1/me/overview'
@@ -828,6 +850,7 @@ export interface FileRouteTypes {
     | '/.well-known/oauth-protected-resource'
     | '/admin/courses'
     | '/admin/health'
+    | '/admin/learning'
     | '/admin/login'
     | '/admin/tasks'
     | '/admin/team'
@@ -869,6 +892,7 @@ export interface FileRouteTypes {
     | '/api/internal/health/deep'
     | '/api/internal/youtube/sync'
     | '/api/slides/$deckId/download'
+    | '/api/v1/admin/platform'
     | '/api/v1/courses/$slug'
     | '/api/v1/lessons/$slug'
     | '/api/v1/me/overview'
@@ -901,6 +925,7 @@ export interface RootRouteChildren {
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   AdminCoursesRoute: typeof AdminCoursesRoute
   AdminHealthRoute: typeof AdminHealthRoute
+  AdminLearningRoute: typeof AdminLearningRoute
   AdminLoginRoute: typeof AdminLoginRoute
   AdminTasksRoute: typeof AdminTasksRoute
   AdminTeamRoute: typeof AdminTeamRoute
@@ -942,6 +967,7 @@ export interface RootRouteChildren {
   ApiInternalHealthDeepRoute: typeof ApiInternalHealthDeepRoute
   ApiInternalYoutubeSyncRoute: typeof ApiInternalYoutubeSyncRoute
   ApiSlidesDeckIdDownloadRoute: typeof ApiSlidesDeckIdDownloadRoute
+  ApiV1AdminPlatformRoute: typeof ApiV1AdminPlatformRoute
   ApiV1CoursesSlugRoute: typeof ApiV1CoursesSlugRoute
   ApiV1LessonsSlugRoute: typeof ApiV1LessonsSlugRouteWithChildren
   ApiV1MeOverviewRoute: typeof ApiV1MeOverviewRoute
@@ -1072,6 +1098,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/health'
       fullPath: '/admin/health'
       preLoaderRoute: typeof AdminHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/learning': {
+      id: '/admin/learning'
+      path: '/admin/learning'
+      fullPath: '/admin/learning'
+      preLoaderRoute: typeof AdminLearningRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/login': {
@@ -1354,6 +1387,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSlidesDeckIdDownloadRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/admin/platform': {
+      id: '/api/v1/admin/platform'
+      path: '/api/v1/admin/platform'
+      fullPath: '/api/v1/admin/platform'
+      preLoaderRoute: typeof ApiV1AdminPlatformRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/courses/$slug': {
       id: '/api/v1/courses/$slug'
       path: '/api/v1/courses/$slug'
@@ -1483,6 +1523,7 @@ const rootRouteChildren: RootRouteChildren = {
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
   AdminCoursesRoute: AdminCoursesRoute,
   AdminHealthRoute: AdminHealthRoute,
+  AdminLearningRoute: AdminLearningRoute,
   AdminLoginRoute: AdminLoginRoute,
   AdminTasksRoute: AdminTasksRoute,
   AdminTeamRoute: AdminTeamRoute,
@@ -1524,6 +1565,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiInternalHealthDeepRoute: ApiInternalHealthDeepRoute,
   ApiInternalYoutubeSyncRoute: ApiInternalYoutubeSyncRoute,
   ApiSlidesDeckIdDownloadRoute: ApiSlidesDeckIdDownloadRoute,
+  ApiV1AdminPlatformRoute: ApiV1AdminPlatformRoute,
   ApiV1CoursesSlugRoute: ApiV1CoursesSlugRoute,
   ApiV1LessonsSlugRoute: ApiV1LessonsSlugRouteWithChildren,
   ApiV1MeOverviewRoute: ApiV1MeOverviewRoute,
