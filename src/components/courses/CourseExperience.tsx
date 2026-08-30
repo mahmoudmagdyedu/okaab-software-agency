@@ -435,6 +435,7 @@ function OkaabVideoPlayer({ video, onEnded, onProgress }: { video: YouTubeVideo;
   const [volume, setVolume] = useState(80);
   const [failure, setFailure] = useState("");
   const [retryNonce, setRetryNonce] = useState(0);
+  const [privacyHost, setPrivacyHost] = useState(true);
 
   useEffect(() => {
     onEndedRef.current = onEnded;
@@ -449,7 +450,7 @@ function OkaabVideoPlayer({ video, onEnded, onProgress }: { video: YouTubeVideo;
       .then(() => {
         if (cancelled || !hostRef.current || !window.YT?.Player) return;
         playerRef.current = new window.YT.Player(hostRef.current, {
-          host: "https://www.youtube-nocookie.com",
+          host: privacyHost ? "https://www.youtube-nocookie.com" : "https://www.youtube.com",
           videoId: video.youtube_video_id,
           playerVars: {
             rel: 0,
@@ -473,13 +474,19 @@ function OkaabVideoPlayer({ video, onEnded, onProgress }: { video: YouTubeVideo;
               if (event.data === 0) onEndedRef.current();
             },
             onError: (event: { data: number }) => {
+              if (privacyHost && [101, 150, 153].includes(event.data)) {
+                setPrivacyHost(false);
+                setFailure("");
+                setRetryNonce((value) => value + 1);
+                return;
+              }
               const messages: Record<number, string> = {
                 2: "رابط الفيديو غير صحيح.",
                 5: "تعذّر تشغيل صيغة الفيديو على هذا الجهاز.",
                 100: "الفيديو حُذف أو أصبح خاصًا.",
-                101: "صاحب الفيديو لا يسمح بتشغيله داخل المواقع.",
-                150: "صاحب الفيديو لا يسمح بتشغيله داخل المواقع.",
-                153: "تعذّر التحقق من هوية مشغل عُقاب.",
+                101: "تعذّر تشغيل الفيديو داخل YouTube لهذا المتصفح.",
+                150: "طلب YouTube تسجيل الدخول للتحقق من المتصفح.",
+                153: "تعذّر إرسال هوية موقع عُقاب إلى YouTube.",
               };
               setReady(false);
               setPlaying(false);
@@ -504,7 +511,7 @@ function OkaabVideoPlayer({ video, onEnded, onProgress }: { video: YouTubeVideo;
       playerRef.current?.destroy();
       playerRef.current = null;
     };
-  }, [retryNonce, video.youtube_video_id]);
+  }, [privacyHost, retryNonce, video.youtube_video_id]);
 
   return (
     <div className="overflow-hidden rounded-3xl border-2 border-[var(--ok-ink)] bg-[#0d0c0b] text-white">
@@ -528,6 +535,14 @@ function OkaabVideoPlayer({ video, onEnded, onProgress }: { video: YouTubeVideo;
               >
                 إعادة المحاولة
               </button>
+              <a
+                href={`https://www.youtube.com/watch?v=${video.youtube_video_id}`}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-3 block text-sm font-bold text-[#E8A33D] underline underline-offset-4"
+              >
+                تأكيد الحساب في YouTube ثم العودة
+              </a>
             </div>
           </div>
         )}
