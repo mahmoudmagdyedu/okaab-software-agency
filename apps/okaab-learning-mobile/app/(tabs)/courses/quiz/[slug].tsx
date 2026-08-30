@@ -17,7 +17,11 @@ type QuizQuestion = {
 type AnswerResult = { correct: boolean; explanation: string; pointsAwarded: number };
 
 export default function QuizScreen() {
-  const { slug } = useLocalSearchParams<{ slug: string }>();
+  const { slug, next: nextStep, course } = useLocalSearchParams<{
+    slug: string;
+    next?: "task" | "finish";
+    course?: string;
+  }>();
   const { isLoaded, isSignedIn, getToken } = useAuth();
   const [questions, setQuestions] = useState<QuizQuestion[] | null>(null);
   const [index, setIndex] = useState(0);
@@ -48,7 +52,7 @@ export default function QuizScreen() {
   );
 
   if (!isLoaded || (!questions && !error)) return <Loading />;
-  if (!isSignedIn) return <Redirect href="/sign-in" />;
+  if (!isSignedIn) return <Redirect href="/(auth)/sign-in" />;
   if (error && !questions)
     return (
       <Screen>
@@ -109,13 +113,15 @@ export default function QuizScreen() {
           idempotencyKey: `mobile-quiz-finished-${Date.now()}`,
         }),
       });
-      await apiRequest(`/lessons/${encodeURIComponent(slug)}/events`, getToken, {
-        method: "POST",
-        body: JSON.stringify({
-          type: "lesson_finished",
-          idempotencyKey: `mobile-lesson-finished-${Date.now()}`,
-        }),
-      });
+      if (nextStep !== "task") {
+        await apiRequest(`/lessons/${encodeURIComponent(slug)}/events`, getToken, {
+          method: "POST",
+          body: JSON.stringify({
+            type: "lesson_finished",
+            idempotencyKey: `mobile-lesson-finished-${Date.now()}`,
+          }),
+        });
+      }
       setFinished(true);
     } catch (value) {
       setError(value instanceof Error ? value.message : "تم حفظ الإجابات وتعذّر إنهاء الدرس");
@@ -134,8 +140,22 @@ export default function QuizScreen() {
             أجبت عن {correct} من {questions.length}. نقاط الإجابات الصحيحة من أول محاولة أُضيفت
             تلقائيًا.
           </Muted>
-          <Action title="العودة إلى الدرس" onPress={() => router.back()} />
-          <Action title="العودة للكورسات" onPress={() => router.replace("/")} />
+          <Action
+            title={nextStep === "task" ? "انتقل إلى المهمة العملية" : "افتح المرحلة التالية"}
+            onPress={() =>
+              nextStep === "task"
+                ? router.replace({
+                    pathname: "/(tabs)/courses/task/[slug]",
+                    params: { slug, course: course || "" },
+                  })
+                : course
+                  ? router.replace({
+                      pathname: "/(tabs)/courses/course/[slug]",
+                      params: { slug: course },
+                    })
+                  : router.replace("/")
+            }
+          />
         </View>
       </Screen>
     );
@@ -194,6 +214,15 @@ export default function QuizScreen() {
             onPress={() => void submit()}
             disabled={!selected}
             loading={busy}
+          />
+        ) : !result.correct ? (
+          <Action
+            title="راجع الشرح وحاول السؤال مرة أخرى"
+            onPress={() => {
+              setSelected("");
+              setResult(null);
+              setError("");
+            }}
           />
         ) : (
           <Action

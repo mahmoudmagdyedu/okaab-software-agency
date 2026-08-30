@@ -1,7 +1,7 @@
-import { ClerkProvider } from "@clerk/expo";
+import { useAuth, ClerkProvider } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
 import * as Notifications from "expo-notifications";
-import { Stack } from "expo-router";
+import { Stack, useSegments, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { I18nManager, Linking, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
@@ -99,6 +99,41 @@ function SystemState({
   );
 }
 
+function RootGuard() {
+  const { isLoaded, isSignedIn } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    const inAuthGroup = segments[0] === "(auth)";
+
+    if (isSignedIn && inAuthGroup) {
+      router.replace("/(tabs)");
+    } else if (!isSignedIn && !inAuthGroup) {
+      router.replace("/(auth)/sign-in");
+    }
+  }, [isLoaded, isSignedIn, segments]);
+
+  if (!isLoaded) return <Loading />;
+
+  return (
+    <Stack
+      screenOptions={{
+        headerTitleAlign: "center",
+        headerBackTitle: "رجوع",
+        contentStyle: { direction: "rtl", backgroundColor: theme.colors.paper },
+        headerStyle: { backgroundColor: theme.colors.paper },
+        headerTintColor: theme.colors.ink,
+      }}
+    >
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+      <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
+    </Stack>
+  );
+}
+
 export default function RootLayout() {
   if (!publishableKey) {
     return (
@@ -115,26 +150,7 @@ export default function RootLayout() {
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
       <SystemGate>
         <StatusBar style="dark" />
-        <Stack
-          screenOptions={{
-            headerTitleAlign: "center",
-            headerBackTitle: "رجوع",
-            contentStyle: { direction: "rtl", backgroundColor: theme.colors.paper },
-            headerStyle: { backgroundColor: theme.colors.paper },
-            headerTintColor: theme.colors.ink,
-          }}
-        >
-          <Stack.Screen name="index" options={{ headerShown: false }} />
-          <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
-          <Stack.Screen name="sign-in" options={{ title: "الدخول إلى عُقاب" }} />
-          <Stack.Screen name="course/[slug]" options={{ title: "الكورس" }} />
-          <Stack.Screen name="lesson/[slug]" options={{ title: "الدرس" }} />
-          <Stack.Screen name="quiz/[slug]" options={{ title: "اختبار الدرس" }} />
-          <Stack.Screen name="task/[slug]" options={{ title: "المهمة العملية" }} />
-          <Stack.Screen name="leaderboard" options={{ title: "لوحة المتصدرين" }} />
-          <Stack.Screen name="profile" options={{ title: "حسابي" }} />
-          <Stack.Screen name="about" options={{ title: "مين عُقاب؟" }} />
-        </Stack>
+        <RootGuard />
       </SystemGate>
     </ClerkProvider>
   );

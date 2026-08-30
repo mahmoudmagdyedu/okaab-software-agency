@@ -1,2 +1,5 @@
 export declare function createBridgeScript(): string;
-export declare function createYouTubePlayerHtml(videoId: string): string;
+export declare function createYouTubePlayerHtml(
+  videoId: string,
+  options?: { origin?: string },
+): string;

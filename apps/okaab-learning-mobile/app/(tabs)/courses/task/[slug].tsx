@@ -21,7 +21,7 @@ type TaskGrade = {
 };
 
 export default function TaskScreen() {
-  const { slug } = useLocalSearchParams<{ slug: string }>();
+  const { slug, course } = useLocalSearchParams<{ slug: string; course?: string }>();
   const { isLoaded, isSignedIn, getToken } = useAuth();
   const [lesson, setLesson] = useState<LessonResult["lesson"] | null>(null);
   const [submission, setSubmission] = useState("");
@@ -47,7 +47,7 @@ export default function TaskScreen() {
   }, [slug, isSignedIn]);
 
   if (!isLoaded || (isSignedIn && !lesson && !error)) return <Loading />;
-  if (!isSignedIn) return <Redirect href="/sign-in" />;
+  if (!isSignedIn) return <Redirect href="/(auth)/sign-in" />;
   if (error && !lesson)
     return (
       <Screen>
@@ -148,7 +148,19 @@ export default function TaskScreen() {
             {grade.hints.length > 0 && <Feedback title="تلميحات" items={grade.hints} />}
             <Text style={styles.next}>{grade.next_step}</Text>
             {!grade.passed && <Action title="عدّل إجابتي" onPress={() => setGrade(null)} />}
-            {grade.passed && <Action title="العودة إلى الدرس" onPress={() => router.back()} />}
+            {grade.passed && (
+              <Action
+                title="افتح المرحلة التالية"
+                onPress={() =>
+                  course
+                    ? router.replace({
+                        pathname: "/(tabs)/courses/course/[slug]",
+                        params: { slug: course },
+                      })
+                    : router.replace("/")
+                }
+              />
+            )}
           </View>
         )}
       </ScrollView>

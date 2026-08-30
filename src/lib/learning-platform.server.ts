@@ -505,7 +505,7 @@ export async function recordLessonEvent(slug: string, event: LessonEvent) {
         .input("lesson_id", sql.NVarChar(64), lessonId)
         .input("value", sql.Decimal(5, 2), percent)
         .query(
-          "update okaab.lesson_progress set video_percent=case when @value>video_percent then @value else video_percent end,status=case when @value>=85 then 'completed' else 'in_progress' end,completed_at=case when @value>=85 and completed_at is null then sysutcdatetime() else completed_at end,updated_at=sysutcdatetime() where user_id=@user_id and lesson_id=@lesson_id",
+          "update okaab.lesson_progress set video_percent=case when @value>video_percent then @value else video_percent end,status='in_progress',updated_at=sysutcdatetime() where user_id=@user_id and lesson_id=@lesson_id",
         );
       if (percent >= 85)
         await awardPoints(transaction, {

@@ -371,10 +371,11 @@ declare global {
 type YouTubePlayerOptions = {
   host: string;
   videoId: string;
-  playerVars: Record<string, number>;
+  playerVars: Record<string, number | string>;
   events: {
     onReady: () => void;
     onStateChange: (event: { data: number }) => void;
+    onError: (event: { data: number }) => void;
   };
 };
 
@@ -395,9 +396,14 @@ let youtubeApiPromise: Promise<void> | null = null;
 function loadYouTubeApi() {
   if (typeof window === "undefined" || window.YT?.Player) return Promise.resolve();
   if (youtubeApiPromise) return youtubeApiPromise;
-  youtubeApiPromise = new Promise((resolve) => {
+  youtubeApiPromise = new Promise((resolve, reject) => {
     const previous = window.onYouTubeIframeAPIReady;
+    const timeout = window.setTimeout(() => {
+      youtubeApiPromise = null;
+      reject(new Error("انتهت مهلة تحميل مشغل YouTube"));
+    }, 15_000);
     window.onYouTubeIframeAPIReady = () => {
+      window.clearTimeout(timeout);
       previous?.();
       resolve();
     };
@@ -405,6 +411,13 @@ function loadYouTubeApi() {
       const script = document.createElement("script");
       script.src = "https://www.youtube.com/iframe_api";
       script.async = true;
+      script.referrerPolicy = "strict-origin-when-cross-origin";
+      script.onerror = () => {
+        window.clearTimeout(timeout);
+        script.remove();
+        youtubeApiPromise = null;
+        reject(new Error("تعذّر تنزيل مشغل YouTube"));
+      };
       document.head.appendChild(script);
     }
   });
@@ -420,6 +433,8 @@ function OkaabVideoPlayer({ video, onEnded, onProgress }: { video: YouTubeVideo;
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(false);
   const [volume, setVolume] = useState(80);
+  const [failure, setFailure] = useState("");
+  const [retryNonce, setRetryNonce] = useState(0);
 
   useEffect(() => {
     onEndedRef.current = onEnded;
@@ -428,24 +443,56 @@ function OkaabVideoPlayer({ video, onEnded, onProgress }: { video: YouTubeVideo;
 
   useEffect(() => {
     let cancelled = false;
-    void loadYouTubeApi().then(() => {
-      if (cancelled || !hostRef.current || !window.YT?.Player) return;
-      playerRef.current = new window.YT.Player(hostRef.current, {
-        host: "https://www.youtube-nocookie.com",
-        videoId: video.youtube_video_id,
-        playerVars: { rel: 0, playsinline: 1, modestbranding: 1 },
-        events: {
-          onReady: () => {
-            setReady(true);
-            playerRef.current?.setVolume(80);
+    setReady(false);
+    setFailure("");
+    void loadYouTubeApi()
+      .then(() => {
+        if (cancelled || !hostRef.current || !window.YT?.Player) return;
+        playerRef.current = new window.YT.Player(hostRef.current, {
+          host: "https://www.youtube-nocookie.com",
+          videoId: video.youtube_video_id,
+          playerVars: {
+            rel: 0,
+            playsinline: 1,
+            controls: 1,
+            enablejsapi: 1,
+            origin: window.location.origin,
+            widget_referrer: window.location.href,
           },
-          onStateChange: (event: { data: number }) => {
-            setPlaying(event.data === 1);
-            if (event.data === 0) onEndedRef.current();
+          events: {
+            onReady: () => {
+              setReady(true);
+              setFailure("");
+              playerRef.current?.setVolume(80);
+              playerRef.current
+                ?.getIframe()
+                .setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
+            },
+            onStateChange: (event: { data: number }) => {
+              setPlaying(event.data === 1);
+              if (event.data === 0) onEndedRef.current();
+            },
+            onError: (event: { data: number }) => {
+              const messages: Record<number, string> = {
+                2: "رابط الفيديو غير صحيح.",
+                5: "تعذّر تشغيل صيغة الفيديو على هذا الجهاز.",
+                100: "الفيديو حُذف أو أصبح خاصًا.",
+                101: "صاحب الفيديو لا يسمح بتشغيله داخل المواقع.",
+                150: "صاحب الفيديو لا يسمح بتشغيله داخل المواقع.",
+                153: "تعذّر التحقق من هوية مشغل عُقاب.",
+              };
+              setReady(false);
+              setPlaying(false);
+              setFailure(messages[event.data] ?? "تعذّر تشغيل الفيديو الآن.");
+            },
           },
-        },
+        });
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setFailure(error instanceof Error ? error.message : "تعذّر تحميل مشغل الفيديو");
+        }
       });
-    });
     const progressTimer = window.setInterval(() => {
       const duration = playerRef.current?.getDuration?.() ?? 0;
       const current = playerRef.current?.getCurrentTime?.() ?? 0;
@@ -457,11 +504,34 @@ function OkaabVideoPlayer({ video, onEnded, onProgress }: { video: YouTubeVideo;
       playerRef.current?.destroy();
       playerRef.current = null;
     };
-  }, [video.youtube_video_id]);
+  }, [retryNonce, video.youtube_video_id]);
 
   return (
     <div className="overflow-hidden rounded-3xl border-2 border-[var(--ok-ink)] bg-[#0d0c0b] text-white">
-      <div className="aspect-video w-full" ref={hostRef} />
+      <div className="relative aspect-video w-full">
+        <div key={retryNonce} className="size-full" ref={hostRef} />
+        {!ready && !failure && (
+          <div className="pointer-events-none absolute inset-0 grid place-items-center bg-[#0d0c0b]" role="status">
+            <span className="rounded-full border border-white/20 px-4 py-2 text-sm font-bold text-white/75">
+              جاري تجهيز الفيديو…
+            </span>
+          </div>
+        )}
+        {failure && (
+          <div className="absolute inset-0 grid place-items-center bg-[#0d0c0b] p-6 text-center">
+            <div>
+              <p role="alert" className="font-bold text-white">{failure}</p>
+              <button
+                type="button"
+                onClick={() => setRetryNonce((value) => value + 1)}
+                className="mt-4 min-h-11 rounded-full bg-[#E8A33D] px-5 font-bold text-[#181511]"
+              >
+                إعادة المحاولة
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
       <div className="flex flex-wrap items-center gap-2 border-t border-white/15 p-3">
         <button
           disabled={!ready}

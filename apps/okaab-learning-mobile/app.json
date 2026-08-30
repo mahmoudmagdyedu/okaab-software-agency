@@ -1,19 +1,19 @@
 {
   "expo": {
-    "name": "عُقاب للتعلّم",
+    "name": "عُقاب",
     "slug": "okaab-learning",
-    "version": "1.0.1",
-    "icon": "./assets/icon.png",
+    "version": "1.1.0",
+    "icon": "./assets/okaab-icon-v2.png",
     "orientation": "portrait",
     "scheme": "okaab",
     "userInterfaceStyle": "automatic",
     "android": {
       "package": "org.okaab.learning",
-      "versionCode": 2,
+      "versionCode": 3,
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/icon.png",
-        "backgroundColor": "#141210"
+        "foregroundImage": "./assets/okaab-icon-foreground.png",
+        "backgroundColor": "#181511"
       }
     },
     "plugins": [

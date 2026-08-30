@@ -1,4 +1,4 @@
-import { useAuth, useClerk, useUser } from "@clerk/expo";
+import { useAuth, useClerk, useSession, useUser } from "@clerk/expo";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 import * as Device from "expo-device";
@@ -9,6 +9,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   Image,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -30,6 +31,7 @@ export default function Profile() {
   const { isLoaded, isSignedIn, getToken, sessionId } = useAuth();
   const { signOut } = useClerk();
   const { user } = useUser();
+  const { session } = useSession();
   const [data, setData] = useState<Overview | null>(null);
   const [name, setName] = useState("");
   const [birthdate, setBirthdate] = useState("");
@@ -39,6 +41,12 @@ export default function Profile() {
   const [avatarBusy, setAvatarBusy] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushBusy, setPushBusy] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
+  const [verificationAction, setVerificationAction] = useState<"password" | "delete" | null>(null);
+  const [verificationBusy, setVerificationBusy] = useState(false);
+  const [verificationHint, setVerificationHint] = useState("");
   const [sessions, setSessions] = useState<
     Array<{
       id: string;
@@ -68,7 +76,7 @@ export default function Profile() {
     void AsyncStorage.getItem(PUSH_TOKEN_KEY).then((token) => setPushEnabled(Boolean(token)));
   }, [isSignedIn]);
   if (!isLoaded) return <Loading />;
-  if (!isSignedIn) return <Redirect href="/sign-in" />;
+  if (!isSignedIn) return <Redirect href="/(auth)/sign-in" />;
   if (!data && !error) return <Loading />;
   if (error && !data)
     return (
@@ -204,6 +212,81 @@ export default function Profile() {
         ),
       )
     : 100;
+  const beginEmailVerification = async (action: "password" | "delete") => {
+    if (!session) return;
+    if (action === "password") {
+      if (newPassword.length < 8) {
+        setError("كلمة المرور الجديدة يجب ألا تقل عن 8 أحرف.");
+        return;
+      }
+      if (newPassword !== confirmPassword) {
+        setError("تأكيد كلمة المرور غير مطابق.");
+        return;
+      }
+    }
+    setVerificationBusy(true);
+    setError("");
+    try {
+      const verification = await session.startVerification({ level: "first_factor" });
+      const factor = verification.supportedFirstFactors?.find(
+        (item) => item.strategy === "email_code",
+      );
+      if (!factor || factor.strategy !== "email_code") {
+        throw new Error("لا يوجد بريد موثّق لاستقبال رمز الأمان لهذا الحساب.");
+      }
+      await session.prepareFirstFactorVerification({
+        strategy: "email_code",
+        emailAddressId: factor.emailAddressId,
+      });
+      setVerificationHint(factor.safeIdentifier || data!.profile.email);
+      setVerificationCode("");
+      setVerificationAction(action);
+    } catch (value) {
+      setError(value instanceof Error ? value.message : "تعذّر إرسال رمز التحقق");
+    } finally {
+      setVerificationBusy(false);
+    }
+  };
+
+  const confirmEmailVerification = async () => {
+    if (!session || !user || !verificationAction || verificationCode.trim().length < 6) return;
+    setVerificationBusy(true);
+    setError("");
+    try {
+      const verification = await session.attemptFirstFactorVerification({
+        strategy: "email_code",
+        code: verificationCode.trim(),
+      });
+      if (verification.status !== "complete") throw new Error("رمز التحقق غير صحيح أو انتهت صلاحيته.");
+      if (verificationAction === "password") {
+        await user.updatePassword({
+          newPassword,
+          signOutOfOtherSessions: true,
+        });
+        setNewPassword("");
+        setConfirmPassword("");
+        setVerificationAction(null);
+        Alert.alert("تم التحديث", "تم تغيير كلمة المرور وإغلاق الجلسات الأخرى بأمان.");
+        return;
+      }
+      await apiRequest(
+        "/me",
+        () => session.getToken({ skipCache: true }),
+        {
+          method: "DELETE",
+          body: JSON.stringify({ confirmation: "احذف حسابي" }),
+        },
+      );
+      setVerificationAction(null);
+      await signOut();
+      router.replace("/");
+    } catch (value) {
+      setError(value instanceof Error ? value.message : "تعذّر إكمال التحقق");
+    } finally {
+      setVerificationBusy(false);
+    }
+  };
+
   const removeAccount = () =>
     Alert.alert(
       "حذف حساب عُقاب؟",
@@ -213,18 +296,7 @@ export default function Profile() {
         {
           text: "حذف حسابي",
           style: "destructive",
-          onPress: async () => {
-            try {
-              await apiRequest("/me", getToken, {
-                method: "DELETE",
-                body: JSON.stringify({ confirmation: "احذف حسابي" }),
-              });
-              await signOut();
-              router.replace("/");
-            } catch (value) {
-              setError(value instanceof Error ? value.message : "تعذّر حذف الحساب");
-            }
-          },
+          onPress: () => void beginEmailVerification("delete"),
         },
       ],
     );
@@ -351,6 +423,34 @@ export default function Profile() {
             disabled={name.trim().length < 2}
             loading={busy}
           />
+          <View style={styles.passwordSection}>
+            <Text style={styles.label}>تغيير كلمة المرور</Text>
+            <Muted>سنرسل رمز أمان إلى بريد الحساب قبل تنفيذ التغيير.</Muted>
+            <TextInput
+              accessibilityLabel="كلمة المرور الجديدة"
+              placeholder="كلمة مرور جديدة — 8 أحرف أو أكثر"
+              placeholderTextColor={`${theme.colors.ink}66`}
+              secureTextEntry
+              value={newPassword}
+              onChangeText={setNewPassword}
+              style={styles.input}
+            />
+            <TextInput
+              accessibilityLabel="تأكيد كلمة المرور الجديدة"
+              placeholder="تأكيد كلمة المرور الجديدة"
+              placeholderTextColor={`${theme.colors.ink}66`}
+              secureTextEntry
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              style={styles.input}
+            />
+            <Action
+              title="تحقق بالبريد وغيّر كلمة المرور"
+              onPress={() => void beginEmailVerification("password")}
+              disabled={newPassword.length < 8 || newPassword !== confirmPassword}
+              loading={verificationBusy && verificationAction === null}
+            />
+          </View>
           <Action
             title="تسجيل الخروج"
             onPress={() => void signOut().then(() => router.replace("/"))}
@@ -367,6 +467,40 @@ export default function Profile() {
           </Pressable>
         </View>
       </ScrollView>
+      <Modal
+        animationType="fade"
+        transparent
+        visible={verificationAction !== null}
+        onRequestClose={() => setVerificationAction(null)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalKicker}>تحقق أمني</Text>
+            <Title>أدخل الرمز المرسل إلى بريدك</Title>
+            <Muted>{verificationHint}</Muted>
+            <TextInput
+              accessibilityLabel="رمز التحقق"
+              autoComplete="one-time-code"
+              inputMode="numeric"
+              maxLength={6}
+              value={verificationCode}
+              onChangeText={setVerificationCode}
+              placeholder="000000"
+              placeholderTextColor={`${theme.colors.ink}55`}
+              style={styles.codeInput}
+            />
+            <Action
+              title={verificationAction === "delete" ? "تحقق واحذف الحساب" : "تحقق وغيّر كلمة المرور"}
+              onPress={() => void confirmEmailVerification()}
+              disabled={verificationCode.trim().length < 6}
+              loading={verificationBusy}
+            />
+            <Pressable onPress={() => setVerificationAction(null)} style={styles.cancelVerification}>
+              <Text style={styles.cancelVerificationText}>إلغاء</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </Screen>
   );
 }
@@ -403,6 +537,13 @@ const styles = StyleSheet.create({
     borderColor: `${theme.colors.ink}22`,
     padding: 16,
     borderRadius: 16,
+  },
+  passwordSection: {
+    gap: 10,
+    borderTopWidth: 1,
+    borderTopColor: `${theme.colors.ink}18`,
+    paddingTop: 16,
+    marginTop: 4,
   },
   label: { color: theme.colors.ink, fontWeight: "700", textAlign: "right" },
   input: {
@@ -476,4 +617,36 @@ const styles = StyleSheet.create({
   },
   deleteText: { color: theme.colors.error, fontWeight: "800" },
   error: { color: theme.colors.error, textAlign: "right" },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "#00000099",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20,
+  },
+  modalCard: {
+    width: "100%",
+    maxWidth: 460,
+    backgroundColor: theme.colors.card,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: theme.colors.gold,
+    padding: 20,
+    gap: 12,
+  },
+  modalKicker: { color: theme.colors.gold, textAlign: "right", fontWeight: "900" },
+  codeInput: {
+    minHeight: 58,
+    backgroundColor: theme.colors.paperAlt,
+    borderWidth: 2,
+    borderColor: theme.colors.ink,
+    borderRadius: 14,
+    textAlign: "center",
+    letterSpacing: 8,
+    color: theme.colors.ink,
+    fontSize: 22,
+    fontWeight: "900",
+  },
+  cancelVerification: { minHeight: 44, alignItems: "center", justifyContent: "center" },
+  cancelVerificationText: { color: theme.colors.ink, fontWeight: "800" },
 });
