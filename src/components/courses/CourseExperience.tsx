@@ -444,12 +444,21 @@ function OkaabVideoPlayer({ video, onEnded, onProgress }: { video: YouTubeVideo;
 
   useEffect(() => {
     let cancelled = false;
+    let createdPlayer: YouTubePlayerInstance | null = null;
+    const host = hostRef.current;
     setReady(false);
     setFailure("");
     void loadYouTubeApi()
       .then(() => {
-        if (cancelled || !hostRef.current || !window.YT?.Player) return;
-        playerRef.current = new window.YT.Player(hostRef.current, {
+        if (cancelled || !host || !window.YT?.Player) return;
+        // YouTube replaces its mount element with an iframe. Keep that mutable DOM
+        // subtree outside React's ownership so retries cannot make React remove a
+        // node that the IFrame API has already replaced.
+        const mount = document.createElement("div");
+        mount.style.width = "100%";
+        mount.style.height = "100%";
+        host.replaceChildren(mount);
+        createdPlayer = new window.YT.Player(mount, {
           host: privacyHost ? "https://www.youtube-nocookie.com" : "https://www.youtube.com",
           videoId: video.youtube_video_id,
           playerVars: {
@@ -475,9 +484,10 @@ function OkaabVideoPlayer({ video, onEnded, onProgress }: { video: YouTubeVideo;
             },
             onError: (event: { data: number }) => {
               if (privacyHost && [101, 150, 153].includes(event.data)) {
+                setReady(false);
+                setPlaying(false);
                 setPrivacyHost(false);
                 setFailure("");
-                setRetryNonce((value) => value + 1);
                 return;
               }
               const messages: Record<number, string> = {
@@ -494,6 +504,7 @@ function OkaabVideoPlayer({ video, onEnded, onProgress }: { video: YouTubeVideo;
             },
           },
         });
+        playerRef.current = createdPlayer;
       })
       .catch((error: unknown) => {
         if (!cancelled) {
@@ -508,15 +519,32 @@ function OkaabVideoPlayer({ video, onEnded, onProgress }: { video: YouTubeVideo;
     return () => {
       cancelled = true;
       window.clearInterval(progressTimer);
-      playerRef.current?.destroy();
-      playerRef.current = null;
+      try {
+        createdPlayer?.destroy();
+      } catch {
+        // The YouTube iframe may already have been replaced after an embed error.
+      }
+      if (playerRef.current === createdPlayer) playerRef.current = null;
+      host?.replaceChildren();
     };
   }, [privacyHost, retryNonce, video.youtube_video_id]);
+
+  const runPlayerCommand = (command: (player: YouTubePlayerInstance) => void) => {
+    const player = playerRef.current;
+    if (!player) return;
+    try {
+      command(player);
+    } catch {
+      setReady(false);
+      setPlaying(false);
+      setFailure("تعذّر إرسال أمر التشغيل إلى YouTube. أعد المحاولة.");
+    }
+  };
 
   return (
     <div className="overflow-hidden rounded-3xl border-2 border-[var(--ok-ink)] bg-[#0d0c0b] text-white">
       <div className="relative aspect-video w-full">
-        <div key={retryNonce} className="size-full" ref={hostRef} />
+        <div className="size-full" ref={hostRef} />
         {!ready && !failure && (
           <div className="pointer-events-none absolute inset-0 grid place-items-center bg-[#0d0c0b]" role="status">
             <span className="rounded-full border border-white/20 px-4 py-2 text-sm font-bold text-white/75">
@@ -553,7 +581,7 @@ function OkaabVideoPlayer({ video, onEnded, onProgress }: { video: YouTubeVideo;
           type="button"
           aria-label={playing ? "إيقاف مؤقت" : "تشغيل"}
           onClick={() =>
-            playing ? playerRef.current?.pauseVideo() : playerRef.current?.playVideo()
+            runPlayerCommand((player) => (playing ? player.pauseVideo() : player.playVideo()))
           }
           className="grid size-10 place-items-center rounded-full bg-[#E8A33D] text-[#181511]"
         >
@@ -564,8 +592,10 @@ function OkaabVideoPlayer({ video, onEnded, onProgress }: { video: YouTubeVideo;
           type="button"
           aria-label={muted ? "تشغيل الصوت" : "كتم الصوت"}
           onClick={() => {
-            if (muted) playerRef.current?.unMute();
-            else playerRef.current?.mute();
+            runPlayerCommand((player) => {
+              if (muted) player.unMute();
+              else player.mute();
+            });
             setMuted(!muted);
           }}
           className="grid size-10 place-items-center rounded-full border border-white/25"
@@ -581,14 +611,16 @@ function OkaabVideoPlayer({ video, onEnded, onProgress }: { video: YouTubeVideo;
           onChange={(event) => {
             const next = Number(event.target.value);
             setVolume(next);
-            playerRef.current?.setVolume(next);
+            runPlayerCommand((player) => player.setVolume(next));
           }}
           className="w-24 accent-[#E8A33D]"
         />
         <select
           aria-label="سرعة التشغيل"
           defaultValue="1"
-          onChange={(event) => playerRef.current?.setPlaybackRate(Number(event.target.value))}
+          onChange={(event) =>
+            runPlayerCommand((player) => player.setPlaybackRate(Number(event.target.value)))
+          }
           className="h-9 rounded-lg border border-white/25 bg-[#181511] px-2 text-xs"
         >
           <option value="0.5">0.5×</option>
