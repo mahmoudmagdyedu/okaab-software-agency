@@ -1,15 +1,24 @@
 import { useSignUp, useSSO } from "@clerk/expo";
+import { makeRedirectUri } from "expo-auth-session";
 import { Link, router } from "expo-router";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { Action, Muted, Title } from "@/components";
 import { theme } from "@/theme";
 
 function message(value: unknown) {
-  const error = value as { errors?: { message?: string; longMessage?: string }[] };
-  return error?.errors?.[0]?.longMessage || error?.errors?.[0]?.message || "راجع البيانات وحاول مرة أخرى";
+  const error = value as { code?: string; message?: string; errors?: { message?: string; longMessage?: string; code?: string }[] };
+  const code = error?.errors?.[0]?.code || error?.code;
+  const raw = `${error?.errors?.[0]?.longMessage || ""} ${error?.errors?.[0]?.message || ""} ${error?.message || ""}`;
+  if (code === "form_identifier_exists") return "يوجد حساب بهذا البريد بالفعل. سجّل الدخول بدلًا من إنشاء حساب جديد.";
+  if (code === "form_password_pwned") return "اختر كلمة مرور مختلفة لم تظهر في تسريبات سابقة.";
+  if (/authorized redirect|redirect uri|redirect_url/i.test(raw)) {
+    return "تعذّر الرجوع إلى تطبيق عُقاب بعد تسجيل Google. حدّث التطبيق ثم أعد المحاولة.";
+  }
+  return error?.errors?.[0]?.longMessage || error?.errors?.[0]?.message || error?.message || "راجع البيانات وحاول مرة أخرى";
 }
 
 export default function SignUpScreen() {
@@ -23,6 +32,7 @@ export default function SignUpScreen() {
   const insets = useSafeAreaInsets();
   const busy = fetchStatus === "fetching";
   const done = () => router.replace("/(tabs)");
+  const googleRedirectUrl = makeRedirectUri({ scheme: "okaab", path: "sso-callback" });
 
   const submit = async () => {
     setError("");
@@ -53,12 +63,19 @@ export default function SignUpScreen() {
   const google = async () => {
     setError("");
     try {
-      const { createdSessionId, setActive } = await startSSOFlow({ strategy: "oauth_google" });
+      const { createdSessionId, setActive, signUp: googleSignUp } = await startSSOFlow({
+        strategy: "oauth_google",
+        redirectUrl: googleRedirectUrl,
+      });
       if (createdSessionId) {
         await setActive?.({ session: createdSessionId });
         done();
+      } else if (googleSignUp?.status === "missing_requirements") {
+        setError("يحتاج حساب Google إلى بيانات إضافية. أكمل التسجيل بالبريد الإلكتروني.");
       }
     } catch (value) {
+      const errorCode = (value as { code?: string })?.code;
+      if (errorCode === "SIGN_IN_CANCELLED" || errorCode === "-5") return;
       setError(message(value));
     }
   };
@@ -69,7 +86,8 @@ export default function SignUpScreen() {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={[styles.page, { paddingTop: Math.max(insets.top, 28), paddingBottom: Math.max(insets.bottom, 28) }]}
       >
-        <View style={styles.form} nativeID="clerk-captcha">
+        <Animated.View entering={FadeInDown.duration(460).springify().damping(18)} style={styles.form}>
+          <View nativeID="clerk-captcha" />
           <Text style={styles.brand}>عُقاب</Text>
           <Title>{verify ? "أكد بريدك" : "ابدأ رحلة التعلّم"}</Title>
           <Muted>{verify ? `أرسلنا رمزًا إلى ${email}` : "أنشئ حسابًا واحدًا يحفظ نقاطك وتقدمك على الموقع والتطبيق."}</Muted>
@@ -95,7 +113,7 @@ export default function SignUpScreen() {
             </>
           )}
           {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
-        </View>
+        </Animated.View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -103,8 +121,8 @@ export default function SignUpScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  page: { flexGrow: 1, justifyContent: "center", paddingHorizontal: 18 },
-  form: { gap: 12, backgroundColor: "#F6F1E7E8", borderWidth: 1.5, borderColor: theme.colors.ink, borderRadius: 28, padding: 20, shadowColor: "#000", shadowOpacity: 0.3, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 8 },
+  page: { flexGrow: 1, justifyContent: "center", paddingHorizontal: 20 },
+  form: { gap: 12, backgroundColor: "#F6F1E7F2", borderWidth: 1.5, borderColor: theme.colors.ink, borderRadius: 30, padding: 20, shadowColor: "#000", shadowOpacity: 0.32, shadowRadius: 22, shadowOffset: { width: 0, height: 10 }, elevation: 10 },
   brand: { color: theme.colors.gold, fontSize: 34, fontWeight: "900", textAlign: "right" },
   label: { color: theme.colors.ink, textAlign: "right", fontWeight: "900", marginTop: 3 },
   input: { minHeight: 52, borderWidth: 1.5, borderColor: `${theme.colors.ink}66`, borderRadius: 14, paddingHorizontal: 14, color: theme.colors.ink, textAlign: "right", backgroundColor: "#FFFDF8D9" },

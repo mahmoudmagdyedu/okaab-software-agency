@@ -506,7 +506,7 @@ export default function Profile() {
 }
 
 const styles = StyleSheet.create({
-  content: { gap: 16, paddingBottom: 32 },
+  content: { gap: 16, paddingBottom: 118 },
   head: { gap: 8 },
   avatar: {
     width: 88,

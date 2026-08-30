@@ -1,7 +1,7 @@
-import { useAuth, ClerkProvider } from "@clerk/expo";
+import { ClerkProvider } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
 import * as Notifications from "expo-notifications";
-import { Stack, useSegments, useRouter } from "expo-router";
+import { Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import { I18nManager, Linking, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
@@ -99,24 +99,7 @@ function SystemState({
   );
 }
 
-function RootGuard() {
-  const { isLoaded, isSignedIn } = useAuth();
-  const segments = useSegments();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!isLoaded) return;
-    const inAuthGroup = segments[0] === "(auth)";
-
-    if (isSignedIn && inAuthGroup) {
-      router.replace("/(tabs)");
-    } else if (!isSignedIn && !inAuthGroup) {
-      router.replace("/(auth)/sign-in");
-    }
-  }, [isLoaded, isSignedIn, segments]);
-
-  if (!isLoaded) return <Loading />;
-
+function RootNavigator() {
   return (
     <Stack
       screenOptions={{
@@ -130,6 +113,7 @@ function RootGuard() {
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
+      <Stack.Screen name="sso-callback" options={{ headerShown: false, gestureEnabled: false }} />
     </Stack>
   );
 }
@@ -150,7 +134,7 @@ export default function RootLayout() {
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
       <SystemGate>
         <StatusBar style="dark" />
-        <RootGuard />
+        <RootNavigator />
       </SystemGate>
     </ClerkProvider>
   );

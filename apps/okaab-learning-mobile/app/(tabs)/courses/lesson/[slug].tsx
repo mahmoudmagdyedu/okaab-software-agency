@@ -334,7 +334,7 @@ export default function LessonScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { gap: 14, paddingBottom: 48 },
+  content: { gap: 14, paddingBottom: 118 },
   offline: { backgroundColor: theme.colors.goldLight, color: theme.colors.ink, padding: 10, borderRadius: 10, textAlign: "center" },
   kicker: { color: theme.colors.gold, fontWeight: "900", textAlign: "right" },
   steps: { flexDirection: "row-reverse", justifyContent: "space-between", marginVertical: 8 },

@@ -1,4 +1,5 @@
 import { useSignIn, useSSO } from "@clerk/expo";
+import { makeRedirectUri } from "expo-auth-session";
 import { Link, router } from "expo-router";
 import { useState } from "react";
 import {
@@ -13,6 +14,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { Action, Muted, Title } from "@/components";
 import { theme } from "@/theme";
@@ -20,8 +22,16 @@ import { theme } from "@/theme";
 type Mode = "auth" | "forgot-code" | "forgot-password";
 
 function message(value: unknown) {
-  const error = value as { errors?: { message?: string; longMessage?: string; code?: string }[] };
-  return error?.errors?.[0]?.longMessage || error?.errors?.[0]?.message || "راجع البيانات وحاول مرة أخرى";
+  const error = value as { code?: string; message?: string; errors?: { message?: string; longMessage?: string; code?: string }[] };
+  const code = error?.errors?.[0]?.code || error?.code;
+  const raw = `${error?.errors?.[0]?.longMessage || ""} ${error?.errors?.[0]?.message || ""} ${error?.message || ""}`;
+  if (code === "form_password_incorrect") return "كلمة المرور غير صحيحة. حاول مرة أخرى أو استعد حسابك.";
+  if (code === "form_identifier_not_found") return "لا يوجد حساب بهذا البريد. أنشئ حسابًا جديدًا للبدء.";
+  if (code === "session_exists") return "أنت مسجّل الدخول بالفعل.";
+  if (/authorized redirect|redirect uri|redirect_url/i.test(raw)) {
+    return "تعذّر الرجوع إلى تطبيق عُقاب بعد تسجيل Google. حدّث التطبيق ثم أعد المحاولة.";
+  }
+  return error?.errors?.[0]?.longMessage || error?.errors?.[0]?.message || error?.message || "راجع البيانات وحاول مرة أخرى";
 }
 
 export default function SignInScreen() {
@@ -36,6 +46,7 @@ export default function SignInScreen() {
   const insets = useSafeAreaInsets();
   const busy = fetchStatus === "fetching";
   const done = () => router.replace("/(tabs)");
+  const googleRedirectUrl = makeRedirectUri({ scheme: "okaab", path: "sso-callback" });
 
   const submit = async () => {
     setError("");
@@ -98,12 +109,19 @@ export default function SignInScreen() {
   const google = async () => {
     setError("");
     try {
-      const { createdSessionId, setActive } = await startSSOFlow({ strategy: "oauth_google" });
+      const { createdSessionId, setActive, signUp } = await startSSOFlow({
+        strategy: "oauth_google",
+        redirectUrl: googleRedirectUrl,
+      });
       if (createdSessionId) {
         await setActive?.({ session: createdSessionId });
         done();
+      } else if (signUp?.status === "missing_requirements") {
+        setError("يحتاج حساب Google إلى بيانات إضافية. جرّب إنشاء الحساب بالبريد مرة واحدة.");
       }
     } catch (value) {
+      const code = (value as { code?: string })?.code;
+      if (code === "SIGN_IN_CANCELLED" || code === "-5") return;
       setError(message(value));
     }
   };
@@ -120,14 +138,15 @@ export default function SignInScreen() {
           { paddingTop: Math.max(insets.top, 28), paddingBottom: Math.max(insets.bottom, 28) },
         ]}
       >
-        <View style={styles.brandRow}>
+        <Animated.View entering={FadeInDown.duration(420).springify().damping(18)} style={styles.brandRow}>
           <Image source={require("../../assets/okaab-icon-v2.png")} style={styles.logo} />
           <View style={styles.brandCopy}>
             <Text style={styles.brand}>عُقاب</Text>
             <Text style={styles.tagline}>تعلّم. اختبر. حلّق.</Text>
           </View>
-        </View>
-        <View style={styles.form} nativeID="clerk-captcha">
+        </Animated.View>
+        <Animated.View entering={FadeInDown.delay(80).duration(480).springify().damping(18)} style={styles.form}>
+          <View style={styles.secureChip}><Text style={styles.secureChipText}>دخول آمن ومشفّر</Text><Text style={styles.secureDot}>●</Text></View>
           <Title>{heading}</Title>
           <Muted>{description}</Muted>
           {mode === "auth" && (
@@ -163,7 +182,7 @@ export default function SignInScreen() {
             </>
           )}
           {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
-        </View>
+        </Animated.View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -175,13 +194,16 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  page: { flexGrow: 1, justifyContent: "center", paddingHorizontal: 18, gap: 18 },
-  brandRow: { flexDirection: "row-reverse", alignItems: "center", gap: 12, alignSelf: "flex-end", backgroundColor: "#11100ED9", borderRadius: 22, paddingVertical: 10, paddingHorizontal: 14 },
-  logo: { width: 58, height: 58, resizeMode: "contain" },
+  page: { flexGrow: 1, justifyContent: "center", paddingHorizontal: 20, gap: 14 },
+  brandRow: { flexDirection: "row-reverse", alignItems: "center", gap: 12, alignSelf: "flex-end", backgroundColor: "#11100EF0", borderRadius: 24, paddingVertical: 10, paddingHorizontal: 14, borderWidth: 1, borderColor: "#E8A33D55" },
+  logo: { width: 56, height: 56, resizeMode: "contain" },
   brandCopy: { alignItems: "flex-end" },
   brand: { color: theme.colors.gold, fontSize: 29, fontWeight: "900" },
   tagline: { color: "#F6F1E7", opacity: 0.78, fontWeight: "700" },
-  form: { gap: 12, backgroundColor: "#F6F1E7DE", borderWidth: 1.5, borderColor: "#181511", borderRadius: 28, padding: 20, shadowColor: "#000", shadowOpacity: 0.28, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 8 },
+  form: { gap: 12, backgroundColor: "#F6F1E7F2", borderWidth: 1.5, borderColor: "#181511", borderRadius: 30, padding: 20, shadowColor: "#000", shadowOpacity: 0.32, shadowRadius: 22, shadowOffset: { width: 0, height: 10 }, elevation: 10 },
+  secureChip: { alignSelf: "flex-end", flexDirection: "row-reverse", alignItems: "center", gap: 6, backgroundColor: "#1815110D", borderRadius: 99, paddingHorizontal: 10, paddingVertical: 6 },
+  secureChipText: { color: theme.colors.ink, opacity: 0.68, fontSize: 11, fontWeight: "800" },
+  secureDot: { color: theme.colors.success, fontSize: 10 },
   label: { color: theme.colors.ink, textAlign: "right", fontWeight: "900", marginTop: 2 },
   input: { minHeight: 52, borderWidth: 1.5, borderColor: `${theme.colors.ink}66`, borderRadius: 14, paddingHorizontal: 14, color: theme.colors.ink, textAlign: "right", backgroundColor: "#FFFDF8D9" },
   code: { textAlign: "center", fontSize: 22, letterSpacing: 8, writingDirection: "ltr" },

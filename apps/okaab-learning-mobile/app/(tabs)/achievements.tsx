@@ -119,7 +119,7 @@ function privateName(name: string) {
 }
 
 const styles = StyleSheet.create({
-  content: { gap: 16, paddingBottom: 36 },
+  content: { gap: 16, paddingBottom: 118 },
   hero: { backgroundColor: theme.colors.darkPaper, borderRadius: 28, padding: 22, alignItems: "center", gap: 5, borderWidth: 1, borderColor: `${theme.colors.gold}55` },
   kicker: { color: theme.colors.gold, fontWeight: "900" },
   points: { color: "#FFF", fontSize: 48, fontWeight: "900" },

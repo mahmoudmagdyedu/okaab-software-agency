@@ -182,7 +182,7 @@ function Feedback({ title, items }: { title: string; items: string[] }) {
 }
 
 const styles = StyleSheet.create({
-  content: { gap: 14, paddingBottom: 32 },
+  content: { gap: 14, paddingBottom: 118 },
   center: { flex: 1, justifyContent: "center", gap: 16 },
   kicker: { color: theme.colors.gold, textAlign: "right", fontWeight: "900" },
   promptCard: {

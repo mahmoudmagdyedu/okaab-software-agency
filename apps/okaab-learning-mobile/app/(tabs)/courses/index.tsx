@@ -2,6 +2,7 @@ import { useAuth } from "@clerk/expo";
 import { Link } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { apiRequest } from "@/api";
 import { Card, ErrorState, Loading, Muted, Screen, Title } from "@/components";
@@ -70,22 +71,33 @@ export default function CoursesCatalog() {
             <Muted>الفيديوهات والـSlides مرتبة في مسار واحد، وتقدّمك بيتزامن مع الموقع.</Muted>
           </View>
         }
-        renderItem={({ item, index }) => (
-          <Link href={{ pathname: "/(tabs)/courses/course/[slug]", params: { slug: item.slug } }} asChild>
-            <Pressable style={styles.course}>
-              <View style={styles.courseIndex}>
-                <Text style={styles.courseIndexText}>{String(index + 1).padStart(2, "0")}</Text>
-              </View>
-              <View style={styles.courseBody}>
-                <Text style={styles.courseTitle}>{item.title}</Text>
-                <Text numberOfLines={2} style={styles.courseDescription}>
-                  {item.description || "ابدأ الدروس بالترتيب واحفظ نقاطك تلقائيًا."}
-                </Text>
-                {isSignedIn && <Text style={styles.progress}>{completion(item)}% مكتمل</Text>}
-              </View>
-            </Pressable>
-          </Link>
-        )}
+        renderItem={({ item, index }) => {
+          const percent = completion(item);
+          return (
+            <Animated.View entering={FadeInDown.delay(Math.min(index, 6) * 55).duration(380)}>
+              <Link href={{ pathname: "/(tabs)/courses/course/[slug]", params: { slug: item.slug } }} asChild>
+                <Pressable style={({ pressed }) => [styles.course, pressed && styles.coursePressed]}>
+                  <View style={styles.courseIndex}>
+                    <Text style={styles.courseIndexText}>{String(index + 1).padStart(2, "0")}</Text>
+                    <Text style={styles.courseIndexLabel}>مسار</Text>
+                  </View>
+                  <View style={styles.courseBody}>
+                    <Text style={styles.courseTitle}>{item.title}</Text>
+                    <Text numberOfLines={2} style={styles.courseDescription}>
+                      {item.description || "ابدأ الدروس بالترتيب واحفظ نقاطك تلقائيًا."}
+                    </Text>
+                    {isSignedIn && (
+                      <View style={styles.progressWrap}>
+                        <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${percent}%` }]} /></View>
+                        <Text style={styles.progress}>{percent}%</Text>
+                      </View>
+                    )}
+                  </View>
+                </Pressable>
+              </Link>
+            </Animated.View>
+          );
+        }}
         ListEmptyComponent={
           <Card>
             <Title>المحتوى بيتجهّز</Title>
@@ -98,7 +110,7 @@ export default function CoursesCatalog() {
 }
 
 const styles = StyleSheet.create({
-  list: { paddingBottom: 40, gap: 12 },
+  list: { paddingBottom: 118, gap: 12 },
   header: { gap: 8, marginBottom: 16 },
   course: {
     minHeight: 116,
@@ -106,9 +118,15 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.card || "#FFFFFF",
     borderColor: `${theme.colors.ink || "#181511"}22`,
     borderWidth: 1,
-    borderRadius: theme.radius?.md || 8,
+    borderRadius: 22,
     overflow: "hidden",
+    shadowColor: "#000",
+    shadowOpacity: 0.07,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 2,
   },
+  coursePressed: { transform: [{ scale: 0.985 }], opacity: 0.92 },
   courseIndex: {
     width: 58,
     alignItems: "center",
@@ -116,8 +134,12 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.darkPaper || "#E8E2D6",
   },
   courseIndexText: { color: theme.colors.gold || "#E8A33D", fontWeight: "800", fontSize: 18 },
+  courseIndexLabel: { color: theme.colors.darkInk, opacity: 0.55, fontWeight: "800", fontSize: 10 },
   courseBody: { flex: 1, padding: 14, gap: 5 },
   courseTitle: { color: theme.colors.ink || "#181511", fontSize: 18, fontWeight: "700", textAlign: "right" },
   courseDescription: { color: theme.colors.ink || "#181511", opacity: 0.68, textAlign: "right", lineHeight: 20 },
-  progress: { color: theme.colors.success || "#388E3C", textAlign: "right", fontWeight: "700" },
+  progressWrap: { flexDirection: "row-reverse", alignItems: "center", gap: 8, marginTop: 3 },
+  progressTrack: { flex: 1, height: 6, backgroundColor: `${theme.colors.ink}18`, borderRadius: 6, overflow: "hidden" },
+  progressFill: { height: "100%", backgroundColor: theme.colors.gold, borderRadius: 6 },
+  progress: { color: theme.colors.success || "#388E3C", textAlign: "right", fontWeight: "800", fontSize: 11 },
 });

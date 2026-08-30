@@ -13,6 +13,7 @@ import {
 import { apiRequest } from "@/api";
 import { ErrorState, Loading, Muted, Screen } from "@/components";
 import { theme } from "@/theme";
+import Animated, { FadeInDown } from "react-native-reanimated";
 
 type Lesson = {
   id: string;
@@ -104,8 +105,9 @@ export default function CourseMapScreen() {
             const isCurrent = previousCompleted && !isCompleted;
             const isLocked = !isCompleted && !isCurrent;
             return (
-              <View
+              <Animated.View
                 key={lesson.id}
+                entering={FadeInDown.delay(Math.min(index, 8) * 55).duration(380)}
                 style={[styles.stage, index % 2 === 0 ? styles.leftNode : styles.rightNode]}
               >
                 <Pressable
@@ -145,7 +147,7 @@ export default function CourseMapScreen() {
                     {isCompleted ? "مكتمل + النقاط محفوظة" : isLocked ? "مرحلة مغلقة" : "ابدأ الآن"}
                   </Text>
                 </View>
-              </View>
+              </Animated.View>
             );
           })}
         </View>
@@ -161,7 +163,7 @@ export default function CourseMapScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { paddingBottom: 72, gap: 24 },
+  content: { paddingBottom: 118, gap: 24 },
   hero: {
     backgroundColor: theme.colors.darkPaper,
     borderRadius: 28,

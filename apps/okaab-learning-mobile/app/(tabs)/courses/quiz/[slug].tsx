@@ -237,7 +237,7 @@ export default function QuizScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { gap: 16, paddingBottom: 32 },
+  content: { gap: 16, paddingBottom: 118 },
   empty: { flex: 1, justifyContent: "center", gap: 16 },
   progressRow: { flexDirection: "row-reverse", justifyContent: "space-between" },
   progressText: { color: theme.colors.ink, fontWeight: "800" },

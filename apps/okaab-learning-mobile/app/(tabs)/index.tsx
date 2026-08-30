@@ -1,7 +1,8 @@
 import { useAuth } from "@clerk/expo";
 import { Link } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View, RefreshControl } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, Text, View, RefreshControl } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { apiRequest, flushEvents } from "@/api";
 import { Card, ErrorState, Loading, Muted, Screen, Title } from "@/components";
@@ -55,16 +56,19 @@ export default function Home() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void load(); }} />}
       >
         <View style={styles.header}>
-          <View style={styles.brand}>
-            <Text style={styles.logo}>عُقاب</Text>
-            <Text style={styles.tagline}>الأداء. الرؤية. السرعة.</Text>
-            <Text style={styles.brandCopy}>
-              فريق برمجيات عربي نبني منتجات رقمية واضحة، ونحوّل خبرتنا العملية إلى مسارات تعلّم
-              قصيرة وتفاعلية.
-            </Text>
-          </View>
+          <Animated.View entering={FadeInDown.duration(420).springify().damping(18)} style={styles.brand}>
+            <View style={styles.brandTop}>
+              <Image source={require("../../assets/okaab-icon-foreground.png")} style={styles.brandLogo} />
+              <View style={styles.brandTitleWrap}>
+                <Text style={styles.logo}>عُقاب</Text>
+                <Text style={styles.tagline}>تعلّم بخطوات واضحة، وحلّق بمهاراتك.</Text>
+              </View>
+            </View>
+            <Text style={styles.brandCopy}>مسارات عملية قصيرة تجمع الفيديو والتطبيق والاختبار في تجربة عربية واحدة.</Text>
+            <View style={styles.brandBadge}><Text style={styles.brandBadgeText}>منصة تعلّم من فريق Okaab</Text></View>
+          </Animated.View>
 
-          <View style={styles.aboutGrid}>
+          <Animated.View entering={FadeInDown.delay(80).duration(420)} style={styles.aboutGrid}>
             <View style={styles.aboutCard}>
               <Text style={styles.aboutNumber}>01</Text>
               <Text style={styles.aboutTitle}>تعلّم بالممارسة</Text>
@@ -75,7 +79,7 @@ export default function Home() {
               <Text style={styles.aboutTitle}>مسار واضح</Text>
               <Text style={styles.aboutText}>لا تشتت: مرحلة تفتح المرحلة التالية تلقائيًا.</Text>
             </View>
-          </View>
+          </Animated.View>
 
           {announcements.slice(0, 2).map((item) => (
             <View key={item.id} accessibilityRole="summary" style={styles.announcement}>
@@ -134,12 +138,17 @@ export default function Home() {
 }
 
 const styles = StyleSheet.create({
-  list: { paddingBottom: 40, gap: 12 },
+  list: { paddingBottom: 118, gap: 12 },
   header: { gap: 16, marginBottom: 8 },
-  brand: { backgroundColor: theme.colors.darkPaper || "#E8E2D6", borderRadius: theme.radius?.lg || 12, padding: 20 },
-  logo: { color: theme.colors.gold || "#E8A33D", fontSize: 30, fontWeight: "800", textAlign: "right" },
-  tagline: { color: theme.colors.darkInk || "#2C2621", opacity: 0.8, textAlign: "right" },
-  brandCopy: { color: theme.colors.darkInk, opacity: 0.68, textAlign: "right", lineHeight: 22, marginTop: 9 },
+  brand: { backgroundColor: theme.colors.darkPaper || "#181511", borderRadius: 28, padding: 20, gap: 12, borderWidth: 1, borderColor: `${theme.colors.gold}44`, overflow: "hidden" },
+  brandTop: { flexDirection: "row-reverse", alignItems: "center", gap: 14 },
+  brandLogo: { width: 70, height: 70, resizeMode: "contain" },
+  brandTitleWrap: { flex: 1, alignItems: "flex-end", gap: 2 },
+  logo: { color: theme.colors.gold || "#E8A33D", fontSize: 30, fontWeight: "900", textAlign: "right" },
+  tagline: { color: theme.colors.darkInk || "#F6F1E7", opacity: 0.88, textAlign: "right", fontWeight: "800", lineHeight: 21 },
+  brandCopy: { color: theme.colors.darkInk, opacity: 0.68, textAlign: "right", lineHeight: 22 },
+  brandBadge: { alignSelf: "flex-end", backgroundColor: `${theme.colors.gold}1F`, borderRadius: 99, paddingHorizontal: 11, paddingVertical: 7 },
+  brandBadgeText: { color: theme.colors.gold, fontSize: 11, fontWeight: "900" },
   aboutGrid: { flexDirection: "row-reverse", gap: 10 },
   aboutCard: { flex: 1, minHeight: 138, backgroundColor: theme.colors.card, borderRadius: 18, borderWidth: 1, borderColor: `${theme.colors.ink}20`, padding: 13, gap: 5 },
   aboutNumber: { color: theme.colors.gold, fontWeight: "900", fontSize: 18, textAlign: "right" },
