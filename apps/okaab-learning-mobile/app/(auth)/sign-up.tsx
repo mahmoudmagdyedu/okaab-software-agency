@@ -1,139 +1,189 @@
-import { useSignUp, useSSO } from "@clerk/expo";
-import { makeRedirectUri } from "expo-auth-session";
+import { useClerk, useSignUp } from "@clerk/expo";
+import { useSSO } from "@clerk/expo/experimental";
 import { Link, router } from "expo-router";
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { Action, Muted, Title } from "@/components";
+import { type AuthFieldErrors, authErrorMessage, isCancelledAuth, splitFieldErrors } from "@/auth-errors";
+import {
+  Alert,
+  AuthProcessingOverlay,
+  AuthScreen,
+  Divider,
+  Field,
+  GoogleButton,
+  PasswordField,
+  TextButton,
+} from "@/auth-ui";
+import { Action } from "@/components";
 import { theme } from "@/theme";
 
-function message(value: unknown) {
-  const error = value as { code?: string; message?: string; errors?: { message?: string; longMessage?: string; code?: string }[] };
-  const code = error?.errors?.[0]?.code || error?.code;
-  const raw = `${error?.errors?.[0]?.longMessage || ""} ${error?.errors?.[0]?.message || ""} ${error?.message || ""}`;
-  if (code === "form_identifier_exists") return "يوجد حساب بهذا البريد بالفعل. سجّل الدخول بدلًا من إنشاء حساب جديد.";
-  if (code === "form_password_pwned") return "اختر كلمة مرور مختلفة لم تظهر في تسريبات سابقة.";
-  if (/authorized redirect|redirect uri|redirect_url/i.test(raw)) {
-    return "تعذّر الرجوع إلى تطبيق عُقاب بعد تسجيل Google. حدّث التطبيق ثم أعد المحاولة.";
-  }
-  return error?.errors?.[0]?.longMessage || error?.errors?.[0]?.message || error?.message || "راجع البيانات وحاول مرة أخرى";
-}
+const GOOGLE_REDIRECT_URL = "okaab://sso-callback";
+const MIN_PASSWORD_LENGTH = 15;
 
 export default function SignUpScreen() {
   const { signUp, fetchStatus } = useSignUp();
+  const { setActive } = useClerk();
   const { startSSOFlow } = useSSO();
   const [verify, setVerify] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
-  const insets = useSafeAreaInsets();
+  const [notice, setNotice] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<AuthFieldErrors>({});
+  const [googleBusy, setGoogleBusy] = useState(false);
   const busy = fetchStatus === "fetching";
   const done = () => router.replace("/(tabs)");
-  const googleRedirectUrl = makeRedirectUri({ scheme: "okaab", path: "sso-callback" });
+
+  const clearFeedback = () => {
+    setError("");
+    setNotice("");
+    setFieldErrors({});
+  };
+
+  const activateExistingSession = async () => {
+    const sessionId = signUp.existingSession?.sessionId;
+    if (!sessionId) return false;
+    await setActive({ session: sessionId });
+    done();
+    return true;
+  };
 
   const submit = async () => {
-    setError("");
+    clearFeedback();
+    if (!email.trim()) {
+      setFieldErrors({ email: "اكتب بريدك الإلكتروني." });
+      return;
+    }
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setFieldErrors({ password: `يجب أن تتكون كلمة المرور من ${MIN_PASSWORD_LENGTH} حرفًا على الأقل.` });
+      return;
+    }
+
     const result = await signUp.password({ emailAddress: email.trim(), password });
+    if (await activateExistingSession()) return;
     if (result.error) {
-      setError(message(result.error));
+      const fields = splitFieldErrors(result.error);
+      setFieldErrors(fields);
+      if (!fields.email && !fields.password) setError(authErrorMessage(result.error));
       return;
     }
     const sent = await signUp.verifications.sendEmailCode();
     if (sent.error) {
-      setError(message(sent.error));
+      setError(authErrorMessage(sent.error));
       return;
     }
     setCode("");
+    setNotice("أرسلنا رمز التحقق. افحص البريد الوارد والرسائل غير المرغوبة.");
     setVerify(true);
   };
 
   const confirm = async () => {
-    setError("");
+    clearFeedback();
     const result = await signUp.verifications.verifyEmailCode({ code });
     if (result.error) {
-      setError(message(result.error));
+      const fields = splitFieldErrors(result.error);
+      setFieldErrors({ code: fields.code || authErrorMessage(result.error) });
       return;
     }
+    if (await activateExistingSession()) return;
     if (signUp.status === "complete") await signUp.finalize({ navigate: done });
   };
 
+  const resend = async () => {
+    clearFeedback();
+    const sent = await signUp.verifications.sendEmailCode();
+    if (sent.error) setError(authErrorMessage(sent.error));
+    else setNotice("تم إرسال رمز جديد إلى بريدك.");
+  };
+
   const google = async () => {
-    setError("");
+    clearFeedback();
+    setGoogleBusy(true);
     try {
-      const { createdSessionId, setActive, signUp: googleSignUp } = await startSSOFlow({
-        strategy: "oauth_google",
-        redirectUrl: googleRedirectUrl,
-      });
-      if (createdSessionId) {
-        await setActive?.({ session: createdSessionId });
+      const result = await startSSOFlow({ strategy: "oauth_google", redirectUrl: GOOGLE_REDIRECT_URL });
+      if (result.createdSessionId || result.signIn?.existingSession || result.signUp?.existingSession) {
         done();
-      } else if (googleSignUp?.status === "missing_requirements") {
-        setError("يحتاج حساب Google إلى بيانات إضافية. أكمل التسجيل بالبريد الإلكتروني.");
+      } else if (result.signUp?.status === "missing_requirements") {
+        setError("يحتاج حساب Google إلى بيانات إضافية. أكمل إنشاء الحساب بالبريد الإلكتروني.");
       }
     } catch (value) {
-      const errorCode = (value as { code?: string })?.code;
-      if (errorCode === "SIGN_IN_CANCELLED" || errorCode === "-5") return;
-      setError(message(value));
+      if (!isCancelledAuth(value)) setError(authErrorMessage(value));
+    } finally {
+      setGoogleBusy(false);
     }
   };
 
   return (
-    <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-      <ScrollView
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={[styles.page, { paddingTop: Math.max(insets.top, 28), paddingBottom: Math.max(insets.bottom, 28) }]}
+    <View style={styles.screen}>
+      <AuthScreen
+        eyebrow={verify ? "خطوة أخيرة لحماية حسابك" : "ابدأ رحلتك مع عُقاب"}
+        title={verify ? "أكد بريدك الإلكتروني" : "أنشئ حسابك"}
+        description={verify ? `أدخل الرمز المرسل إلى ${email}` : "حساب واحد يحفظ تقدّمك ونقاطك على الموقع والتطبيق."}
       >
-        <Animated.View entering={FadeInDown.duration(460).springify().damping(18)} style={styles.form}>
-          <View nativeID="clerk-captcha" />
-          <Text style={styles.brand}>عُقاب</Text>
-          <Title>{verify ? "أكد بريدك" : "ابدأ رحلة التعلّم"}</Title>
-          <Muted>{verify ? `أرسلنا رمزًا إلى ${email}` : "أنشئ حسابًا واحدًا يحفظ نقاطك وتقدمك على الموقع والتطبيق."}</Muted>
-          {!verify ? (
-            <>
-              <Text style={styles.label}>البريد الإلكتروني</Text>
-              <TextInput accessibilityLabel="البريد الإلكتروني" autoCapitalize="none" autoComplete="email" inputMode="email" placeholder="name@example.com" placeholderTextColor="#71695F" value={email} onChangeText={setEmail} style={styles.input} />
-              <Text style={styles.label}>كلمة المرور</Text>
-              <TextInput accessibilityLabel="كلمة المرور" autoComplete="new-password" secureTextEntry placeholder="8 أحرف أو أكثر" placeholderTextColor="#71695F" value={password} onChangeText={setPassword} style={styles.input} />
-              <Action title="إنشاء الحساب" onPress={() => void submit()} disabled={!email.trim() || password.length < 8} loading={busy} />
-              <View style={styles.divider}><View style={styles.line} /><Text style={styles.or}>أو</Text><View style={styles.line} /></View>
-              <Pressable disabled={busy} onPress={() => void google()} style={styles.google}>
-                <Text style={styles.googleG}>G</Text><Text style={styles.googleText}>إنشاء الحساب عبر Google</Text>
-              </Pressable>
-              <Link href="/(auth)/sign-in" asChild><Pressable style={styles.switch}><Text style={styles.switchText}>لديك حساب؟ سجّل الدخول</Text></Pressable></Link>
-            </>
-          ) : (
-            <>
-              <Text style={styles.label}>رمز التحقق</Text>
-              <TextInput accessibilityLabel="رمز التحقق" autoComplete="one-time-code" inputMode="numeric" maxLength={6} placeholder="000000" value={code} onChangeText={setCode} style={[styles.input, styles.code]} />
-              <Action title="تأكيد البريد والدخول" onPress={() => void confirm()} disabled={code.length < 6} loading={busy} />
-              <Pressable onPress={() => setVerify(false)}><Text style={styles.switchText}>تغيير البريد</Text></Pressable>
-            </>
-          )}
-          {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
-        </Animated.View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        <View nativeID="clerk-captcha" />
+        {!verify ? (
+          <>
+            <Field
+              label="البريد الإلكتروني"
+              error={fieldErrors.email}
+              autoCapitalize="none"
+              autoComplete="email"
+              inputMode="email"
+              placeholder="name@example.com"
+              value={email}
+              onChangeText={(value) => { setEmail(value); setFieldErrors((current) => ({ ...current, email: undefined })); }}
+            />
+            <PasswordField
+              label="كلمة المرور"
+              error={fieldErrors.password}
+              autoComplete="new-password"
+              placeholder="15 حرفًا على الأقل"
+              value={password}
+              onChangeText={(value) => { setPassword(value); setFieldErrors((current) => ({ ...current, password: undefined })); }}
+            />
+            <Text style={styles.hint}>{password.length}/{MIN_PASSWORD_LENGTH} حرفًا كحد أدنى</Text>
+            <Action title="إنشاء الحساب" onPress={() => void submit()} disabled={!email.trim() || password.length < MIN_PASSWORD_LENGTH} loading={busy} />
+            <Divider />
+            <GoogleButton title="إنشاء الحساب عبر Google" loading={googleBusy} disabled={busy} onPress={() => void google()} />
+            <Link href="/(auth)/sign-in" asChild>
+              <Pressable style={styles.switch}><Text style={styles.switchText}>لديك حساب؟ سجّل الدخول</Text></Pressable>
+            </Link>
+          </>
+        ) : (
+          <>
+            <Field
+              label="رمز التحقق"
+              error={fieldErrors.code}
+              autoComplete="one-time-code"
+              inputMode="numeric"
+              maxLength={6}
+              placeholder="000000"
+              value={code}
+              onChangeText={(value) => { setCode(value.replace(/\D/g, "")); setFieldErrors({}); }}
+              style={styles.codeInput}
+            />
+            <Action title="تأكيد البريد والدخول" onPress={() => void confirm()} disabled={code.length < 6} loading={busy} />
+            <View style={styles.linksRow}>
+              <TextButton title="إرسال رمز جديد" onPress={() => void resend()} disabled={busy} />
+              <TextButton title="تغيير البريد" onPress={() => { clearFeedback(); setVerify(false); signUp.reset(); }} disabled={busy} />
+            </View>
+          </>
+        )}
+        {notice ? <Alert success>{notice}</Alert> : null}
+        {error ? <Alert>{error}</Alert> : null}
+      </AuthScreen>
+      {googleBusy ? <AuthProcessingOverlay label="نُجهّز حسابك الآمن عبر Google…" /> : null}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  page: { flexGrow: 1, justifyContent: "center", paddingHorizontal: 20 },
-  form: { gap: 12, backgroundColor: "#F6F1E7F2", borderWidth: 1.5, borderColor: theme.colors.ink, borderRadius: 30, padding: 20, shadowColor: "#000", shadowOpacity: 0.32, shadowRadius: 22, shadowOffset: { width: 0, height: 10 }, elevation: 10 },
-  brand: { color: theme.colors.gold, fontSize: 34, fontWeight: "900", textAlign: "right" },
-  label: { color: theme.colors.ink, textAlign: "right", fontWeight: "900", marginTop: 3 },
-  input: { minHeight: 52, borderWidth: 1.5, borderColor: `${theme.colors.ink}66`, borderRadius: 14, paddingHorizontal: 14, color: theme.colors.ink, textAlign: "right", backgroundColor: "#FFFDF8D9" },
-  code: { textAlign: "center", fontSize: 22, letterSpacing: 8, writingDirection: "ltr" },
-  divider: { flexDirection: "row", alignItems: "center", gap: 10 },
-  line: { height: 1, flex: 1, backgroundColor: `${theme.colors.ink}32` },
-  or: { color: theme.colors.ink, opacity: 0.65 },
-  google: { minHeight: 50, flexDirection: "row-reverse", gap: 10, borderWidth: 1.5, borderColor: theme.colors.ink, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: "#FFFFFFC9" },
-  googleG: { color: "#4285F4", fontSize: 18, fontWeight: "900" },
-  googleText: { color: theme.colors.ink, fontWeight: "900" },
+  hint: { color: "#71695F", fontFamily: theme.font.regular, fontSize: 12, textAlign: "right", marginTop: -6 },
   switch: { minHeight: 44, justifyContent: "center" },
-  switchText: { color: "#A76500", fontWeight: "900", textAlign: "center", padding: 8 },
-  error: { color: theme.colors.error, backgroundColor: "#FFF4F2", borderWidth: 1, borderColor: theme.colors.error, borderRadius: 12, padding: 12, textAlign: "right", lineHeight: 21 },
+  switchText: { color: "#9A5B00", fontFamily: theme.font.semibold, fontSize: 14, textAlign: "center" },
+  linksRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  codeInput: { textAlign: "center", fontSize: 22, letterSpacing: 8, writingDirection: "ltr" },
 });

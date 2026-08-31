@@ -1,7 +1,9 @@
 import { useAuth } from "@clerk/expo";
 import { Redirect, Stack } from "expo-router";
-import { StyleSheet, View } from "react-native";
+import { Image, StyleSheet, View } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
+import { LinearGradient } from "expo-linear-gradient";
+import { StatusBar } from "expo-status-bar";
 import { Loading } from "@/components";
 import { theme } from "@/theme";
 
@@ -24,6 +26,11 @@ function AuthBackdrop() {
   return (
     <View style={styles.container}>
       <View style={styles.videoContainer}>
+        <Image
+          source={require("../../assets/auth-background-poster.jpg")}
+          resizeMode="cover"
+          style={styles.poster}
+        />
         <VideoView
           player={player}
           style={styles.video}
@@ -31,8 +38,13 @@ function AuthBackdrop() {
           contentFit="cover"
         />
         <View style={styles.overlay} />
-        <View style={styles.scrim} />
+        <LinearGradient
+          colors={["rgba(16,14,11,.10)", "rgba(16,14,11,.34)", "rgba(16,14,11,.78)"]}
+          locations={[0, 0.48, 1]}
+          style={styles.scrim}
+        />
       </View>
+      <StatusBar style="light" />
       <Stack
         screenOptions={{
           headerShown: false,
@@ -53,13 +65,14 @@ const styles = StyleSheet.create({
   videoContainer: {
     ...StyleSheet.absoluteFill,
   },
+  poster: { ...StyleSheet.absoluteFill, width: "100%", height: "100%" },
   video: {
-    flex: 1,
+    ...StyleSheet.absoluteFill,
   },
   overlay: {
     ...StyleSheet.absoluteFill,
     backgroundColor: "#F6F1E7",
-    opacity: 0.42,
+    opacity: 0.3,
   },
-  scrim: { ...StyleSheet.absoluteFill, backgroundColor: "rgba(16, 14, 11, 0.22)" },
+  scrim: { ...StyleSheet.absoluteFill },
 });

@@ -5,9 +5,16 @@ import { Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import { I18nManager, Linking, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import {
+  IBMPlexSansArabic_400Regular,
+  IBMPlexSansArabic_500Medium,
+  IBMPlexSansArabic_600SemiBold,
+  IBMPlexSansArabic_700Bold,
+  useFonts,
+} from "@expo-google-fonts/ibm-plex-sans-arabic";
 
 import { apiRequest } from "@/api";
-import { Action, Loading, Muted, Title } from "@/components";
+import { Action, EagleLoader, Loading, Muted, Title } from "@/components";
 import { theme } from "@/theme";
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
@@ -119,6 +126,15 @@ function RootNavigator() {
 }
 
 export default function RootLayout() {
+  const [fontsLoaded] = useFonts({
+    IBMPlexSansArabic_400Regular,
+    IBMPlexSansArabic_500Medium,
+    IBMPlexSansArabic_600SemiBold,
+    IBMPlexSansArabic_700Bold,
+  });
+
+  if (!fontsLoaded) return <EagleLoader label={null} />;
+
   if (!publishableKey) {
     return (
       <SystemState
