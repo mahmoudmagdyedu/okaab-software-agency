@@ -122,6 +122,7 @@ function RootNavigator() {
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
         <Stack.Screen name="sso-callback" options={{ headerShown: false, gestureEnabled: false }} />
+        <Stack.Screen name="session-task" options={{ headerShown: false, gestureEnabled: false }} />
       </Stack>
     </View>
   );

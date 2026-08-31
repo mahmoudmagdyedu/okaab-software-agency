@@ -1,6 +1,6 @@
 import { useAuth, useSessionList } from "@clerk/expo";
-import { Redirect, Stack } from "expo-router";
-import { useEffect, useState } from "react";
+import { Redirect, Stack, router } from "expo-router";
+import { useEffect, useRef, useState } from "react";
 import { Image, StyleSheet, View } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { LinearGradient } from "expo-linear-gradient";
@@ -9,35 +9,39 @@ import { EagleLoader } from "@/components";
 import { theme } from "@/theme";
 
 export default function AuthLayout() {
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn, sessionId } = useAuth({ treatPendingAsSignedOut: false });
   const sessionList = useSessionList();
-  const [pendingCleanupFinished, setPendingCleanupFinished] = useState(false);
+  const [activatingPending, setActivatingPending] = useState(false);
+  const attemptedPendingSession = useRef<string | null>(null);
+  const activeSession = sessionList.isLoaded
+    ? sessionList.sessions.find((session) => session.id === sessionId)
+    : undefined;
+  const pendingSession = sessionList.isLoaded
+    ? sessionList.sessions.find((session) => session.status === "pending")
+    : undefined;
 
   useEffect(() => {
     if (!isLoaded || !sessionList.isLoaded) return;
-    if (isSignedIn) {
-      setPendingCleanupFinished(true);
-      return;
-    }
+    if (
+      isSignedIn
+      || !pendingSession
+      || activatingPending
+      || attemptedPendingSession.current === pendingSession.id
+    ) return;
+    attemptedPendingSession.current = pendingSession.id;
+    setActivatingPending(true);
+    void sessionList.setActive({
+      session: pendingSession.id,
+      navigate: ({ session }) => {
+        router.replace(session.currentTask ? "/session-task" : "/(tabs)");
+      },
+    })
+      .catch(() => router.replace("/session-task"))
+      .finally(() => setActivatingPending(false));
+  }, [activatingPending, isLoaded, isSignedIn, pendingSession, sessionList]);
 
-    const pendingSessions = sessionList.sessions.filter((session) => session.status === "pending");
-    if (!pendingSessions.length) {
-      setPendingCleanupFinished(true);
-      return;
-    }
-
-    let cancelled = false;
-    void Promise.allSettled(pendingSessions.map((session) => session.remove()))
-      .finally(() => {
-        if (!cancelled) setPendingCleanupFinished(true);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isLoaded, isSignedIn, sessionList.isLoaded, sessionList.sessions]);
-
-  if (!isLoaded || !sessionList.isLoaded || !pendingCleanupFinished) return <EagleLoader label="نراجع جلسة الدخول بأمان…" />;
+  if (!isLoaded || !sessionList.isLoaded || activatingPending) return <EagleLoader label="نراجع جلسة الدخول بأمان…" />;
+  if (isSignedIn && activeSession?.status === "pending") return <Redirect href="/session-task" />;
   if (isSignedIn) return <Redirect href="/(tabs)" />;
 
   return <AuthBackdrop />;

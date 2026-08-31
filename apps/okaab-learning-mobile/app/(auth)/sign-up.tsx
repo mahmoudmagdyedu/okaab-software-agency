@@ -1,6 +1,6 @@
 import { useClerk, useSignUp } from "@clerk/expo";
 import { useSSO } from "@clerk/expo/experimental";
-import { Link, router } from "expo-router";
+import { Link } from "expo-router";
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -16,6 +16,7 @@ import {
   TextButton,
 } from "@/auth-ui";
 import { Action } from "@/components";
+import { navigateAfterAuthentication } from "@/auth-session";
 import { theme } from "@/theme";
 
 const GOOGLE_REDIRECT_URL = "okaab://sso-callback";
@@ -34,7 +35,6 @@ export default function SignUpScreen() {
   const [fieldErrors, setFieldErrors] = useState<AuthFieldErrors>({});
   const [googleBusy, setGoogleBusy] = useState(false);
   const busy = fetchStatus === "fetching";
-  const done = () => router.replace("/(tabs)");
 
   const clearFeedback = () => {
     setError("");
@@ -78,7 +78,7 @@ export default function SignUpScreen() {
       setFieldErrors({ code: fields.code || authErrorMessage(result.error) });
       return;
     }
-    if (signUp.status === "complete") await signUp.finalize({ navigate: done });
+    if (signUp.status === "complete") await signUp.finalize({ navigate: navigateAfterAuthentication });
   };
 
   const resend = async () => {
@@ -97,8 +97,7 @@ export default function SignUpScreen() {
         || result.signIn?.existingSession?.sessionId
         || result.signUp?.existingSession?.sessionId;
       if (sessionId) {
-        await setActive({ session: sessionId });
-        done();
+        await setActive({ session: sessionId, navigate: navigateAfterAuthentication });
       } else if (result.authSessionResult?.type && result.authSessionResult.type !== "success") {
         return;
       } else if (result.signUp?.status === "missing_requirements") {
