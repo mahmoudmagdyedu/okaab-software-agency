@@ -12,7 +12,7 @@ type Row = { id: string; display_name: string; points: number; rank: number };
 type Leaderboard = { leaders: Row[]; me: Row | null };
 
 export default function AchievementsScreen() {
-  const { getToken } = useAuth();
+  const { getToken } = useAuth({ treatPendingAsSignedOut: false });
   const [period, setPeriod] = useState<Period>("weekly");
   const [overview, setOverview] = useState<Overview | null>(null);
   const [board, setBoard] = useState<Leaderboard | null>(null);

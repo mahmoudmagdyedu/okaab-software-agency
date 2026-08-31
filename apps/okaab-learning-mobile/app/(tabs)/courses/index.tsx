@@ -10,7 +10,7 @@ import { theme } from "@/theme";
 import type { Catalog, Course } from "@/types";
 
 export default function CoursesCatalog() {
-  const { isLoaded, isSignedIn, getToken } = useAuth();
+  const { isLoaded, isSignedIn, getToken } = useAuth({ treatPendingAsSignedOut: false });
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [error, setError] = useState("");
   const [refreshing, setRefreshing] = useState(false);

@@ -41,7 +41,7 @@ function translate(item: ClerkErrorItem | ClerkErrorLike) {
     case "verification_expired":
       return "انتهت صلاحية الرمز. اطلب رمزًا جديدًا.";
     case "session_exists":
-      return "وجدنا جلسة سابقة، لكن تعذّر فتحها تلقائيًا. أغلق التطبيق وافتحه ثم حاول مجددًا.";
+      return "حسابك مفتوح بالفعل على هذا الجهاز. سنعيد فتحه تلقائيًا الآن.";
     default:
       return item.longMessage || item.message || "راجع البيانات وحاول مرة أخرى.";
   }

@@ -22,7 +22,7 @@ type TaskGrade = {
 
 export default function TaskScreen() {
   const { slug, course } = useLocalSearchParams<{ slug: string; course?: string }>();
-  const { isLoaded, isSignedIn, getToken } = useAuth();
+  const { isLoaded, isSignedIn, getToken } = useAuth({ treatPendingAsSignedOut: false });
   const [lesson, setLesson] = useState<LessonResult["lesson"] | null>(null);
   const [submission, setSubmission] = useState("");
   const [grade, setGrade] = useState<TaskGrade | null>(null);

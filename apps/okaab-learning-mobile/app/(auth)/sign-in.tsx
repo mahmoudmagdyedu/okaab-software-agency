@@ -46,14 +46,34 @@ export default function SignInScreen() {
 
   const activateExistingSession = async () => {
     const normalizedEmail = email.trim().toLowerCase();
-    const matchingClientSession = client?.sessions?.find(
-      (session) => session.user?.primaryEmailAddress?.emailAddress.toLowerCase() === normalizedEmail,
-    );
-    const sessionId = signIn.existingSession?.sessionId || matchingClientSession?.id;
+    const findSessionId = (source = client) => {
+      const sessions = source?.signedInSessions || [];
+      const matchingClientSession = sessions.find(
+        (session) => session.user?.primaryEmailAddress?.emailAddress.toLowerCase() === normalizedEmail,
+      );
+      const resumableSession = sessions.find(
+        (session) => session.status === "active" || session.status === "pending",
+      );
+      return signIn.existingSession?.sessionId
+        || matchingClientSession?.id
+        || source?.lastActiveSessionId
+        || resumableSession?.id;
+    };
+
+    let sessionId = findSessionId();
+    if (!sessionId) {
+      const refreshedClient = await client?.reload().catch(() => null);
+      sessionId = findSessionId(refreshedClient || client);
+    }
     if (!sessionId) return false;
-    await setActive({ session: sessionId });
-    done();
-    return true;
+
+    try {
+      await setActive({ session: sessionId });
+      done();
+      return true;
+    } catch {
+      return false;
+    }
   };
 
   const submit = async () => {
@@ -74,6 +94,7 @@ export default function SignInScreen() {
       return;
     }
     if (result.error) {
+      if (await activateExistingSession()) return;
       const fields = splitFieldErrors(result.error);
       setFieldErrors(fields);
       if (!fields.email && !fields.password) setError(authErrorMessage(result.error));

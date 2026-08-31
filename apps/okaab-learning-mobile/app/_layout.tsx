@@ -108,20 +108,22 @@ function SystemState({
 
 function RootNavigator() {
   return (
-    <Stack
-      screenOptions={{
-        headerTitleAlign: "center",
-        headerBackTitle: "رجوع",
-        contentStyle: { direction: "rtl", backgroundColor: theme.colors.paper },
-        headerStyle: { backgroundColor: theme.colors.paper },
-        headerTintColor: theme.colors.ink,
-      }}
-    >
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-      <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
-      <Stack.Screen name="sso-callback" options={{ headerShown: false, gestureEnabled: false }} />
-    </Stack>
+    <View style={styles.navigator}>
+      <Stack
+        screenOptions={{
+          headerTitleAlign: "center",
+          headerBackTitle: "رجوع",
+          contentStyle: { direction: "rtl", backgroundColor: theme.colors.paper },
+          headerStyle: { backgroundColor: theme.colors.paper },
+          headerTintColor: theme.colors.ink,
+        }}
+      >
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
+        <Stack.Screen name="sso-callback" options={{ headerShown: false, gestureEnabled: false }} />
+      </Stack>
+    </View>
   );
 }
 
@@ -157,6 +159,7 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
+  navigator: { flex: 1, backgroundColor: theme.colors.paper },
   system: {
     flex: 1,
     backgroundColor: theme.colors.paper,

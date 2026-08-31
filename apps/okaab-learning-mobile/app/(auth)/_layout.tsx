@@ -1,5 +1,6 @@
-import { useAuth } from "@clerk/expo";
+import { useAuth, useClerk, useSessionList } from "@clerk/expo";
 import { Redirect, Stack } from "expo-router";
+import { useEffect, useState } from "react";
 import { Image, StyleSheet, View } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { LinearGradient } from "expo-linear-gradient";
@@ -8,9 +9,44 @@ import { Loading } from "@/components";
 import { theme } from "@/theme";
 
 export default function AuthLayout() {
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn } = useAuth({ treatPendingAsSignedOut: false });
+  const sessionList = useSessionList();
+  const { client } = useClerk();
+  const [recoveryFinished, setRecoveryFinished] = useState(false);
 
-  if (!isLoaded) return <Loading />;
+  useEffect(() => {
+    if (!isLoaded || !sessionList.isLoaded) return;
+    if (isSignedIn) {
+      setRecoveryFinished(true);
+      return;
+    }
+
+    const resumable = sessionList.sessions.find(
+      (session) =>
+        session.id === client.lastActiveSessionId &&
+        (session.status === "active" || session.status === "pending"),
+    ) || sessionList.sessions.find(
+      (session) => session.status === "active" || session.status === "pending",
+    );
+
+    if (!resumable) {
+      setRecoveryFinished(true);
+      return;
+    }
+
+    let cancelled = false;
+    void sessionList.setActive({ session: resumable.id })
+      .catch(() => undefined)
+      .finally(() => {
+        if (!cancelled) setRecoveryFinished(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [client.lastActiveSessionId, isLoaded, isSignedIn, sessionList]);
+
+  if (!isLoaded || !sessionList.isLoaded || !recoveryFinished) return <Loading />;
   if (isSignedIn) return <Redirect href="/(tabs)" />;
 
   return <AuthBackdrop />;

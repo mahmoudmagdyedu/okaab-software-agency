@@ -22,7 +22,7 @@ export default function QuizScreen() {
     next?: "task" | "finish";
     course?: string;
   }>();
-  const { isLoaded, isSignedIn, getToken } = useAuth();
+  const { isLoaded, isSignedIn, getToken } = useAuth({ treatPendingAsSignedOut: false });
   const [questions, setQuestions] = useState<QuizQuestion[] | null>(null);
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState("");

@@ -23,7 +23,7 @@ const MIN_PASSWORD_LENGTH = 15;
 
 export default function SignUpScreen() {
   const { signUp, fetchStatus } = useSignUp();
-  const { setActive } = useClerk();
+  const { setActive, client } = useClerk();
   const { startSSOFlow } = useSSO();
   const [verify, setVerify] = useState(false);
   const [email, setEmail] = useState("");
@@ -43,11 +43,29 @@ export default function SignUpScreen() {
   };
 
   const activateExistingSession = async () => {
-    const sessionId = signUp.existingSession?.sessionId;
+    const findSessionId = (source = client) => {
+      const resumableSession = source?.signedInSessions?.find(
+        (session) => session.status === "active" || session.status === "pending",
+      );
+      return signUp.existingSession?.sessionId
+        || source?.lastActiveSessionId
+        || resumableSession?.id;
+    };
+
+    let sessionId = findSessionId();
+    if (!sessionId) {
+      const refreshedClient = await client?.reload().catch(() => null);
+      sessionId = findSessionId(refreshedClient || client);
+    }
     if (!sessionId) return false;
-    await setActive({ session: sessionId });
-    done();
-    return true;
+
+    try {
+      await setActive({ session: sessionId });
+      done();
+      return true;
+    } catch {
+      return false;
+    }
   };
 
   const submit = async () => {
@@ -64,6 +82,7 @@ export default function SignUpScreen() {
     const result = await signUp.password({ emailAddress: email.trim(), password });
     if (await activateExistingSession()) return;
     if (result.error) {
+      if (await activateExistingSession()) return;
       const fields = splitFieldErrors(result.error);
       setFieldErrors(fields);
       if (!fields.email && !fields.password) setError(authErrorMessage(result.error));

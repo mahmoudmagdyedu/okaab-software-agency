@@ -27,7 +27,7 @@ function TabIcon({
 }
 
 export default function TabsLayout() {
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn } = useAuth({ treatPendingAsSignedOut: false });
 
   if (!isLoaded) return <Loading />;
   if (!isSignedIn) return <Redirect href="/(auth)/sign-in" />;

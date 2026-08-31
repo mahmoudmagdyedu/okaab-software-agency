@@ -10,7 +10,7 @@ import { theme } from "@/theme";
 import type { Announcement, Overview, PublicConfig } from "@/types";
 
 export default function Home() {
-  const { isLoaded, isSignedIn, getToken } = useAuth();
+  const { isLoaded, isSignedIn, getToken } = useAuth({ treatPendingAsSignedOut: false });
   const [overview, setOverview] = useState<Overview | null>(null);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [config, setConfig] = useState<PublicConfig>({});

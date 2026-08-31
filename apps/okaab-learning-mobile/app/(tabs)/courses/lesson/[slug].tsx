@@ -32,7 +32,7 @@ type Stage = "video" | "slides" | "quiz";
 
 export default function LessonScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
-  const { isLoaded, isSignedIn, getToken } = useAuth();
+  const { isLoaded, isSignedIn, getToken } = useAuth({ treatPendingAsSignedOut: false });
   const playerRef = useRef<WebView>(null);
   const [data, setData] = useState<Result | null>(null);
   const [error, setError] = useState("");
