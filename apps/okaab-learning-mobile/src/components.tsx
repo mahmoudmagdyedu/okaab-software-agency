@@ -91,7 +91,7 @@ function ContentSkeleton() {
   return (
     <View accessibilityRole="progressbar" accessibilityLabel="جارٍ تحميل المحتوى" style={styles.skeletonPage}>
       <View style={styles.skeletonBrandRow}>
-        <View style={styles.skeletonMiniLogo}><FlyingEagleLogo color={theme.colors.gold} /></View>
+        <View style={styles.skeletonBrandMark} />
         <Animated.View style={[styles.skeletonTitle, pulseStyle]} />
       </View>
       <Animated.View style={[styles.skeletonHero, pulseStyle]} />
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
   loadingKicker: { color: theme.colors.gold, fontSize: 10, letterSpacing: 2.4, fontFamily: theme.font.bold },
   skeletonPage: { flex: 1, backgroundColor: theme.colors.paper, paddingHorizontal: 20, paddingTop: 28, paddingBottom: 104 },
   skeletonBrandRow: { flexDirection: "row-reverse", alignItems: "center", gap: 12, marginBottom: 22 },
-  skeletonMiniLogo: { width: 44, height: 28 },
+  skeletonBrandMark: { width: 44, height: 12, borderRadius: 6, backgroundColor: "rgba(232,163,61,.58)" },
   skeletonTitle: { width: 132, height: 20, borderRadius: 10, backgroundColor: "rgba(24,21,17,.13)" },
   skeletonHero: { height: 132, borderRadius: 28, backgroundColor: "rgba(24,21,17,.10)", marginBottom: 22 },
   skeletonLineWide: { width: "72%", height: 16, borderRadius: 8, backgroundColor: "rgba(24,21,17,.12)", alignSelf: "flex-end", marginBottom: 10 },

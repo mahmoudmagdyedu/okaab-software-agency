@@ -3,7 +3,7 @@ import NetInfo from "@react-native-community/netinfo";
 import { createBridgeScript, createYouTubePlayerHtml } from "@okaab/bridge";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { WebView } from "react-native-webview";
 
 import { apiRequest, enqueueEvent, flushEvents } from "@/api";
@@ -32,7 +32,7 @@ type Stage = "video" | "slides" | "quiz";
 
 export default function LessonScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
-  const { isLoaded, isSignedIn, getToken } = useAuth({ treatPendingAsSignedOut: false });
+  const { isLoaded, isSignedIn, getToken } = useAuth();
   const playerRef = useRef<WebView>(null);
   const [data, setData] = useState<Result | null>(null);
   const [error, setError] = useState("");
@@ -44,11 +44,13 @@ export default function LessonScreen() {
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(false);
   const [rate, setRate] = useState(1);
+  const [playerRevision, setPlayerRevision] = useState(0);
 
   const load = useCallback(async () => {
     try {
       const next = await apiRequest<Result>(`/lessons/${encodeURIComponent(slug)}`, getToken);
       setData(next);
+      setPlayerError("");
       const nextVideo = Number(next.progress?.video_percent || 0);
       const nextSlide = Number(next.progress?.last_slide || 0);
       setVideoPercent(nextVideo);
@@ -127,7 +129,7 @@ export default function LessonScreen() {
           code === "100"
             ? "الفيديو حُذف أو أصبح خاصًا."
             : ["101", "150"].includes(code)
-              ? "طلب YouTube تسجيل الدخول للتحقق من الجهاز. افتح الفيديو في YouTube مرة ثم أعد المحاولة."
+              ? "صاحب الفيديو عطّل تشغيله داخل التطبيقات والمواقع. يمكنك فتحه في YouTube أو متابعة بقية الدرس."
             : code === "153"
               ? "تعذّر إرسال هوية تطبيق عُقاب إلى YouTube. أعد المحاولة بعد تحديث الاتصال."
               : "تعذّر تشغيل الفيديو الآن. تحقّق من الإنترنت ثم أعد المحاولة.",
@@ -157,6 +159,13 @@ export default function LessonScreen() {
 
   const playerCommand = (command: string, value?: number) => {
     playerRef.current?.postMessage(JSON.stringify({ source: "okaab-player", command, value }));
+  };
+  const retryPlayer = () => {
+    setPlayerError("");
+    setPlayerRevision((current) => current + 1);
+  };
+  const continueWithoutVideo = () => {
+    setStage(data!.slideDecks.length ? "slides" : "quiz");
   };
   const requiredSlide = Number(data!.lesson.required_slide_index ?? 1);
   const slidesReady = !data!.slideDecks.length || lastSlide >= requiredSlide;
@@ -216,6 +225,7 @@ export default function LessonScreen() {
           <View style={styles.playerCard}>
             <View style={styles.videoFrame}>
               <WebView
+                key={`${data!.videos[0].youtube_video_id}-${playerRevision}`}
                 ref={playerRef}
                 source={{ html: videoHtml, baseUrl: "https://okaab.org" }}
                 style={styles.player}
@@ -231,8 +241,19 @@ export default function LessonScreen() {
                 <View style={styles.playerError}>
                   <Text style={styles.playerErrorTitle}>الفيديو لم يبدأ</Text>
                   <Text style={styles.playerErrorText}>{playerError}</Text>
-                  <Pressable onPress={() => void load()} style={styles.retry}>
-                    <Text style={styles.retryText}>إعادة المحاولة</Text>
+                  <View style={styles.playerErrorActions}>
+                    <Pressable onPress={retryPlayer} style={styles.retry}>
+                      <Text style={styles.retryText}>إعادة المحاولة</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => void Linking.openURL(`https://www.youtube.com/watch?v=${data!.videos[0].youtube_video_id}`)}
+                      style={styles.openYouTube}
+                    >
+                      <Text style={styles.openYouTubeText}>فتح في YouTube</Text>
+                    </Pressable>
+                  </View>
+                  <Pressable onPress={continueWithoutVideo} style={styles.skipVideo}>
+                    <Text style={styles.skipVideoText}>متابعة الدرس بدون الفيديو</Text>
                   </Pressable>
                 </View>
               ) : null}
@@ -352,6 +373,11 @@ const styles = StyleSheet.create({
   playerErrorText: { color: "#FFF", opacity: 0.82, textAlign: "center", lineHeight: 22 },
   retry: { borderColor: theme.colors.gold, borderWidth: 1, borderRadius: 10, minHeight: 42, paddingHorizontal: 18, justifyContent: "center" },
   retryText: { color: theme.colors.gold, fontWeight: "900" },
+  playerErrorActions: { flexDirection: "row-reverse", alignItems: "center", justifyContent: "center", gap: 8, flexWrap: "wrap" },
+  openYouTube: { backgroundColor: theme.colors.gold, borderRadius: 10, minHeight: 42, paddingHorizontal: 16, justifyContent: "center" },
+  openYouTubeText: { color: theme.colors.ink, fontWeight: "900" },
+  skipVideo: { minHeight: 40, justifyContent: "center", paddingHorizontal: 8 },
+  skipVideoText: { color: "#FFF", textDecorationLine: "underline", opacity: 0.8, fontWeight: "700" },
   controlRail: { minHeight: 50, flexDirection: "row-reverse", alignItems: "center", gap: 8, paddingHorizontal: 2 },
   controlPrimary: { width: 44, height: 44, borderRadius: 22, backgroundColor: theme.colors.gold, alignItems: "center", justifyContent: "center" },
   controlPrimaryText: { color: theme.colors.ink, fontWeight: "900", fontSize: 18 },

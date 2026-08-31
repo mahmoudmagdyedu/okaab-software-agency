@@ -10,7 +10,7 @@ import { theme } from "@/theme";
 import type { Announcement, Overview, PublicConfig } from "@/types";
 
 export default function Home() {
-  const { isLoaded, isSignedIn, getToken } = useAuth({ treatPendingAsSignedOut: false });
+  const { isLoaded, isSignedIn, getToken } = useAuth();
   const [overview, setOverview] = useState<Overview | null>(null);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [config, setConfig] = useState<PublicConfig>({});
@@ -58,7 +58,7 @@ export default function Home() {
         <View style={styles.header}>
           <Animated.View entering={FadeInDown.duration(420).springify().damping(18)} style={styles.brand}>
             <View style={styles.brandTop}>
-              <Image source={require("../../assets/okaab-icon-foreground.png")} style={styles.brandLogo} />
+              <Image accessibilityLabel="شعار عُقاب" source={require("../../assets/okaab-brand-logo.png")} style={styles.brandLogo} />
               <View style={styles.brandTitleWrap}>
                 <Text style={styles.logo}>عُقاب</Text>
                 <Text style={styles.tagline}>تعلّم بخطوات واضحة، وحلّق بمهاراتك.</Text>
@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
   header: { gap: 16, marginBottom: 8 },
   brand: { backgroundColor: theme.colors.darkPaper || "#181511", borderRadius: 28, padding: 20, gap: 12, borderWidth: 1, borderColor: `${theme.colors.gold}44`, overflow: "hidden" },
   brandTop: { flexDirection: "row-reverse", alignItems: "center", gap: 14 },
-  brandLogo: { width: 70, height: 70, resizeMode: "contain" },
+  brandLogo: { width: 86, height: 62, resizeMode: "cover", borderRadius: 15, backgroundColor: "#050403" },
   brandTitleWrap: { flex: 1, alignItems: "flex-end", gap: 2 },
   logo: { color: theme.colors.gold || "#E8A33D", fontSize: 30, fontWeight: "900", textAlign: "right" },
   tagline: { color: theme.colors.darkInk || "#F6F1E7", opacity: 0.88, textAlign: "right", fontWeight: "800", lineHeight: 21 },

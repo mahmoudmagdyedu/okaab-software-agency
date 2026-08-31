@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { type PropsWithChildren, useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
+  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -62,7 +63,10 @@ export function AuthScreen({
         ]}
       >
         <Animated.View style={[styles.identity, introStyle]}>
-          <Text style={styles.brand}>عُقاب</Text>
+          <View style={styles.brandRow}>
+            <Image accessibilityLabel="شعار عُقاب" source={require("../assets/okaab-brand-logo.png")} style={styles.brandLogo} />
+            <Text style={styles.brand}>عُقاب</Text>
+          </View>
           <View style={styles.identityRule} />
           <Text style={styles.promise}>تعلّم بوضوح. طبّق بثقة. حلّق أبعد.</Text>
         </Animated.View>
@@ -197,6 +201,8 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   page: { flexGrow: 1, justifyContent: "space-between", paddingHorizontal: 16, gap: 28 },
   identity: { alignSelf: "flex-end", alignItems: "flex-end", paddingHorizontal: 8, maxWidth: 330 },
+  brandRow: { flexDirection: "row-reverse", alignItems: "center", gap: 12 },
+  brandLogo: { width: 76, height: 52, borderRadius: 14, resizeMode: "cover", backgroundColor: "#050403" },
   brand: { color: "#FFF8EC", fontFamily: theme.font.bold, fontSize: 42, lineHeight: 54, textShadowColor: "rgba(0,0,0,.55)", textShadowRadius: 16 },
   identityRule: { width: 42, height: 3, borderRadius: 3, backgroundColor: theme.colors.gold, marginVertical: 7 },
   promise: { color: "#FFF8EC", fontFamily: theme.font.medium, fontSize: 15, textAlign: "right", textShadowColor: "rgba(0,0,0,.75)", textShadowRadius: 10 },

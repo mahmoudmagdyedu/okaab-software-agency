@@ -28,7 +28,7 @@ import type { Overview } from "@/types";
 const PUSH_TOKEN_KEY = "okaab-learning-fcm-token-v1";
 
 export default function Profile() {
-  const { isLoaded, isSignedIn, getToken, sessionId } = useAuth({ treatPendingAsSignedOut: false });
+  const { isLoaded, isSignedIn, getToken, sessionId } = useAuth();
   const { signOut } = useClerk();
   const { user } = useUser();
   const { session } = useSession();

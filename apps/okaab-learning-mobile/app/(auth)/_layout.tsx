@@ -1,4 +1,4 @@
-import { useAuth, useClerk, useSessionList } from "@clerk/expo";
+import { useAuth, useSessionList } from "@clerk/expo";
 import { Redirect, Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import { Image, StyleSheet, View } from "react-native";
@@ -9,44 +9,35 @@ import { EagleLoader } from "@/components";
 import { theme } from "@/theme";
 
 export default function AuthLayout() {
-  const { isLoaded, isSignedIn } = useAuth({ treatPendingAsSignedOut: false });
+  const { isLoaded, isSignedIn } = useAuth();
   const sessionList = useSessionList();
-  const { client } = useClerk();
-  const [recoveryFinished, setRecoveryFinished] = useState(false);
+  const [pendingCleanupFinished, setPendingCleanupFinished] = useState(false);
 
   useEffect(() => {
     if (!isLoaded || !sessionList.isLoaded) return;
     if (isSignedIn) {
-      setRecoveryFinished(true);
+      setPendingCleanupFinished(true);
       return;
     }
 
-    const resumable = sessionList.sessions.find(
-      (session) =>
-        session.id === client.lastActiveSessionId &&
-        (session.status === "active" || session.status === "pending"),
-    ) || sessionList.sessions.find(
-      (session) => session.status === "active" || session.status === "pending",
-    );
-
-    if (!resumable) {
-      setRecoveryFinished(true);
+    const pendingSessions = sessionList.sessions.filter((session) => session.status === "pending");
+    if (!pendingSessions.length) {
+      setPendingCleanupFinished(true);
       return;
     }
 
     let cancelled = false;
-    void sessionList.setActive({ session: resumable.id })
-      .catch(() => undefined)
+    void Promise.allSettled(pendingSessions.map((session) => session.remove()))
       .finally(() => {
-        if (!cancelled) setRecoveryFinished(true);
+        if (!cancelled) setPendingCleanupFinished(true);
       });
 
     return () => {
       cancelled = true;
     };
-  }, [client.lastActiveSessionId, isLoaded, isSignedIn, sessionList]);
+  }, [isLoaded, isSignedIn, sessionList.isLoaded, sessionList.sessions]);
 
-  if (!isLoaded || !sessionList.isLoaded || !recoveryFinished) return <EagleLoader label="نستعيد حسابك بأمان…" />;
+  if (!isLoaded || !sessionList.isLoaded || !pendingCleanupFinished) return <EagleLoader label="نراجع جلسة الدخول بأمان…" />;
   if (isSignedIn) return <Redirect href="/(tabs)" />;
 
   return <AuthBackdrop />;

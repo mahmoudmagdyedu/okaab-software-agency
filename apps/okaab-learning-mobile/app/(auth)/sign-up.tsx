@@ -1,4 +1,4 @@
-import { useClerk, useSignUp } from "@clerk/expo";
+import { useSignUp } from "@clerk/expo";
 import { useSSO } from "@clerk/expo/experimental";
 import { Link, router } from "expo-router";
 import { useState } from "react";
@@ -23,7 +23,6 @@ const MIN_PASSWORD_LENGTH = 15;
 
 export default function SignUpScreen() {
   const { signUp, fetchStatus } = useSignUp();
-  const { setActive, client } = useClerk();
   const { startSSOFlow } = useSSO();
   const [verify, setVerify] = useState(false);
   const [email, setEmail] = useState("");
@@ -42,32 +41,6 @@ export default function SignUpScreen() {
     setFieldErrors({});
   };
 
-  const activateExistingSession = async () => {
-    const findSessionId = (source = client) => {
-      const resumableSession = source?.signedInSessions?.find(
-        (session) => session.status === "active" || session.status === "pending",
-      );
-      return signUp.existingSession?.sessionId
-        || source?.lastActiveSessionId
-        || resumableSession?.id;
-    };
-
-    let sessionId = findSessionId();
-    if (!sessionId) {
-      const refreshedClient = await client?.reload().catch(() => null);
-      sessionId = findSessionId(refreshedClient || client);
-    }
-    if (!sessionId) return false;
-
-    try {
-      await setActive({ session: sessionId });
-      done();
-      return true;
-    } catch {
-      return false;
-    }
-  };
-
   const submit = async () => {
     clearFeedback();
     if (!email.trim()) {
@@ -80,9 +53,7 @@ export default function SignUpScreen() {
     }
 
     const result = await signUp.password({ emailAddress: email.trim(), password });
-    if (await activateExistingSession()) return;
     if (result.error) {
-      if (await activateExistingSession()) return;
       const fields = splitFieldErrors(result.error);
       setFieldErrors(fields);
       if (!fields.email && !fields.password) setError(authErrorMessage(result.error));
@@ -106,7 +77,6 @@ export default function SignUpScreen() {
       setFieldErrors({ code: fields.code || authErrorMessage(result.error) });
       return;
     }
-    if (await activateExistingSession()) return;
     if (signUp.status === "complete") await signUp.finalize({ navigate: done });
   };
 

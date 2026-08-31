@@ -27,7 +27,7 @@ type Result = { course: { title: string; description: string }; lessons: Lesson[
 
 export default function CourseMapScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
-  const { isLoaded, isSignedIn, getToken } = useAuth({ treatPendingAsSignedOut: false });
+  const { isLoaded, isSignedIn, getToken } = useAuth();
   const [data, setData] = useState<Result | null>(null);
   const [error, setError] = useState("");
   const [refreshing, setRefreshing] = useState(false);

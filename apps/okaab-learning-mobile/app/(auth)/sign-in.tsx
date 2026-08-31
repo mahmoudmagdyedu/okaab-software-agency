@@ -1,4 +1,4 @@
-import { useClerk, useSignIn } from "@clerk/expo";
+import { useSignIn } from "@clerk/expo";
 import { useSSO } from "@clerk/expo/experimental";
 import { Link, router } from "expo-router";
 import { useState } from "react";
@@ -24,7 +24,6 @@ const MIN_PASSWORD_LENGTH = 15;
 
 export default function SignInScreen() {
   const { signIn, fetchStatus } = useSignIn();
-  const { setActive, client } = useClerk();
   const { startSSOFlow } = useSSO();
   const [mode, setMode] = useState<Mode>("auth");
   const [email, setEmail] = useState("");
@@ -44,38 +43,6 @@ export default function SignInScreen() {
     setFieldErrors({});
   };
 
-  const activateExistingSession = async () => {
-    const normalizedEmail = email.trim().toLowerCase();
-    const findSessionId = (source = client) => {
-      const sessions = source?.signedInSessions || [];
-      const matchingClientSession = sessions.find(
-        (session) => session.user?.primaryEmailAddress?.emailAddress.toLowerCase() === normalizedEmail,
-      );
-      const resumableSession = sessions.find(
-        (session) => session.status === "active" || session.status === "pending",
-      );
-      return signIn.existingSession?.sessionId
-        || matchingClientSession?.id
-        || source?.lastActiveSessionId
-        || resumableSession?.id;
-    };
-
-    let sessionId = findSessionId();
-    if (!sessionId) {
-      const refreshedClient = await client?.reload().catch(() => null);
-      sessionId = findSessionId(refreshedClient || client);
-    }
-    if (!sessionId) return false;
-
-    try {
-      await setActive({ session: sessionId });
-      done();
-      return true;
-    } catch {
-      return false;
-    }
-  };
-
   const submit = async () => {
     clearFeedback();
     if (!email.trim()) {
@@ -88,13 +55,11 @@ export default function SignInScreen() {
     }
 
     const result = await signIn.password({ emailAddress: email.trim(), password });
-    if (await activateExistingSession()) return;
     if (!result.error && signIn.status === "complete") {
       await signIn.finalize({ navigate: done });
       return;
     }
     if (result.error) {
-      if (await activateExistingSession()) return;
       const fields = splitFieldErrors(result.error);
       setFieldErrors(fields);
       if (!fields.email && !fields.password) setError(authErrorMessage(result.error));
@@ -152,7 +117,6 @@ export default function SignInScreen() {
       password: newPassword,
       signOutOfOtherSessions: true,
     });
-    if (await activateExistingSession()) return;
     if (result.error) {
       const fields = splitFieldErrors(result.error);
       setFieldErrors({ password: fields.password });

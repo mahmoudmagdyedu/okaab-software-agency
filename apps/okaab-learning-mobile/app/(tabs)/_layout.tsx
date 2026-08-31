@@ -27,7 +27,7 @@ function TabIcon({
 }
 
 export default function TabsLayout() {
-  const { isLoaded, isSignedIn } = useAuth({ treatPendingAsSignedOut: false });
+  const { isLoaded, isSignedIn } = useAuth();
 
   if (!isLoaded) return <EagleLoader label="نجهّز مساحتك التعليمية…" />;
   if (!isSignedIn) return <Redirect href="/(auth)/sign-in" />;
