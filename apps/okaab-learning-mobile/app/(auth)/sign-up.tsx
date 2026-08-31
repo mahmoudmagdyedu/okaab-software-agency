@@ -1,4 +1,4 @@
-import { useSignUp } from "@clerk/expo";
+import { useClerk, useSignUp } from "@clerk/expo";
 import { useSSO } from "@clerk/expo/experimental";
 import { Link, router } from "expo-router";
 import { useState } from "react";
@@ -23,6 +23,7 @@ const MIN_PASSWORD_LENGTH = 15;
 
 export default function SignUpScreen() {
   const { signUp, fetchStatus } = useSignUp();
+  const { setActive } = useClerk();
   const { startSSOFlow } = useSSO();
   const [verify, setVerify] = useState(false);
   const [email, setEmail] = useState("");
@@ -92,10 +93,18 @@ export default function SignUpScreen() {
     setGoogleBusy(true);
     try {
       const result = await startSSOFlow({ strategy: "oauth_google", redirectUrl: GOOGLE_REDIRECT_URL });
-      if (result.createdSessionId || result.signIn?.existingSession || result.signUp?.existingSession) {
+      const sessionId = result.createdSessionId
+        || result.signIn?.existingSession?.sessionId
+        || result.signUp?.existingSession?.sessionId;
+      if (sessionId) {
+        await setActive({ session: sessionId });
         done();
+      } else if (result.authSessionResult?.type && result.authSessionResult.type !== "success") {
+        return;
       } else if (result.signUp?.status === "missing_requirements") {
         setError("يحتاج حساب Google إلى بيانات إضافية. أكمل إنشاء الحساب بالبريد الإلكتروني.");
+      } else {
+        setError("عاد Google دون إنشاء جلسة دخول. أعد المحاولة، وإن استمرت المشكلة أنشئ الحساب بالبريد الإلكتروني.");
       }
     } catch (value) {
       if (!isCancelledAuth(value)) setError(authErrorMessage(value));

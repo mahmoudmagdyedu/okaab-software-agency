@@ -2,14 +2,14 @@
   "expo": {
     "name": "عُقاب",
     "slug": "okaab-learning",
-    "version": "1.2.4",
+    "version": "1.2.5",
     "icon": "./assets/okaab-icon-v2.png",
     "orientation": "portrait",
     "scheme": "okaab",
     "userInterfaceStyle": "automatic",
     "android": {
       "package": "org.okaab.learning",
-      "versionCode": 9,
+      "versionCode": 10,
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/okaab-icon-foreground.png",

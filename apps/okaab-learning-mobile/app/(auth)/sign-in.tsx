@@ -1,7 +1,7 @@
-import { useSignIn } from "@clerk/expo";
+import { useClerk, useSignIn } from "@clerk/expo";
 import { useSSO } from "@clerk/expo/experimental";
-import { Link, router } from "expo-router";
-import { useState } from "react";
+import { Link, router, useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { type AuthFieldErrors, authErrorMessage, isCancelledAuth, splitFieldErrors } from "@/auth-errors";
@@ -24,7 +24,9 @@ const MIN_PASSWORD_LENGTH = 15;
 
 export default function SignInScreen() {
   const { signIn, fetchStatus } = useSignIn();
+  const { setActive } = useClerk();
   const { startSSOFlow } = useSSO();
+  const { sso } = useLocalSearchParams<{ sso?: string }>();
   const [mode, setMode] = useState<Mode>("auth");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -35,6 +37,12 @@ export default function SignInScreen() {
   const [fieldErrors, setFieldErrors] = useState<AuthFieldErrors>({});
   const [googleBusy, setGoogleBusy] = useState(false);
   const busy = fetchStatus === "fetching";
+
+  useEffect(() => {
+    if (sso === "timeout") {
+      setError("لم يكتمل تسجيل Google. اختر حسابك مرة أخرى وانتظر حتى يعود التطبيق تلقائيًا.");
+    }
+  }, [sso]);
 
   const done = () => router.replace("/(tabs)");
   const clearFeedback = () => {
@@ -131,10 +139,18 @@ export default function SignInScreen() {
     setGoogleBusy(true);
     try {
       const result = await startSSOFlow({ strategy: "oauth_google", redirectUrl: GOOGLE_REDIRECT_URL });
-      if (result.createdSessionId || result.signIn?.existingSession || result.signUp?.existingSession) {
+      const sessionId = result.createdSessionId
+        || result.signIn?.existingSession?.sessionId
+        || result.signUp?.existingSession?.sessionId;
+      if (sessionId) {
+        await setActive({ session: sessionId });
         done();
+      } else if (result.authSessionResult?.type && result.authSessionResult.type !== "success") {
+        return;
       } else if (result.signUp?.status === "missing_requirements") {
         setError("يحتاج حساب Google إلى بيانات إضافية. أكمل إنشاء الحساب بالبريد الإلكتروني.");
+      } else {
+        setError("عاد Google دون إنشاء جلسة دخول. أعد المحاولة، وإن استمرت المشكلة استخدم البريد الإلكتروني.");
       }
     } catch (value) {
       if (!isCancelledAuth(value)) setError(authErrorMessage(value));

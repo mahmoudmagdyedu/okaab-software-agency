@@ -1,5 +1,5 @@
 import { type PropsWithChildren, useEffect } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, {
   Easing,
@@ -53,7 +53,7 @@ export function Action({
     >
       {loading ? (
         <View style={styles.actionLoading}>
-          <EagleLoader compact label={null} />
+          <ActivityIndicator color={theme.colors.ink} size="small" />
           <Text style={styles.actionText}>جارٍ التنفيذ…</Text>
         </View>
       ) : (
@@ -108,27 +108,21 @@ function ContentSkeleton() {
 
 export function EagleLoader({
   label = "بنجهّز رحلتك التعليمية…",
-  compact = false,
 }: {
   label?: string | null;
-  compact?: boolean;
 }) {
   return (
-    <View accessibilityRole="progressbar" accessibilityLabel={label || "جارٍ التحميل"} style={compact ? styles.compactCenter : styles.center}>
-      <View style={compact ? styles.compactStage : styles.flightStage}>
-        {!compact ? (
-          <>
-            <View style={styles.logoAuraOuter} />
-            <View style={styles.logoAura} />
-            <View style={styles.orbitDot} />
-          </>
-        ) : null}
-        <View style={compact ? styles.compactEagle : styles.eagleVector}>
+    <View accessibilityRole="progressbar" accessibilityLabel={label || "جارٍ التحميل"} style={styles.center}>
+      <View style={styles.flightStage}>
+        <View style={styles.logoAuraOuter} />
+        <View style={styles.logoAura} />
+        <View style={styles.orbitDot} />
+        <View style={styles.eagleVector}>
           <FlyingEagleLogo color={theme.colors.ink} />
         </View>
-        {!compact ? <View style={styles.trail}><View style={styles.trailCore} /></View> : null}
+        <View style={styles.trail}><View style={styles.trailCore} /></View>
       </View>
-      {!compact && label ? (
+      {label ? (
         <>
           <Text style={styles.loadingTitle}>عُقاب</Text>
           <Text style={styles.loadingKicker}>تَعَلَّمْ • تَقَدَّمْ • حَلِّقْ</Text>
@@ -155,11 +149,8 @@ export function ErrorState({ message, retry }: { message: string; retry: () => v
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.colors.paper, paddingHorizontal: 18, paddingTop: 8 },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, backgroundColor: theme.colors.paper },
-  compactCenter: { alignItems: "center", justifyContent: "center" },
   flightStage: { width: 210, height: 150, alignItems: "center", justifyContent: "center" },
-  compactStage: { width: 42, height: 26, alignItems: "center", justifyContent: "center" },
   eagleVector: { width: 176, height: 102, zIndex: 3 },
-  compactEagle: { width: 42, height: 24 },
   logoAura: {
     position: "absolute",
     width: 112,

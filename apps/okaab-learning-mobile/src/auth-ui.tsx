@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { type PropsWithChildren, useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Image,
   Platform,
@@ -21,7 +22,6 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-import { EagleLoader } from "./components";
 import { theme } from "./theme";
 
 export function AuthScreen({
@@ -154,7 +154,7 @@ export function GoogleButton({
       onPress={onPress}
       style={({ pressed }) => [styles.google, pressed && styles.pressed, inactive && styles.disabled]}
     >
-      {loading ? <EagleLoader compact label={null} /> : <Text style={styles.googleMark}>G</Text>}
+      {loading ? <ActivityIndicator color={theme.colors.ink} size="small" /> : <Text style={styles.googleMark}>G</Text>}
       <Text style={styles.googleText}>{loading ? "نُكمل الدخول الآمن…" : title}</Text>
     </Pressable>
   );
@@ -191,7 +191,8 @@ export function AuthProcessingOverlay({ label }: { label: string }) {
   return (
     <View style={styles.processing}>
       <View style={styles.processingCard}>
-        <EagleLoader label={label} />
+        <ActivityIndicator color={theme.colors.gold} size="large" />
+        <Text style={styles.processingLabel}>{label}</Text>
       </View>
     </View>
   );
@@ -236,5 +237,6 @@ const styles = StyleSheet.create({
   alertText: { flex: 1, color: theme.colors.error, fontFamily: theme.font.medium, fontSize: 13, lineHeight: 20, textAlign: "right" },
   successText: { color: theme.colors.success },
   processing: { ...StyleSheet.absoluteFill, zIndex: 50, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(24,21,17,.58)", padding: 24 },
-  processingCard: { width: "100%", maxWidth: 300, minHeight: 230, borderRadius: 26, overflow: "hidden", backgroundColor: "rgba(246,241,231,.96)" },
+  processingCard: { width: "100%", maxWidth: 300, borderRadius: 24, backgroundColor: "rgba(246,241,231,.97)", paddingHorizontal: 24, paddingVertical: 28, alignItems: "center", gap: 16, shadowColor: "#000", shadowOpacity: 0.24, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 12 },
+  processingLabel: { color: theme.colors.ink, fontFamily: theme.font.semibold, fontSize: 14, lineHeight: 22, textAlign: "center" },
 });
