@@ -3,7 +3,7 @@ import NetInfo from "@react-native-community/netinfo";
 import { createBridgeScript, createYouTubePlayerHtml } from "@okaab/bridge";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { WebView } from "react-native-webview";
 
 import { apiRequest, enqueueEvent, flushEvents } from "@/api";
@@ -25,15 +25,20 @@ type Result = {
     required_slide_index?: number | null;
   };
   videos: { youtube_video_id: string }[];
-  slideDecks: { id: string; title: string }[];
+  slideDecks: { id: string; title: string; entry_path?: string; allow_download?: boolean }[];
   progress: LessonProgress;
 };
 type Stage = "video" | "slides" | "quiz";
 
+const ANDROID_BROWSER_USER_AGENT =
+  "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36";
+
 export default function LessonScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const { isLoaded, isSignedIn, getToken } = useAuth();
+  const { width } = useWindowDimensions();
   const playerRef = useRef<WebView>(null);
+  const slidesRef = useRef<WebView>(null);
   const [data, setData] = useState<Result | null>(null);
   const [error, setError] = useState("");
   const [playerError, setPlayerError] = useState("");
@@ -45,12 +50,24 @@ export default function LessonScreen() {
   const [muted, setMuted] = useState(false);
   const [rate, setRate] = useState(1);
   const [playerRevision, setPlayerRevision] = useState(0);
+  const [privacyEnhanced, setPrivacyEnhanced] = useState(true);
+  const [playerReady, setPlayerReady] = useState(false);
+  const [deckIndex, setDeckIndex] = useState(0);
+  const [slideRevision, setSlideRevision] = useState(0);
+  const [slideLoading, setSlideLoading] = useState(false);
+  const [slideError, setSlideError] = useState("");
+  const [viewedDecks, setViewedDecks] = useState<string[]>([]);
 
   const load = useCallback(async () => {
     try {
       const next = await apiRequest<Result>(`/lessons/${encodeURIComponent(slug)}`, getToken);
       setData(next);
       setPlayerError("");
+      setPlayerReady(false);
+      setPrivacyEnhanced(true);
+      setDeckIndex(0);
+      setSlideError("");
+      setViewedDecks([]);
       const nextVideo = Number(next.progress?.video_percent || 0);
       const nextSlide = Number(next.progress?.last_slide || 0);
       setVideoPercent(nextVideo);
@@ -78,9 +95,12 @@ export default function LessonScreen() {
   const videoHtml = useMemo(
     () =>
       data?.videos[0]
-        ? createYouTubePlayerHtml(data.videos[0].youtube_video_id, { origin: "https://okaab.org" })
+        ? createYouTubePlayerHtml(data.videos[0].youtube_video_id, {
+            origin: "https://okaab.org",
+            privacyEnhanced,
+          })
         : null,
-    [data?.videos],
+    [data?.videos, privacyEnhanced],
   );
 
   if (!isLoaded) return <Loading />;
@@ -117,6 +137,7 @@ export default function LessonScreen() {
       const type = String(event.type || "");
       if (type === "player_ready") {
         setPlayerError("");
+        setPlayerReady(true);
         return;
       }
       if (type === "player_state") {
@@ -125,11 +146,17 @@ export default function LessonScreen() {
       }
       if (type === "player_error") {
         const code = String(event.code ?? "");
+        if (privacyEnhanced && ["101", "150", "153", "player_timeout"].includes(code)) {
+          setPrivacyEnhanced(false);
+          setPlayerReady(false);
+          setPlayerRevision((current) => current + 1);
+          return;
+        }
         setPlayerError(
           code === "100"
             ? "الفيديو حُذف أو أصبح خاصًا."
             : ["101", "150"].includes(code)
-              ? "صاحب الفيديو عطّل تشغيله داخل التطبيقات والمواقع. يمكنك فتحه في YouTube أو متابعة بقية الدرس."
+              ? "طلب YouTube التحقق من الحساب أو منع تشغيل الفيديو داخل التطبيق. افتحه مرة واحدة في YouTube ثم عُد للدرس."
             : code === "153"
               ? "تعذّر إرسال هوية تطبيق عُقاب إلى YouTube. أعد المحاولة بعد تحديث الاتصال."
               : "تعذّر تشغيل الفيديو الآن. تحقّق من الإنترنت ثم أعد المحاولة.",
@@ -162,13 +189,31 @@ export default function LessonScreen() {
   };
   const retryPlayer = () => {
     setPlayerError("");
+    setPlayerReady(false);
+    setPrivacyEnhanced(true);
     setPlayerRevision((current) => current + 1);
   };
   const continueWithoutVideo = () => {
     setStage(data!.slideDecks.length ? "slides" : "quiz");
   };
+  const activeDeck = data!.slideDecks[deckIndex] ?? data!.slideDecks[0];
+  const activeEntryPath = (activeDeck?.entry_path || "index.html")
+    .split("/")
+    .map((part) => encodeURIComponent(part))
+    .join("/");
+  const slideUrl = activeDeck
+    ? `https://okaab.org/slides/${encodeURIComponent(activeDeck.id)}/${activeEntryPath}`
+    : "";
+  const slideHeight = Math.max(260, Math.min(500, (width - 56) * 0.72));
   const requiredSlide = Number(data!.lesson.required_slide_index ?? 1);
   const slidesReady = !data!.slideDecks.length || lastSlide >= requiredSlide;
+  const selectDeck = (nextIndex: number) => {
+    if (nextIndex < 0 || nextIndex >= data!.slideDecks.length || nextIndex === deckIndex) return;
+    setDeckIndex(nextIndex);
+    setSlideError("");
+    setSlideLoading(true);
+    setSlideRevision((current) => current + 1);
+  };
   const goToQuiz = () => {
     if (data!.lesson.quiz_count > 0) {
       router.replace({
@@ -202,9 +247,11 @@ export default function LessonScreen() {
         {!online && (
           <Text style={styles.offline}>أنت غير متصل — سيُرسل تقدّمك تلقائيًا عند عودة الإنترنت.</Text>
         )}
-        <Text style={styles.kicker}>درس تفاعلي</Text>
-        <Title>{data!.lesson.title}</Title>
-        <Muted>{data!.lesson.description || "شاهد، طبّق، ثم اختبر فهمك لفتح المرحلة التالية."}</Muted>
+        <View style={styles.lessonHeader}>
+          <Text style={styles.kicker}>درس تفاعلي</Text>
+          <Title>{data!.lesson.title}</Title>
+          <Muted>{data!.lesson.description || "شاهد، طبّق، ثم اختبر فهمك لفتح المرحلة التالية."}</Muted>
+        </View>
 
         <View style={styles.steps}>
           {(["video", "slides", "quiz"] as Stage[]).map((item, index) => (
@@ -229,14 +276,26 @@ export default function LessonScreen() {
                 ref={playerRef}
                 source={{ html: videoHtml, baseUrl: "https://okaab.org" }}
                 style={styles.player}
+                userAgent={ANDROID_BROWSER_USER_AGENT}
                 javaScriptEnabled
                 domStorageEnabled
+                sharedCookiesEnabled
+                thirdPartyCookiesEnabled
+                setSupportMultipleWindows={false}
                 allowsFullscreenVideo
                 allowsInlineMediaPlayback
                 mediaPlaybackRequiresUserAction={false}
                 originWhitelist={["https://*", "about:blank"]}
+                onLoadStart={() => setPlayerReady(false)}
+                onHttpError={() => setPlayerError("تعذّر الوصول إلى خدمة الفيديو. أعد المحاولة بعد لحظات.")}
                 onMessage={(event) => void handleMessage(event.nativeEvent.data)}
               />
+              {!playerReady && !playerError ? (
+                <View pointerEvents="none" style={styles.playerLoading}>
+                  <ActivityIndicator color={theme.colors.gold} size="large" />
+                  <Text style={styles.playerLoadingText}>جارٍ تجهيز الفيديو داخل عُقاب…</Text>
+                </View>
+              ) : null}
               {playerError ? (
                 <View style={styles.playerError}>
                   <Text style={styles.playerErrorTitle}>الفيديو لم يبدأ</Text>
@@ -253,7 +312,7 @@ export default function LessonScreen() {
                     </Pressable>
                   </View>
                   <Pressable onPress={continueWithoutVideo} style={styles.skipVideo}>
-                    <Text style={styles.skipVideoText}>متابعة الدرس بدون الفيديو</Text>
+                    <Text style={styles.skipVideoText}>فتح الشرح والـSlides مؤقتًا</Text>
                   </Pressable>
                 </View>
               ) : null}
@@ -305,21 +364,97 @@ export default function LessonScreen() {
           </View>
         )}
 
-        {stage === "slides" && data!.slideDecks[0] && (
+        {stage === "slides" && activeDeck && (
           <View style={styles.slidesCard}>
-            <Text style={styles.sectionTitle}>{data!.slideDecks[0].title}</Text>
-            <WebView
-              source={{ uri: `https://okaab.org/slides/${data!.slideDecks[0].id}/index.html` }}
-              style={styles.slides}
-              javaScriptEnabled
-              domStorageEnabled
-              allowsFullscreenVideo
-              injectedJavaScriptBeforeContentLoaded={createBridgeScript()}
-              originWhitelist={["https://*"]}
-              onMessage={(event) => void handleMessage(event.nativeEvent.data)}
-            />
+            <View style={styles.slidesHeading}>
+              <View>
+                <Text style={styles.deckCounter}>عرض {deckIndex + 1} من {data!.slideDecks.length}</Text>
+                <Text style={styles.sectionTitle}>{activeDeck.title}</Text>
+              </View>
+              <Pressable
+                accessibilityLabel="إعادة تحميل العرض"
+                onPress={() => {
+                  setSlideError("");
+                  setSlideLoading(true);
+                  setSlideRevision((current) => current + 1);
+                }}
+                style={styles.slideReload}
+              >
+                <Text style={styles.slideReloadText}>تحديث</Text>
+              </Pressable>
+            </View>
+            {data!.slideDecks.length > 1 ? (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.deckTabs}>
+                {data!.slideDecks.map((deck, index) => (
+                  <Pressable
+                    key={deck.id}
+                    onPress={() => selectDeck(index)}
+                    style={[styles.deckTab, index === deckIndex && styles.deckTabActive]}
+                  >
+                    <Text style={[styles.deckTabText, index === deckIndex && styles.deckTabTextActive]} numberOfLines={1}>
+                      {index + 1}. {deck.title}
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            ) : null}
+            <View style={[styles.slidesViewport, { height: slideHeight }]}>
+              <WebView
+                key={`${activeDeck.id}-${slideRevision}`}
+                ref={slidesRef}
+                source={{ uri: slideUrl }}
+                style={styles.slides}
+                userAgent={ANDROID_BROWSER_USER_AGENT}
+                javaScriptEnabled
+                domStorageEnabled
+                allowsFullscreenVideo
+                setSupportMultipleWindows={false}
+                injectedJavaScriptBeforeContentLoaded={createBridgeScript()}
+                originWhitelist={["https://*"]}
+                onLoadStart={() => {
+                  setSlideLoading(true);
+                  setSlideError("");
+                }}
+                onLoad={() => {
+                  setViewedDecks((current) => current.includes(activeDeck.id) ? current : [...current, activeDeck.id]);
+                }}
+                onLoadEnd={() => setSlideLoading(false)}
+                onError={() => {
+                  setSlideLoading(false);
+                  setSlideError("تعذّر فتح العرض داخل التطبيق.");
+                }}
+                onHttpError={(event) => {
+                  setSlideLoading(false);
+                  setSlideError(`تعذّر فتح العرض (رمز ${event.nativeEvent.statusCode}).`);
+                }}
+                onMessage={(event) => void handleMessage(event.nativeEvent.data)}
+              />
+              {slideLoading ? (
+                <View pointerEvents="none" style={styles.slideOverlay}>
+                  <ActivityIndicator color={theme.colors.gold} size="large" />
+                  <Text style={styles.slideOverlayText}>جارٍ تحميل العرض…</Text>
+                </View>
+              ) : null}
+              {slideError ? (
+                <View style={styles.slideOverlay}>
+                  <Text style={styles.slideErrorTitle}>تعذّر عرض الـSlides</Text>
+                  <Text style={styles.slideOverlayText}>{slideError}</Text>
+                  <Pressable onPress={() => setSlideRevision((current) => current + 1)} style={styles.retry}>
+                    <Text style={styles.retryText}>إعادة المحاولة</Text>
+                  </Pressable>
+                </View>
+              ) : null}
+            </View>
+            <View style={styles.deckNavigation}>
+              <Pressable disabled={deckIndex === 0} onPress={() => selectDeck(deckIndex - 1)} style={[styles.deckNavButton, deckIndex === 0 && styles.deckNavDisabled]}>
+                <Text style={styles.deckNavText}>السابق</Text>
+              </Pressable>
+              <Pressable disabled={deckIndex === data!.slideDecks.length - 1} onPress={() => selectDeck(deckIndex + 1)} style={[styles.deckNavButton, deckIndex === data!.slideDecks.length - 1 && styles.deckNavDisabled]}>
+                <Text style={styles.deckNavText}>التالي</Text>
+              </Pressable>
+            </View>
             <Text style={styles.slideProgress}>
-              آخر شريحة محفوظة: {lastSlide + 1}
+              آخر شريحة محفوظة: {lastSlide + 1} • العروض المفتوحة: {viewedDecks.length}/{data!.slideDecks.length}
             </Text>
             <Action
               title={data!.lesson.quiz_count ? "ابدأ أسئلة الدرس" : "إكمال المرحلة"}
@@ -357,6 +492,7 @@ export default function LessonScreen() {
 const styles = StyleSheet.create({
   content: { gap: 14, paddingBottom: 118 },
   offline: { backgroundColor: theme.colors.goldLight, color: theme.colors.ink, padding: 10, borderRadius: 10, textAlign: "center" },
+  lessonHeader: { backgroundColor: theme.colors.card, borderRadius: 22, borderWidth: 1, borderColor: `${theme.colors.ink}16`, padding: 18, gap: 7 },
   kicker: { color: theme.colors.gold, fontWeight: "900", textAlign: "right" },
   steps: { flexDirection: "row-reverse", justifyContent: "space-between", marginVertical: 8 },
   stepWrap: { flex: 1, alignItems: "center", gap: 5 },
@@ -368,6 +504,8 @@ const styles = StyleSheet.create({
   playerCard: { backgroundColor: theme.colors.darkPaper, borderRadius: 22, padding: 10, gap: 10, overflow: "hidden" },
   videoFrame: { height: 230, borderRadius: 15, overflow: "hidden", backgroundColor: "#050505" },
   player: { flex: 1, backgroundColor: "#050505" },
+  playerLoading: { ...StyleSheet.absoluteFill, alignItems: "center", justifyContent: "center", gap: 12, backgroundColor: "#0D0D0D" },
+  playerLoadingText: { color: "#FFF", opacity: 0.76, fontWeight: "800", textAlign: "center" },
   playerError: { ...StyleSheet.absoluteFill, backgroundColor: "#0D0D0DF2", alignItems: "center", justifyContent: "center", gap: 8, padding: 22 },
   playerErrorTitle: { color: theme.colors.gold, fontWeight: "900", fontSize: 18 },
   playerErrorText: { color: "#FFF", opacity: 0.82, textAlign: "center", lineHeight: 22 },
@@ -387,9 +525,26 @@ const styles = StyleSheet.create({
   videoFill: { height: "100%", backgroundColor: theme.colors.gold },
   videoPercent: { color: "#FFF", fontSize: 11, minWidth: 28 },
   qualityHint: { color: "#FFF", opacity: 0.58, textAlign: "right", fontSize: 11, lineHeight: 17 },
-  slidesCard: { backgroundColor: theme.colors.card, borderRadius: 22, borderWidth: 1, borderColor: `${theme.colors.ink}24`, padding: 10, gap: 10 },
+  slidesCard: { backgroundColor: theme.colors.card, borderRadius: 24, borderWidth: 1, borderColor: `${theme.colors.ink}24`, padding: 12, gap: 12, overflow: "hidden" },
+  slidesHeading: { minHeight: 48, flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between", gap: 12 },
+  deckCounter: { color: theme.colors.gold, textAlign: "right", fontWeight: "800", fontSize: 11, marginBottom: 2 },
   sectionTitle: { color: theme.colors.ink, textAlign: "right", fontWeight: "900", fontSize: 17 },
-  slides: { height: 430, borderRadius: 14, backgroundColor: "#090909" },
+  slideReload: { minHeight: 38, minWidth: 66, borderRadius: 12, borderWidth: 1, borderColor: `${theme.colors.ink}3A`, alignItems: "center", justifyContent: "center", paddingHorizontal: 10 },
+  slideReloadText: { color: theme.colors.ink, fontWeight: "800", fontSize: 12 },
+  deckTabs: { flexDirection: "row-reverse", gap: 8, paddingVertical: 2 },
+  deckTab: { maxWidth: 180, minHeight: 38, justifyContent: "center", borderRadius: 12, borderWidth: 1, borderColor: `${theme.colors.ink}25`, backgroundColor: theme.colors.paperAlt, paddingHorizontal: 12 },
+  deckTabActive: { backgroundColor: theme.colors.ink, borderColor: theme.colors.ink },
+  deckTabText: { color: theme.colors.ink, fontWeight: "700", fontSize: 12, textAlign: "right" },
+  deckTabTextActive: { color: theme.colors.gold },
+  slidesViewport: { position: "relative", borderRadius: 16, overflow: "hidden", backgroundColor: "#090909", borderWidth: 1, borderColor: `${theme.colors.ink}2A` },
+  slides: { flex: 1, backgroundColor: "#090909" },
+  slideOverlay: { ...StyleSheet.absoluteFill, alignItems: "center", justifyContent: "center", gap: 10, padding: 22, backgroundColor: "#11100FF2" },
+  slideOverlayText: { color: "#FFF", opacity: 0.78, fontWeight: "700", lineHeight: 21, textAlign: "center" },
+  slideErrorTitle: { color: theme.colors.gold, fontWeight: "900", fontSize: 18, textAlign: "center" },
+  deckNavigation: { flexDirection: "row-reverse", justifyContent: "space-between", gap: 10 },
+  deckNavButton: { flex: 1, minHeight: 42, alignItems: "center", justifyContent: "center", borderRadius: 12, borderWidth: 1, borderColor: `${theme.colors.ink}35`, backgroundColor: theme.colors.paperAlt },
+  deckNavDisabled: { opacity: 0.35 },
+  deckNavText: { color: theme.colors.ink, fontWeight: "900" },
   slideProgress: { color: theme.colors.gold, fontWeight: "800", textAlign: "right" },
   quizCard: { backgroundColor: theme.colors.card, borderRadius: 24, borderWidth: 2, borderColor: theme.colors.gold, padding: 24, alignItems: "center", gap: 12 },
   quizMark: { width: 58, height: 58, lineHeight: 58, textAlign: "center", borderRadius: 29, backgroundColor: theme.colors.ink, color: theme.colors.gold, fontSize: 30, fontWeight: "900" },

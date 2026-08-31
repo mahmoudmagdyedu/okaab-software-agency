@@ -58,7 +58,7 @@ export default function Home() {
         <View style={styles.header}>
           <Animated.View entering={FadeInDown.duration(420).springify().damping(18)} style={styles.brand}>
             <View style={styles.brandTop}>
-              <Image accessibilityLabel="شعار عُقاب" source={require("../../assets/okaab-brand-logo.png")} style={styles.brandLogo} />
+              <Image accessibilityLabel="شعار عُقاب" source={require("../../assets/okaab-brand-logo-transparent.png")} style={styles.brandLogo} />
               <View style={styles.brandTitleWrap}>
                 <Text style={styles.logo}>عُقاب</Text>
                 <Text style={styles.tagline}>تعلّم بخطوات واضحة، وحلّق بمهاراتك.</Text>
@@ -92,9 +92,15 @@ export default function Home() {
             <Card>
               <Title>أهلًا {overview.profile.display_name.split(" ")[0]}</Title>
               <View style={styles.metrics}>
-                <Text style={styles.metric}>{overview.points} نقطة</Text>
+                <View style={styles.metric}>
+                  <Text style={styles.metricValue}>{overview.points}</Text>
+                  <Text style={styles.metricLabel}>نقطة</Text>
+                </View>
                 {config.features?.streaks !== false && (
-                  <Text style={styles.metric}>{overview.streak.current_days} يوم متواصل</Text>
+                  <View style={styles.metric}>
+                    <Text style={styles.metricValue}>{overview.streak.current_days}</Text>
+                    <Text style={styles.metricLabel}>يوم متواصل</Text>
+                  </View>
                 )}
               </View>
               {overview.continueLearning && (
@@ -140,14 +146,14 @@ export default function Home() {
 const styles = StyleSheet.create({
   list: { paddingBottom: 118, gap: 12 },
   header: { gap: 16, marginBottom: 8 },
-  brand: { backgroundColor: theme.colors.darkPaper || "#181511", borderRadius: 28, padding: 20, gap: 12, borderWidth: 1, borderColor: `${theme.colors.gold}44`, overflow: "hidden" },
-  brandTop: { flexDirection: "row-reverse", alignItems: "center", gap: 14 },
-  brandLogo: { width: 86, height: 62, resizeMode: "cover", borderRadius: 15, backgroundColor: "#050403" },
-  brandTitleWrap: { flex: 1, alignItems: "flex-end", gap: 2 },
-  logo: { color: theme.colors.gold || "#E8A33D", fontSize: 30, fontWeight: "900", textAlign: "right" },
-  tagline: { color: theme.colors.darkInk || "#F6F1E7", opacity: 0.88, textAlign: "right", fontWeight: "800", lineHeight: 21 },
-  brandCopy: { color: theme.colors.darkInk, opacity: 0.68, textAlign: "right", lineHeight: 22 },
-  brandBadge: { alignSelf: "flex-end", backgroundColor: `${theme.colors.gold}1F`, borderRadius: 99, paddingHorizontal: 11, paddingVertical: 7 },
+  brand: { backgroundColor: theme.colors.darkPaper || "#181511", borderRadius: 28, paddingHorizontal: 20, paddingVertical: 22, gap: 12, borderWidth: 1, borderColor: `${theme.colors.gold}44`, overflow: "hidden", alignItems: "center" },
+  brandTop: { alignItems: "center", justifyContent: "center", gap: 4 },
+  brandLogo: { width: 150, height: 108, resizeMode: "contain" },
+  brandTitleWrap: { alignItems: "center", gap: 3 },
+  logo: { color: theme.colors.gold || "#E8A33D", fontSize: 32, fontWeight: "900", textAlign: "center" },
+  tagline: { color: theme.colors.darkInk || "#F6F1E7", opacity: 0.9, textAlign: "center", fontWeight: "800", lineHeight: 22 },
+  brandCopy: { color: theme.colors.darkInk, opacity: 0.7, textAlign: "center", lineHeight: 22 },
+  brandBadge: { alignSelf: "center", backgroundColor: `${theme.colors.gold}1F`, borderRadius: 99, paddingHorizontal: 11, paddingVertical: 7 },
   brandBadgeText: { color: theme.colors.gold, fontSize: 11, fontWeight: "900" },
   aboutGrid: { flexDirection: "row-reverse", gap: 10 },
   aboutCard: { flex: 1, minHeight: 138, backgroundColor: theme.colors.card, borderRadius: 18, borderWidth: 1, borderColor: `${theme.colors.ink}20`, padding: 13, gap: 5 },
@@ -164,13 +170,20 @@ const styles = StyleSheet.create({
   },
   announcementTitle: { color: theme.colors.ink || "#181511", textAlign: "right", fontWeight: "900" },
   announcementBody: { color: theme.colors.ink || "#181511", textAlign: "right", opacity: 0.72, lineHeight: 21 },
-  metrics: { flexDirection: "row-reverse", gap: 8 },
+  metrics: { flexDirection: "row-reverse", gap: 10, flexWrap: "wrap" },
   metric: {
+    minWidth: 112,
+    flexDirection: "row-reverse",
+    alignItems: "baseline",
+    justifyContent: "center",
+    gap: 6,
     backgroundColor: theme.colors.paperAlt || "#FAFAFA",
-    borderRadius: 6,
-    padding: 8,
-    color: theme.colors.ink || "#181511",
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
+  metricValue: { color: theme.colors.ink, fontSize: 19, fontWeight: "900" },
+  metricLabel: { color: theme.colors.ink, opacity: 0.62, fontSize: 12, fontWeight: "700" },
   continue: {
     backgroundColor: theme.colors.gold || "#E8A33D",
     minHeight: 44,

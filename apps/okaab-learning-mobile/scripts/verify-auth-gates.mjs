@@ -72,8 +72,8 @@ verify(
   "Email sign-in must complete configured second-factor checks.",
 );
 verify(
-  home.includes("okaab-brand-logo.png"),
-  "The home screen must use the supplied Okaab PNG brand logo.",
+  home.includes("okaab-brand-logo-transparent.png"),
+  "The home screen must use the transparent Okaab PNG brand logo.",
 );
 verify(
   !components.includes("compactEagle")

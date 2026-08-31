@@ -64,7 +64,11 @@ export function AuthScreen({
       >
         <Animated.View style={[styles.identity, introStyle]}>
           <View style={styles.brandRow}>
-            <Image accessibilityLabel="شعار عُقاب" source={require("../assets/okaab-brand-logo.png")} style={styles.brandLogo} />
+            <Image
+              accessibilityLabel="شعار عُقاب"
+              source={require("../assets/okaab-brand-logo-transparent.png")}
+              style={styles.brandLogo}
+            />
             <Text style={styles.brand}>عُقاب</Text>
           </View>
           <View style={styles.identityRule} />
@@ -201,12 +205,12 @@ export function AuthProcessingOverlay({ label }: { label: string }) {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   page: { flexGrow: 1, justifyContent: "space-between", paddingHorizontal: 16, gap: 28 },
-  identity: { alignSelf: "flex-end", alignItems: "flex-end", paddingHorizontal: 8, maxWidth: 330 },
-  brandRow: { flexDirection: "row-reverse", alignItems: "center", gap: 12 },
-  brandLogo: { width: 76, height: 52, borderRadius: 14, resizeMode: "cover", backgroundColor: "#050403" },
-  brand: { color: "#FFF8EC", fontFamily: theme.font.bold, fontSize: 42, lineHeight: 54, textShadowColor: "rgba(0,0,0,.55)", textShadowRadius: 16 },
-  identityRule: { width: 42, height: 3, borderRadius: 3, backgroundColor: theme.colors.gold, marginVertical: 7 },
-  promise: { color: "#FFF8EC", fontFamily: theme.font.medium, fontSize: 15, textAlign: "right", textShadowColor: "rgba(0,0,0,.75)", textShadowRadius: 10 },
+  identity: { width: "100%", alignSelf: "center", alignItems: "center", paddingHorizontal: 8 },
+  brandRow: { alignItems: "center", justifyContent: "center", gap: 2 },
+  brandLogo: { width: 132, height: 94, resizeMode: "contain" },
+  brand: { color: "#FFF8EC", fontFamily: theme.font.bold, fontSize: 40, lineHeight: 50, textAlign: "center", textShadowColor: "rgba(0,0,0,.55)", textShadowRadius: 16 },
+  identityRule: { width: 48, height: 3, borderRadius: 3, backgroundColor: theme.colors.gold, marginVertical: 7 },
+  promise: { color: "#FFF8EC", fontFamily: theme.font.medium, fontSize: 15, textAlign: "center", textShadowColor: "rgba(0,0,0,.75)", textShadowRadius: 10 },
   card: { width: "100%", alignSelf: "center", maxWidth: 520, borderRadius: 30, borderWidth: 1, borderColor: "rgba(255,255,255,.56)", backgroundColor: "rgba(246,241,231,.91)", paddingHorizontal: 20, paddingTop: 12, paddingBottom: 22, shadowColor: "#000", shadowOpacity: 0.28, shadowRadius: 26, shadowOffset: { width: 0, height: 14 }, elevation: 12 },
   handle: { alignSelf: "center", width: 42, height: 4, borderRadius: 4, backgroundColor: "rgba(24,21,17,.22)", marginBottom: 14 },
   eyebrow: { color: "#A76500", fontFamily: theme.font.semibold, fontSize: 12, textAlign: "right", letterSpacing: 0.3 },
