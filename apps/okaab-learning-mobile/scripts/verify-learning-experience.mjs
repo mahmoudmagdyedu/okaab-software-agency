@@ -9,6 +9,8 @@ const authUi = readFileSync(new URL("../src/auth-ui.tsx", import.meta.url), "utf
 assert.match(home, /okaab-brand-logo-transparent\.png/, "Home must use the transparent centered logo.");
 assert.match(authUi, /okaab-brand-logo-transparent\.png/, "Authentication must use the transparent logo.");
 assert.match(bridge, /youtube-nocookie\.com/, "The player must try YouTube's privacy-enhanced host.");
+assert.match(bridge, /<iframe id="player"/, "The YouTube iframe must render immediately without waiting for the API library.");
+assert.match(bridge, /player_frame_loaded/, "The native loading cover must clear when the iframe is mounted.");
 assert.match(lesson, /setPrivacyEnhanced\(false\)/, "The player must retry on the standard YouTube host.");
 assert.match(lesson, /ANDROID_BROWSER_USER_AGENT/, "The embedded player must identify as a supported browser.");
 assert.match(lesson, /activeDeck\?\.entry_path/, "Slides must use the stored deck entry path.");

@@ -41,6 +41,7 @@ export default function Profile() {
   const [avatarBusy, setAvatarBusy] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushBusy, setPushBusy] = useState(false);
+  const [showAllSessions, setShowAllSessions] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
@@ -212,6 +213,12 @@ export default function Profile() {
         ),
       )
     : 100;
+  const orderedSessions = [...sessions].sort((left, right) => {
+    if (left.id === sessionId) return -1;
+    if (right.id === sessionId) return 1;
+    return right.lastActiveAt.getTime() - left.lastActiveAt.getTime();
+  });
+  const displayedSessions = showAllSessions ? orderedSessions : orderedSessions.slice(0, 3);
   const beginEmailVerification = async (action: "password" | "delete") => {
     if (!session) return;
     if (action === "password") {
@@ -320,11 +327,18 @@ export default function Profile() {
               {avatarBusy ? "جاري رفع الصورة…" : "تغيير الصورة الشخصية"}
             </Text>
           </Pressable>
-          <Title>{data!.profile.display_name}</Title>
-          <Muted>{data!.profile.email}</Muted>
-          <Text style={styles.points}>
-            {data!.points} نقطة · ترتيب {data!.rank ?? "—"}
-          </Text>
+          <Text style={styles.profileName}>{data!.profile.display_name}</Text>
+          <Text numberOfLines={1} style={styles.email}>{data!.profile.email}</Text>
+          <View style={styles.statsRow}>
+            <View style={styles.statPill}>
+              <Text style={styles.statValue}>{data!.points}</Text>
+              <Text style={styles.statLabel}>نقطة</Text>
+            </View>
+            <View style={styles.statPill}>
+              <Text style={styles.statValue}>{data!.rank ?? "—"}</Text>
+              <Text style={styles.statLabel}>الترتيب</Text>
+            </View>
+          </View>
           <Text style={styles.level}>رتبة {data!.level.name}</Text>
           <View style={styles.track}>
             <View style={[styles.fill, { width: `${levelProgress}%` }]} />
@@ -355,10 +369,12 @@ export default function Profile() {
         <View style={styles.sessions}>
           <Text style={styles.label}>الأجهزة والجلسات</Text>
           <Muted>راجع الأجهزة المسجّلة، واقفل أي جلسة مش عارفها.</Muted>
-          {sessions.map((item) => {
+          {displayedSessions.map((item) => {
             const current = item.id === sessionId;
-            const device = item.latestActivity.deviceType || "جهاز غير معروف";
-            const browser = item.latestActivity.browserName || "تطبيق عُقاب";
+            const rawDevice = item.latestActivity.deviceType || "";
+            const rawBrowser = item.latestActivity.browserName || "";
+            const device = rawDevice && !/unknown/i.test(rawDevice) ? rawDevice : "هاتف Android";
+            const browser = !rawBrowser || /okhttp/i.test(rawBrowser) ? "تطبيق عُقاب" : rawBrowser;
             return (
               <View key={item.id} style={styles.sessionRow}>
                 <View style={styles.sessionText}>
@@ -379,6 +395,13 @@ export default function Profile() {
               </View>
             );
           })}
+          {orderedSessions.length > 3 && (
+            <Pressable onPress={() => setShowAllSessions((value) => !value)} style={styles.sessionsToggle}>
+              <Text style={styles.sessionsToggleText}>
+                {showAllSessions ? "عرض جلسات أقل" : `عرض كل الجلسات (${orderedSessions.length})`}
+              </Text>
+            </Pressable>
+          )}
         </View>
         {data!.badges.length > 0 && (
           <View style={styles.badges}>
@@ -506,19 +529,24 @@ export default function Profile() {
 }
 
 const styles = StyleSheet.create({
-  content: { gap: 16, paddingBottom: 118 },
-  head: { gap: 8 },
+  content: { width: "100%", maxWidth: 680, alignSelf: "center", gap: 16, paddingBottom: 118 },
+  head: { alignItems: "center", gap: 9, backgroundColor: theme.colors.card, borderRadius: 24, borderWidth: 1, borderColor: `${theme.colors.ink}18`, padding: 20 },
   avatar: {
     width: 88,
     height: 88,
     borderRadius: 44,
-    alignSelf: "flex-end",
+    alignSelf: "center",
     backgroundColor: theme.colors.paperAlt,
   },
-  avatarButton: { minHeight: 44, alignSelf: "flex-end", justifyContent: "center" },
+  avatarButton: { minHeight: 40, alignSelf: "center", justifyContent: "center", paddingHorizontal: 12 },
   avatarButtonText: { color: theme.colors.gold, fontWeight: "800" },
-  points: { color: theme.colors.gold, fontWeight: "800", textAlign: "right" },
-  level: { color: theme.colors.ink, fontWeight: "800", textAlign: "right" },
+  profileName: { color: theme.colors.ink, fontSize: 24, fontWeight: "900", textAlign: "center", writingDirection: "rtl" },
+  email: { maxWidth: "100%", color: theme.colors.ink, opacity: 0.58, textAlign: "center", writingDirection: "ltr" },
+  statsRow: { direction: "ltr", flexDirection: "row", justifyContent: "center", gap: 10 },
+  statPill: { minWidth: 104, minHeight: 52, direction: "rtl", flexDirection: "row", alignItems: "baseline", justifyContent: "center", gap: 5, backgroundColor: theme.colors.paperAlt, borderRadius: 15, paddingHorizontal: 12, paddingVertical: 10 },
+  statValue: { color: theme.colors.gold, fontSize: 18, fontWeight: "900" },
+  statLabel: { color: theme.colors.ink, opacity: 0.62, fontSize: 12, fontWeight: "700" },
+  level: { alignSelf: "stretch", color: theme.colors.ink, fontWeight: "800", textAlign: "right", writingDirection: "rtl" },
   track: {
     height: 8,
     backgroundColor: `${theme.colors.ink}22`,
@@ -545,7 +573,7 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     marginTop: 4,
   },
-  label: { color: theme.colors.ink, fontWeight: "700", textAlign: "right" },
+  label: { color: theme.colors.ink, fontWeight: "700", textAlign: "right", writingDirection: "rtl" },
   input: {
     minHeight: 48,
     borderWidth: 1,
@@ -554,10 +582,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     color: theme.colors.ink,
     textAlign: "right",
+    writingDirection: "rtl",
     backgroundColor: theme.colors.paperAlt,
   },
   switchRow: {
     minHeight: 48,
+    direction: "ltr",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -577,9 +607,10 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 16,
   },
-  notificationText: { flex: 1, gap: 3 },
+  notificationText: { flex: 1, direction: "rtl", gap: 3, marginLeft: 14 },
   sessionRow: {
     minHeight: 62,
+    direction: "ltr",
     flexDirection: "row-reverse",
     alignItems: "center",
     gap: 10,
@@ -587,8 +618,8 @@ const styles = StyleSheet.create({
     borderTopColor: `${theme.colors.ink}18`,
     paddingTop: 10,
   },
-  sessionText: { flex: 1, gap: 3 },
-  sessionTitle: { color: theme.colors.ink, fontWeight: "800", textAlign: "right" },
+  sessionText: { flex: 1, direction: "rtl", gap: 3 },
+  sessionTitle: { color: theme.colors.ink, fontWeight: "800", textAlign: "right", writingDirection: "rtl" },
   revokeButton: {
     minHeight: 44,
     minWidth: 64,
@@ -599,10 +630,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   revokeText: { color: theme.colors.error, fontWeight: "800" },
+  sessionsToggle: { minHeight: 44, alignItems: "center", justifyContent: "center", borderRadius: 12, backgroundColor: theme.colors.paperAlt, marginTop: 2 },
+  sessionsToggleText: { color: theme.colors.gold, fontWeight: "900" },
   danger: {
     borderWidth: 1,
     borderColor: theme.colors.error,
-    borderRadius: 10,
+    borderRadius: 22,
     padding: 16,
     gap: 10,
   },

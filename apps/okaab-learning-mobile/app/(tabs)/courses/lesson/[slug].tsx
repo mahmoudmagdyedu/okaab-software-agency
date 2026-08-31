@@ -52,6 +52,7 @@ export default function LessonScreen() {
   const [playerRevision, setPlayerRevision] = useState(0);
   const [privacyEnhanced, setPrivacyEnhanced] = useState(true);
   const [playerReady, setPlayerReady] = useState(false);
+  const [playerFrameLoaded, setPlayerFrameLoaded] = useState(false);
   const [deckIndex, setDeckIndex] = useState(0);
   const [slideRevision, setSlideRevision] = useState(0);
   const [slideLoading, setSlideLoading] = useState(false);
@@ -64,6 +65,7 @@ export default function LessonScreen() {
       setData(next);
       setPlayerError("");
       setPlayerReady(false);
+      setPlayerFrameLoaded(false);
       setPrivacyEnhanced(true);
       setDeckIndex(0);
       setSlideError("");
@@ -103,6 +105,15 @@ export default function LessonScreen() {
     [data?.videos, privacyEnhanced],
   );
 
+  useEffect(() => {
+    if (!videoHtml || stage !== "video" || playerFrameLoaded || playerError) return;
+    const timeout = setTimeout(
+      () => setPlayerError("استغرق اتصال YouTube وقتًا أطول من المتوقع. أعد المحاولة أو افتح الفيديو مباشرة."),
+      22000,
+    );
+    return () => clearTimeout(timeout);
+  }, [playerError, playerFrameLoaded, playerRevision, stage, videoHtml]);
+
   if (!isLoaded) return <Loading />;
   if (!isSignedIn) return <Redirect href="/(auth)/sign-in" />;
   if (!data && !error) return <Loading />;
@@ -135,8 +146,13 @@ export default function LessonScreen() {
     try {
       const event = JSON.parse(raw) as Record<string, unknown>;
       const type = String(event.type || "");
+      if (type === "player_frame_loaded") {
+        setPlayerFrameLoaded(true);
+        return;
+      }
       if (type === "player_ready") {
         setPlayerError("");
+        setPlayerFrameLoaded(true);
         setPlayerReady(true);
         return;
       }
@@ -149,6 +165,7 @@ export default function LessonScreen() {
         if (privacyEnhanced && ["101", "150", "153", "player_timeout"].includes(code)) {
           setPrivacyEnhanced(false);
           setPlayerReady(false);
+          setPlayerFrameLoaded(false);
           setPlayerRevision((current) => current + 1);
           return;
         }
@@ -190,6 +207,7 @@ export default function LessonScreen() {
   const retryPlayer = () => {
     setPlayerError("");
     setPlayerReady(false);
+    setPlayerFrameLoaded(false);
     setPrivacyEnhanced(true);
     setPlayerRevision((current) => current + 1);
   };
@@ -286,11 +304,14 @@ export default function LessonScreen() {
                 allowsInlineMediaPlayback
                 mediaPlaybackRequiresUserAction={false}
                 originWhitelist={["https://*", "about:blank"]}
-                onLoadStart={() => setPlayerReady(false)}
+                onLoadStart={() => {
+                  setPlayerReady(false);
+                  setPlayerFrameLoaded(false);
+                }}
                 onHttpError={() => setPlayerError("تعذّر الوصول إلى خدمة الفيديو. أعد المحاولة بعد لحظات.")}
                 onMessage={(event) => void handleMessage(event.nativeEvent.data)}
               />
-              {!playerReady && !playerError ? (
+              {!playerFrameLoaded && !playerError ? (
                 <View pointerEvents="none" style={styles.playerLoading}>
                   <ActivityIndicator color={theme.colors.gold} size="large" />
                   <Text style={styles.playerLoadingText}>جارٍ تجهيز الفيديو داخل عُقاب…</Text>
@@ -320,30 +341,33 @@ export default function LessonScreen() {
             <View style={styles.controlRail}>
               <Pressable
                 accessibilityLabel={playing ? "إيقاف مؤقت" : "تشغيل"}
+                disabled={!playerReady}
                 onPress={() => playerCommand(playing ? "pause" : "play")}
-                style={styles.controlPrimary}
+                style={[styles.controlPrimary, !playerReady && styles.controlDisabled]}
               >
                 <Text style={styles.controlPrimaryText}>{playing ? "Ⅱ" : "▶"}</Text>
               </Pressable>
               <Pressable
                 accessibilityLabel={muted ? "تشغيل الصوت" : "كتم الصوت"}
+                disabled={!playerReady}
                 onPress={() => {
                   playerCommand(muted ? "unmute" : "mute");
                   setMuted((value) => !value);
                 }}
-                style={styles.control}
+                style={[styles.control, !playerReady && styles.controlDisabled]}
               >
                 <Text style={styles.controlText}>{muted ? "صوت" : "كتم"}</Text>
               </Pressable>
               <Pressable
                 accessibilityLabel="تغيير سرعة الفيديو"
+                disabled={!playerReady}
                 onPress={() => {
                   const speeds = [1, 1.25, 1.5, 2];
                   const next = speeds[(speeds.indexOf(rate) + 1) % speeds.length] ?? 1;
                   setRate(next);
                   playerCommand("rate", next);
                 }}
-                style={styles.control}
+                style={[styles.control, !playerReady && styles.controlDisabled]}
               >
                 <Text style={styles.controlText}>×{rate}</Text>
               </Pressable>
@@ -521,6 +545,7 @@ const styles = StyleSheet.create({
   controlPrimaryText: { color: theme.colors.ink, fontWeight: "900", fontSize: 18 },
   control: { minWidth: 48, height: 38, borderRadius: 10, borderWidth: 1, borderColor: "#5C5248", alignItems: "center", justifyContent: "center", paddingHorizontal: 8 },
   controlText: { color: "#FFF", fontWeight: "800", fontSize: 12 },
+  controlDisabled: { opacity: 0.42 },
   videoTrack: { flex: 1, height: 5, backgroundColor: "#4B4239", borderRadius: 5, overflow: "hidden" },
   videoFill: { height: "100%", backgroundColor: theme.colors.gold },
   videoPercent: { color: "#FFF", fontSize: 11, minWidth: 28 },

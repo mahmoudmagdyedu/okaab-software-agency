@@ -88,7 +88,7 @@ export default function CourseMapScreen() {
           <View style={styles.progressRow}>
             <Text style={styles.progressText}>{progress}%</Text>
             <Text style={styles.progressLabel}>
-              {completed} من {ordered.length} مراحل مكتملة
+              {completed} من {ordered.length} {ordered.length === 1 ? "مرحلة مكتملة" : "مراحل مكتملة"}
             </Text>
           </View>
           <View style={styles.track}>
@@ -175,9 +175,9 @@ const styles = StyleSheet.create({
   eyebrow: { color: theme.colors.gold, textAlign: "right", fontWeight: "900" },
   courseTitle: { color: theme.colors.darkInk, textAlign: "right", fontSize: 27, fontWeight: "900" },
   description: { color: theme.colors.darkInk, opacity: 0.72, textAlign: "right", lineHeight: 22 },
-  progressRow: { flexDirection: "row-reverse", justifyContent: "space-between", marginTop: 6 },
+  progressRow: { direction: "ltr", flexDirection: "row", justifyContent: "space-between", marginTop: 6 },
   progressText: { color: theme.colors.gold, fontWeight: "900" },
-  progressLabel: { color: theme.colors.darkInk, opacity: 0.75 },
+  progressLabel: { color: theme.colors.darkInk, opacity: 0.75, textAlign: "right", writingDirection: "rtl" },
   track: { height: 7, backgroundColor: "#40372E", borderRadius: 7, overflow: "hidden" },
   fill: { height: "100%", backgroundColor: theme.colors.gold, borderRadius: 7 },
   map: { position: "relative", minHeight: 140, paddingVertical: 10, gap: 28 },
