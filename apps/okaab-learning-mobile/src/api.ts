@@ -5,16 +5,43 @@ export const apiUrl = process.env.EXPO_PUBLIC_OKAAB_API_URL || Constants.expoCon
 const QUEUE_KEY = "okaab-learning-event-queue-v1";
 
 type Envelope<T> = { data: T | null; error: { message: string } | null };
+const REQUEST_TIMEOUT_MS = 12_000;
 
 export async function apiRequest<T>(path: string, getToken?: () => Promise<string | null>, init?: RequestInit): Promise<T> {
   const token = getToken ? await getToken() : null;
-  const response = await fetch(`${apiUrl}${path}`, {
-    ...init,
-    headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}), ...init?.headers },
-  });
-  const payload = (await response.json()) as Envelope<T>;
-  if (!response.ok || payload.error) throw new Error(payload.error?.message || "تعذّر الاتصال بمنصة عُقاب");
-  return payload.data as T;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const callerSignal = init?.signal;
+  const forwardAbort = () => controller.abort();
+  callerSignal?.addEventListener("abort", forwardAbort, { once: true });
+
+  try {
+    const response = await fetch(`${apiUrl}${path}`, {
+      ...init,
+      signal: controller.signal,
+      headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}), ...init?.headers },
+    });
+    const body = await response.text();
+    let payload: Envelope<T>;
+    try {
+      payload = JSON.parse(body) as Envelope<T>;
+    } catch {
+      throw new Error("وصل رد غير متوقع من المنصة. حاول مرة أخرى بعد لحظات.");
+    }
+    if (!response.ok || payload.error) throw new Error(payload.error?.message || "تعذّر الاتصال بمنصة عُقاب");
+    return payload.data as T;
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("استغرق الاتصال وقتًا أطول من المعتاد. تحقق من الإنترنت ثم أعد المحاولة.");
+    }
+    if (error instanceof TypeError) {
+      throw new Error("لا يمكن الوصول إلى منصة عُقاب الآن. تحقق من الإنترنت ثم أعد المحاولة.");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+    callerSignal?.removeEventListener("abort", forwardAbort);
+  }
 }
 
 export async function enqueueEvent(slug: string, event: Record<string, unknown>) {

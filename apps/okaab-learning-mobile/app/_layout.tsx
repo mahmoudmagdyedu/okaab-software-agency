@@ -14,7 +14,7 @@ import {
 } from "@expo-google-fonts/ibm-plex-sans-arabic";
 
 import { apiRequest } from "@/api";
-import { Action, EagleLoader, Loading, Muted, Title } from "@/components";
+import { Action, EagleLoader, Muted, Title } from "@/components";
 import { theme } from "@/theme";
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
@@ -55,7 +55,7 @@ function SystemGate({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     void load();
   }, []);
-  if (!config && !failed) return <Loading />;
+  if (!config && !failed) return <EagleLoader label="نتحقق من جاهزية المنصة…" />;
   if (config?.mobile?.maintenance_mode)
     return (
       <SystemState

@@ -5,7 +5,7 @@ import { Image, StyleSheet, View } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
-import { Loading } from "@/components";
+import { EagleLoader } from "@/components";
 import { theme } from "@/theme";
 
 export default function AuthLayout() {
@@ -46,7 +46,7 @@ export default function AuthLayout() {
     };
   }, [client.lastActiveSessionId, isLoaded, isSignedIn, sessionList]);
 
-  if (!isLoaded || !sessionList.isLoaded || !recoveryFinished) return <Loading />;
+  if (!isLoaded || !sessionList.isLoaded || !recoveryFinished) return <EagleLoader label="نستعيد حسابك بأمان…" />;
   if (isSignedIn) return <Redirect href="/(tabs)" />;
 
   return <AuthBackdrop />;

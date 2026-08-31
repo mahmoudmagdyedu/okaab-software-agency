@@ -3,7 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Redirect, Tabs } from "expo-router";
 import type { ComponentProps } from "react";
 import { StyleSheet, View } from "react-native";
-import { Loading } from "@/components";
+import { EagleLoader } from "@/components";
 import { theme } from "@/theme";
 
 function TabIcon({
@@ -29,7 +29,7 @@ function TabIcon({
 export default function TabsLayout() {
   const { isLoaded, isSignedIn } = useAuth({ treatPendingAsSignedOut: false });
 
-  if (!isLoaded) return <Loading />;
+  if (!isLoaded) return <EagleLoader label="نجهّز مساحتك التعليمية…" />;
   if (!isSignedIn) return <Redirect href="/(auth)/sign-in" />;
 
   return (
