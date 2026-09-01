@@ -22,7 +22,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-import { theme } from "./theme";
+import { type AppTheme, useAppTheme, useThemedStyles } from "./theme";
 
 export function AuthScreen({
   eyebrow,
@@ -30,20 +30,21 @@ export function AuthScreen({
   description,
   children,
 }: PropsWithChildren<{ eyebrow: string; title: string; description: string }>) {
+  const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
   const reduceMotion = useReducedMotion();
   const progress = useSharedValue(reduceMotion ? 1 : 0);
 
   useEffect(() => {
     progress.value = withTiming(1, {
-      duration: reduceMotion ? 0 : 480,
+      duration: reduceMotion ? 0 : 260,
       easing: Easing.out(Easing.cubic),
     });
   }, [progress, reduceMotion]);
 
   const introStyle = useAnimatedStyle(() => ({
     opacity: progress.value,
-    transform: [{ translateY: (1 - progress.value) * 18 }],
+    transform: [{ translateY: (1 - progress.value) * 10 }],
   }));
 
   return (
@@ -92,13 +93,15 @@ export function Field({
   error,
   ...props
 }: TextInputProps & { label: string; error?: string }) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.fieldGroup}>
       <Text style={styles.label}>{label}</Text>
       <TextInput
         {...props}
         accessibilityLabel={props.accessibilityLabel || label}
-        placeholderTextColor="#756D63"
+        placeholderTextColor={theme.colors.muted}
         style={[styles.input, error ? styles.inputError : null, props.style]}
       />
       {error ? <Text style={styles.fieldError}>{error}</Text> : null}
@@ -111,6 +114,8 @@ export function PasswordField({
   error,
   ...props
 }: TextInputProps & { label: string; error?: string }) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const [visible, setVisible] = useState(false);
   return (
     <View style={styles.fieldGroup}>
@@ -120,7 +125,7 @@ export function PasswordField({
           {...props}
           accessibilityLabel={props.accessibilityLabel || label}
           secureTextEntry={!visible}
-          placeholderTextColor="#756D63"
+          placeholderTextColor={theme.colors.muted}
           style={styles.passwordInput}
         />
         <Pressable
@@ -149,6 +154,8 @@ export function GoogleButton({
   disabled?: boolean;
   onPress: () => void;
 }) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const inactive = loading || disabled;
   return (
     <Pressable
@@ -165,6 +172,7 @@ export function GoogleButton({
 }
 
 export function Divider() {
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.divider}>
       <View style={styles.line} />
@@ -175,6 +183,7 @@ export function Divider() {
 }
 
 export function TextButton({ title, onPress, disabled = false }: { title: string; onPress: () => void; disabled?: boolean }) {
+  const styles = useThemedStyles(createStyles);
   return (
     <Pressable accessibilityRole="button" disabled={disabled} onPress={onPress} style={styles.textButton}>
       <Text style={[styles.textButtonLabel, disabled && styles.disabledText]}>{title}</Text>
@@ -183,6 +192,8 @@ export function TextButton({ title, onPress, disabled = false }: { title: string
 }
 
 export function Alert({ children, success = false }: PropsWithChildren<{ success?: boolean }>) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   return (
     <View accessibilityRole={success ? undefined : "alert"} style={[styles.alert, success && styles.successAlert]}>
       <Ionicons name={success ? "checkmark-circle-outline" : "alert-circle-outline"} size={20} color={success ? theme.colors.success : theme.colors.error} />
@@ -192,6 +203,8 @@ export function Alert({ children, success = false }: PropsWithChildren<{ success
 }
 
 export function AuthProcessingOverlay({ label }: { label: string }) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.processing}>
       <View style={styles.processingCard}>
@@ -202,7 +215,7 @@ export function AuthProcessingOverlay({ label }: { label: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => ({
   screen: { flex: 1 },
   page: { flexGrow: 1, justifyContent: "space-between", paddingHorizontal: 16, gap: 28 },
   identity: { width: "100%", alignSelf: "center", alignItems: "center", paddingHorizontal: 8 },
@@ -211,36 +224,36 @@ const styles = StyleSheet.create({
   brand: { color: "#FFF8EC", fontFamily: theme.font.bold, fontSize: 40, lineHeight: 50, textAlign: "center", textShadowColor: "rgba(0,0,0,.55)", textShadowRadius: 16 },
   identityRule: { width: 48, height: 3, borderRadius: 3, backgroundColor: theme.colors.gold, marginVertical: 7 },
   promise: { color: "#FFF8EC", fontFamily: theme.font.medium, fontSize: 15, textAlign: "center", textShadowColor: "rgba(0,0,0,.75)", textShadowRadius: 10 },
-  card: { width: "100%", alignSelf: "center", maxWidth: 520, borderRadius: 30, borderWidth: 1, borderColor: "rgba(255,255,255,.56)", backgroundColor: "rgba(246,241,231,.91)", paddingHorizontal: 20, paddingTop: 12, paddingBottom: 22, shadowColor: "#000", shadowOpacity: 0.28, shadowRadius: 26, shadowOffset: { width: 0, height: 14 }, elevation: 12 },
-  handle: { alignSelf: "center", width: 42, height: 4, borderRadius: 4, backgroundColor: "rgba(24,21,17,.22)", marginBottom: 14 },
-  eyebrow: { color: "#A76500", fontFamily: theme.font.semibold, fontSize: 12, textAlign: "right", letterSpacing: 0.3 },
+  card: { width: "100%", alignSelf: "center", maxWidth: 520, borderRadius: 30, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.isDark ? "rgba(33,29,25,.95)" : "rgba(246,241,231,.93)", paddingHorizontal: 20, paddingTop: 12, paddingBottom: 22, shadowColor: theme.colors.shadow, shadowOpacity: 0.24, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 10 },
+  handle: { alignSelf: "center", width: 42, height: 4, borderRadius: 4, backgroundColor: theme.colors.border, marginBottom: 14 },
+  eyebrow: { color: theme.colors.gold, fontFamily: theme.font.semibold, fontSize: 12, textAlign: "right", letterSpacing: 0.3 },
   title: { color: theme.colors.ink, fontFamily: theme.font.bold, fontSize: 27, lineHeight: 38, textAlign: "right", marginTop: 2 },
-  description: { color: "#5D564D", fontFamily: theme.font.regular, fontSize: 14, lineHeight: 23, textAlign: "right", marginTop: 2 },
+  description: { color: theme.colors.muted, fontFamily: theme.font.regular, fontSize: 14, lineHeight: 23, textAlign: "right", marginTop: 2 },
   content: { gap: 13, marginTop: 18 },
   fieldGroup: { gap: 6 },
   label: { color: theme.colors.ink, fontFamily: theme.font.semibold, fontSize: 14, textAlign: "right" },
-  input: { minHeight: 54, borderWidth: 1, borderColor: "rgba(24,21,17,.28)", borderRadius: 15, paddingHorizontal: 15, color: theme.colors.ink, fontFamily: theme.font.regular, fontSize: 15, textAlign: "right", backgroundColor: "rgba(255,253,248,.82)" },
-  inputError: { borderColor: theme.colors.error, backgroundColor: "rgba(255,244,242,.92)" },
-  passwordBox: { minHeight: 54, flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: "rgba(24,21,17,.28)", borderRadius: 15, backgroundColor: "rgba(255,253,248,.82)", overflow: "hidden" },
+  input: { minHeight: 54, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 15, paddingHorizontal: 15, color: theme.colors.ink, fontFamily: theme.font.regular, fontSize: 15, textAlign: "right", backgroundColor: theme.colors.input },
+  inputError: { borderColor: theme.colors.error, backgroundColor: theme.colors.input },
+  passwordBox: { minHeight: 54, flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: theme.colors.border, borderRadius: 15, backgroundColor: theme.colors.input, overflow: "hidden" },
   passwordInput: { minHeight: 52, flex: 1, paddingHorizontal: 15, color: theme.colors.ink, fontFamily: theme.font.regular, fontSize: 15, textAlign: "right" },
   eyeButton: { width: 52, minHeight: 52, alignItems: "center", justifyContent: "center" },
   fieldError: { color: theme.colors.error, fontFamily: theme.font.medium, fontSize: 12, lineHeight: 18, textAlign: "right" },
-  google: { minHeight: 52, flexDirection: "row-reverse", gap: 10, borderWidth: 1, borderColor: "rgba(24,21,17,.55)", borderRadius: 15, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,.74)" },
+  google: { minHeight: 52, flexDirection: "row-reverse", gap: 10, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 15, alignItems: "center", justifyContent: "center", backgroundColor: theme.colors.card },
   googleMark: { color: "#4285F4", fontSize: 19, fontWeight: "900" },
   googleText: { color: theme.colors.ink, fontFamily: theme.font.semibold, fontSize: 14 },
   pressed: { opacity: 0.82 },
   disabled: { opacity: 0.55 },
   divider: { flexDirection: "row", alignItems: "center", gap: 10 },
-  line: { flex: 1, height: 1, backgroundColor: "rgba(24,21,17,.17)" },
-  or: { color: "#71695F", fontFamily: theme.font.regular, fontSize: 13 },
+  line: { flex: 1, height: 1, backgroundColor: theme.colors.border },
+  or: { color: theme.colors.muted, fontFamily: theme.font.regular, fontSize: 13 },
   textButton: { minHeight: 44, justifyContent: "center", paddingHorizontal: 4 },
-  textButtonLabel: { color: "#9A5B00", fontFamily: theme.font.semibold, fontSize: 14, textAlign: "center" },
+  textButtonLabel: { color: theme.colors.gold, fontFamily: theme.font.semibold, fontSize: 14, textAlign: "center" },
   disabledText: { opacity: 0.45 },
-  alert: { flexDirection: "row-reverse", alignItems: "flex-start", gap: 9, borderWidth: 1, borderColor: "rgba(194,55,43,.55)", backgroundColor: "rgba(255,244,242,.9)", borderRadius: 13, padding: 11 },
-  successAlert: { borderColor: "rgba(27,127,75,.42)", backgroundColor: "rgba(239,252,244,.9)" },
+  alert: { flexDirection: "row-reverse", alignItems: "flex-start", gap: 9, borderWidth: 1, borderColor: theme.colors.error, backgroundColor: theme.colors.paperAlt, borderRadius: 13, padding: 11 },
+  successAlert: { borderColor: theme.colors.success, backgroundColor: theme.colors.paperAlt },
   alertText: { flex: 1, color: theme.colors.error, fontFamily: theme.font.medium, fontSize: 13, lineHeight: 20, textAlign: "right" },
   successText: { color: theme.colors.success },
-  processing: { ...StyleSheet.absoluteFill, zIndex: 50, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(24,21,17,.58)", padding: 24 },
-  processingCard: { width: "100%", maxWidth: 300, borderRadius: 24, backgroundColor: "rgba(246,241,231,.97)", paddingHorizontal: 24, paddingVertical: 28, alignItems: "center", gap: 16, shadowColor: "#000", shadowOpacity: 0.24, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 12 },
+  processing: { ...StyleSheet.absoluteFill, zIndex: 50, alignItems: "center", justifyContent: "center", backgroundColor: theme.colors.overlay, padding: 24 },
+  processingCard: { width: "100%", maxWidth: 300, borderRadius: 24, backgroundColor: theme.colors.card, paddingHorizontal: 24, paddingVertical: 28, alignItems: "center", gap: 16, shadowColor: theme.colors.shadow, shadowOpacity: 0.24, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 12 },
   processingLabel: { color: theme.colors.ink, fontFamily: theme.font.semibold, fontSize: 14, lineHeight: 22, textAlign: "center" },
 });

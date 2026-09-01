@@ -4,7 +4,7 @@ import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "r
 
 import { apiRequest } from "@/api";
 import { ErrorState, Loading, Muted, Screen, Title } from "@/components";
-import { theme } from "@/theme";
+import { type AppTheme, useThemedStyles } from "@/theme";
 import type { Overview } from "@/types";
 
 type Period = "weekly" | "monthly" | "all";
@@ -12,6 +12,7 @@ type Row = { id: string; display_name: string; points: number; rank: number };
 type Leaderboard = { leaders: Row[]; me: Row | null };
 
 export default function AchievementsScreen() {
+  const styles = useThemedStyles(createStyles);
   const { getToken } = useAuth();
   const [period, setPeriod] = useState<Period>("weekly");
   const [overview, setOverview] = useState<Overview | null>(null);
@@ -112,13 +113,14 @@ export default function AchievementsScreen() {
 }
 
 function Metric({ value, label }: { value: string; label: string }) {
+  const styles = useThemedStyles(createStyles);
   return <View style={styles.metric}><Text style={styles.metricValue}>{value}</Text><Text style={styles.metricLabel}>{label}</Text></View>;
 }
 function privateName(name: string) {
   return name.split(" ").filter(Boolean).map((part, index) => index === 0 ? part : `${part[0]}.`).join(" ");
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => ({
   content: { gap: 16, paddingBottom: 118 },
   hero: { backgroundColor: theme.colors.darkPaper, borderRadius: 28, padding: 22, alignItems: "center", gap: 5, borderWidth: 1, borderColor: `${theme.colors.gold}55` },
   kicker: { color: theme.colors.gold, fontWeight: "900" },
@@ -130,18 +132,18 @@ const styles = StyleSheet.create({
   metricLabel: { color: "#FFF", opacity: 0.65, fontSize: 11, textAlign: "center" },
   level: { color: theme.colors.gold, fontWeight: "900", marginTop: 10 },
   badges: { gap: 10, paddingBottom: 4 },
-  badge: { width: 150, minHeight: 145, backgroundColor: theme.colors.card, borderWidth: 1, borderColor: `${theme.colors.ink}22`, borderRadius: 18, padding: 14, alignItems: "center", gap: 6 },
+  badge: { width: 150, minHeight: 145, backgroundColor: theme.colors.card, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 18, padding: 14, alignItems: "center", gap: 6 },
   badgeIcon: { width: 42, height: 42, lineHeight: 42, borderRadius: 21, backgroundColor: theme.colors.gold, color: theme.colors.ink, textAlign: "center", fontSize: 20 },
   badgeTitle: { color: theme.colors.ink, fontWeight: "900", textAlign: "center" },
   badgeDescription: { color: theme.colors.ink, opacity: 0.6, textAlign: "center", fontSize: 12, lineHeight: 17 },
   emptyBadge: { minWidth: 260, padding: 20, backgroundColor: theme.colors.card, borderRadius: 16 },
   boardHeader: { gap: 8, marginTop: 8 },
   tabs: { flexDirection: "row-reverse", gap: 7 },
-  tab: { flex: 1, minHeight: 44, borderWidth: 1, borderColor: `${theme.colors.ink}40`, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: theme.colors.card },
+  tab: { flex: 1, minHeight: 44, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: theme.colors.card },
   activeTab: { backgroundColor: theme.colors.gold, borderColor: theme.colors.ink },
   tabText: { color: theme.colors.ink, fontWeight: "800" },
   board: { gap: 8 },
-  row: { minHeight: 58, flexDirection: "row-reverse", alignItems: "center", gap: 10, backgroundColor: theme.colors.card, borderWidth: 1, borderColor: `${theme.colors.ink}20`, borderRadius: 14, padding: 10 },
+  row: { minHeight: 58, flexDirection: "row-reverse", alignItems: "center", gap: 10, backgroundColor: theme.colors.card, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 14, padding: 10 },
   topRow: { borderColor: `${theme.colors.gold}99` },
   rank: { width: 34, height: 34, lineHeight: 34, borderRadius: 17, backgroundColor: theme.colors.darkPaper, color: theme.colors.gold, textAlign: "center", fontWeight: "900" },
   name: { flex: 1, color: theme.colors.ink, textAlign: "right", fontWeight: "800" },

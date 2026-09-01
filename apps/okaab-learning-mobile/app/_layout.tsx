@@ -15,11 +15,13 @@ import {
 
 import { apiRequest } from "@/api";
 import { Action, EagleLoader, Muted, Title } from "@/components";
-import { theme } from "@/theme";
+import { AppThemeProvider, type AppTheme, useAppTheme, useThemedStyles } from "@/theme";
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
 I18nManager.allowRTL(true);
+I18nManager.forceRTL(true);
+I18nManager.swapLeftAndRightInRTL(false);
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -96,6 +98,7 @@ function SystemState({
   action: string;
   onPress: () => void;
 }) {
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.system}>
       <Text style={styles.mark}>عُقاب</Text>
@@ -107,6 +110,8 @@ function SystemState({
 }
 
 function RootNavigator() {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.navigator}>
       <Stack
@@ -128,13 +133,8 @@ function RootNavigator() {
   );
 }
 
-export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
-    IBMPlexSansArabic_400Regular,
-    IBMPlexSansArabic_500Medium,
-    IBMPlexSansArabic_600SemiBold,
-    IBMPlexSansArabic_700Bold,
-  });
+function AppShell({ fontsLoaded }: { fontsLoaded: boolean }) {
+  const theme = useAppTheme();
 
   if (!fontsLoaded) return <EagleLoader label={null} />;
 
@@ -152,14 +152,29 @@ export default function RootLayout() {
   return (
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
       <SystemGate>
-        <StatusBar style="dark" />
+        <StatusBar style={theme.isDark ? "light" : "dark"} />
         <RootNavigator />
       </SystemGate>
     </ClerkProvider>
   );
 }
 
-const styles = StyleSheet.create({
+export default function RootLayout() {
+  const [fontsLoaded] = useFonts({
+    IBMPlexSansArabic_400Regular,
+    IBMPlexSansArabic_500Medium,
+    IBMPlexSansArabic_600SemiBold,
+    IBMPlexSansArabic_700Bold,
+  });
+
+  return (
+    <AppThemeProvider>
+      <AppShell fontsLoaded={fontsLoaded} />
+    </AppThemeProvider>
+  );
+}
+
+const createStyles = (theme: AppTheme) => ({
   navigator: { flex: 1, backgroundColor: theme.colors.paper },
   system: {
     flex: 1,

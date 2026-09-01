@@ -5,7 +5,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { apiRequest } from "@/api";
 import { Action, ErrorState, Loading, Muted, Screen, Title } from "@/components";
-import { theme } from "@/theme";
+import { type AppTheme, useThemedStyles } from "@/theme";
 
 type QuizOption = { id: string; option_text: string };
 type QuizQuestion = {
@@ -17,6 +17,7 @@ type QuizQuestion = {
 type AnswerResult = { correct: boolean; explanation: string; pointsAwarded: number };
 
 export default function QuizScreen() {
+  const styles = useThemedStyles(createStyles);
   const { slug, next: nextStep, course } = useLocalSearchParams<{
     slug: string;
     next?: "task" | "finish";
@@ -236,7 +237,7 @@ export default function QuizScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => ({
   content: { gap: 16, paddingBottom: 118 },
   empty: { flex: 1, justifyContent: "center", gap: 16 },
   progressRow: { flexDirection: "row-reverse", justifyContent: "space-between" },

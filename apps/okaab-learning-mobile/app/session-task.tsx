@@ -7,11 +7,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { authErrorMessage } from "@/auth-errors";
 import { navigateAfterAuthentication } from "@/auth-session";
 import { Action, EagleLoader, Muted, Title } from "@/components";
-import { theme } from "@/theme";
+import { type AppTheme, useAppTheme, useThemedStyles } from "@/theme";
 
 const MIN_PASSWORD_LENGTH = 15;
 
 export default function SessionTaskScreen() {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const { sessionId } = useAuth({ treatPendingAsSignedOut: false });
   const sessionList = useSessionList();
   const pendingSession = useMemo(
@@ -210,23 +212,23 @@ export default function SessionTaskScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => ({
   safe: { flex: 1, backgroundColor: theme.colors.paper },
   content: { flexGrow: 1, justifyContent: "center", padding: 22, gap: 18 },
   brandRow: { flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between" },
   brand: { color: theme.colors.gold, fontFamily: theme.font.bold, fontSize: 32 },
   step: { backgroundColor: "rgba(232,163,61,.14)", borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 },
   stepText: { color: "#8A5200", fontFamily: theme.font.semibold, fontSize: 12 },
-  card: { backgroundColor: "#FFFCF7", borderWidth: 1, borderColor: "rgba(24,21,17,.15)", borderRadius: 28, padding: 22, gap: 14 },
+  card: { backgroundColor: theme.colors.card, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 28, padding: 22, gap: 14 },
   list: { gap: 10 },
   organization: { minHeight: 68, borderWidth: 1, borderColor: "rgba(24,21,17,.14)", borderRadius: 18, padding: 12, flexDirection: "row-reverse", alignItems: "center", gap: 12 },
   organizationText: { flex: 1 },
   organizationName: { color: theme.colors.ink, fontFamily: theme.font.semibold, fontSize: 16, textAlign: "right" },
-  organizationRole: { color: "#71695F", fontFamily: theme.font.regular, fontSize: 12, textAlign: "right" },
+  organizationRole: { color: theme.colors.muted, fontFamily: theme.font.regular, fontSize: 12, textAlign: "right" },
   avatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: theme.colors.gold, alignItems: "center", justifyContent: "center" },
   avatarText: { color: theme.colors.ink, fontFamily: theme.font.bold, fontSize: 17 },
   label: { color: theme.colors.ink, fontFamily: theme.font.semibold, fontSize: 14, textAlign: "right" },
-  input: { minHeight: 52, borderWidth: 1, borderColor: "rgba(24,21,17,.28)", borderRadius: 16, paddingHorizontal: 14, color: theme.colors.ink, backgroundColor: theme.colors.paper, fontFamily: theme.font.regular, textAlign: "right" },
+  input: { minHeight: 52, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 16, paddingHorizontal: 14, color: theme.colors.ink, backgroundColor: theme.colors.input, fontFamily: theme.font.regular, textAlign: "right" },
   codeInput: { textAlign: "center", fontSize: 20, letterSpacing: 7, writingDirection: "ltr" },
   secret: { borderRadius: 14, padding: 13, backgroundColor: "#181511", color: "#F6F1E7", fontSize: 14, letterSpacing: 1.2, textAlign: "center", writingDirection: "ltr" },
   error: { color: "#B3261E", fontFamily: theme.font.medium, fontSize: 13, lineHeight: 21, textAlign: "right" },

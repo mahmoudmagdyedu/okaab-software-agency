@@ -17,12 +17,13 @@ import {
 } from "@/auth-ui";
 import { Action } from "@/components";
 import { navigateAfterAuthentication } from "@/auth-session";
-import { theme } from "@/theme";
+import { type AppTheme, useThemedStyles } from "@/theme";
 
 const GOOGLE_REDIRECT_URL = "okaab://sso-callback";
 const MIN_PASSWORD_LENGTH = 15;
 
 export default function SignUpScreen() {
+  const styles = useThemedStyles(createStyles);
   const { signUp, fetchStatus } = useSignUp();
   const { setActive } = useClerk();
   const { startSSOFlow } = useSSO();
@@ -176,11 +177,11 @@ export default function SignUpScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => ({
   screen: { flex: 1 },
-  hint: { color: "#71695F", fontFamily: theme.font.regular, fontSize: 12, textAlign: "right", marginTop: -6 },
+  hint: { color: theme.colors.muted, fontFamily: theme.font.regular, fontSize: 12, textAlign: "right", marginTop: -6 },
   switch: { minHeight: 44, justifyContent: "center" },
-  switchText: { color: "#9A5B00", fontFamily: theme.font.semibold, fontSize: 14, textAlign: "center" },
+  switchText: { color: theme.colors.gold, fontFamily: theme.font.semibold, fontSize: 14, textAlign: "center" },
   linksRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
   codeInput: { textAlign: "center", fontSize: 22, letterSpacing: 8, writingDirection: "ltr" },
 });

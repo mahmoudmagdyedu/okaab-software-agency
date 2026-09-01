@@ -13,18 +13,22 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { FlyingEagleLogo } from "./eagle-logo";
-import { theme } from "./theme";
+import { type AppTheme, useAppTheme, useThemedStyles } from "./theme";
 
 export function Screen({ children }: PropsWithChildren) {
+  const styles = useThemedStyles(createStyles);
   return <SafeAreaView edges={["top", "left", "right"]} style={styles.screen}>{children}</SafeAreaView>;
 }
 export function Title({ children }: PropsWithChildren) {
+  const styles = useThemedStyles(createStyles);
   return <Text style={styles.title}>{children}</Text>;
 }
 export function Muted({ children }: PropsWithChildren) {
+  const styles = useThemedStyles(createStyles);
   return <Text style={styles.muted}>{children}</Text>;
 }
 export function Card({ children }: PropsWithChildren) {
+  const styles = useThemedStyles(createStyles);
   return <View style={styles.card}>{children}</View>;
 }
 export function Action({
@@ -38,6 +42,8 @@ export function Action({
   disabled?: boolean;
   loading?: boolean;
 }) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const inactive = disabled || loading;
   return (
     <Pressable
@@ -67,6 +73,7 @@ export function Loading() {
 }
 
 function ContentSkeleton() {
+  const styles = useThemedStyles(createStyles);
   const reduceMotion = useReducedMotion();
   const pulse = useSharedValue(0.45);
 
@@ -111,16 +118,16 @@ export function EagleLoader({
 }: {
   label?: string | null;
 }) {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   return (
     <View accessibilityRole="progressbar" accessibilityLabel={label || "جارٍ التحميل"} style={styles.center}>
       <View style={styles.flightStage}>
         <View style={styles.logoAuraOuter} />
         <View style={styles.logoAura} />
-        <View style={styles.orbitDot} />
         <View style={styles.eagleVector}>
           <FlyingEagleLogo color={theme.colors.ink} />
         </View>
-        <View style={styles.trail}><View style={styles.trailCore} /></View>
       </View>
       {label ? (
         <>
@@ -133,6 +140,7 @@ export function EagleLoader({
   );
 }
 export function ErrorState({ message, retry }: { message: string; retry: () => void }) {
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.errorWrap}>
       <Card>
@@ -146,8 +154,8 @@ export function ErrorState({ message, retry }: { message: string; retry: () => v
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: theme.colors.paper, paddingHorizontal: 18, paddingTop: 8 },
+const createStyles = (theme: AppTheme) => ({
+  screen: { flex: 1, direction: "rtl" as const, backgroundColor: theme.colors.paper, paddingHorizontal: 18, paddingTop: 8 },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, backgroundColor: theme.colors.paper },
   flightStage: { width: 210, height: 150, alignItems: "center", justifyContent: "center" },
   eagleVector: { width: 176, height: 102, zIndex: 3 },
@@ -168,41 +176,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(232,163,61,.16)",
   },
-  orbitDot: {
-    position: "absolute",
-    top: 17,
-    right: 43,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: theme.colors.gold,
-    shadowColor: theme.colors.gold,
-    shadowOpacity: 0.7,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  trail: {
-    position: "absolute",
-    bottom: 2,
-    width: 92,
-    height: 3,
-    borderRadius: 3,
-    backgroundColor: "rgba(24,21,17,.12)",
-    overflow: "hidden",
-  },
-  trailCore: { width: "62%", height: "100%", alignSelf: "center", borderRadius: 3, backgroundColor: theme.colors.gold },
   loadingTitle: { color: theme.colors.ink, fontSize: 28, fontFamily: theme.font.bold, marginTop: -2 },
   loadingKicker: { color: theme.colors.gold, fontSize: 10, letterSpacing: 2.4, fontFamily: theme.font.bold },
   skeletonPage: { flex: 1, backgroundColor: theme.colors.paper, paddingHorizontal: 20, paddingTop: 28, paddingBottom: 104 },
   skeletonBrandRow: { flexDirection: "row-reverse", alignItems: "center", gap: 12, marginBottom: 22 },
   skeletonBrandMark: { width: 44, height: 12, borderRadius: 6, backgroundColor: "rgba(232,163,61,.58)" },
-  skeletonTitle: { width: 132, height: 20, borderRadius: 10, backgroundColor: "rgba(24,21,17,.13)" },
-  skeletonHero: { height: 132, borderRadius: 28, backgroundColor: "rgba(24,21,17,.10)", marginBottom: 22 },
-  skeletonLineWide: { width: "72%", height: 16, borderRadius: 8, backgroundColor: "rgba(24,21,17,.12)", alignSelf: "flex-end", marginBottom: 10 },
-  skeletonLineShort: { width: "45%", height: 12, borderRadius: 6, backgroundColor: "rgba(24,21,17,.09)", alignSelf: "flex-end", marginBottom: 24 },
+  skeletonTitle: { width: 132, height: 20, borderRadius: 10, backgroundColor: theme.colors.border },
+  skeletonHero: { height: 132, borderRadius: 28, backgroundColor: theme.colors.card, marginBottom: 22 },
+  skeletonLineWide: { width: "72%", height: 16, borderRadius: 8, backgroundColor: theme.colors.border, alignSelf: "flex-end" as const, marginBottom: 10 },
+  skeletonLineShort: { width: "45%", height: 12, borderRadius: 6, backgroundColor: theme.colors.border, alignSelf: "flex-end" as const, marginBottom: 24 },
   skeletonCards: { gap: 12 },
-  skeletonCard: { height: 94, borderRadius: 20, backgroundColor: "rgba(24,21,17,.08)", borderWidth: 1, borderColor: "rgba(24,21,17,.06)" },
-  skeletonCardSmall: { height: 68, borderRadius: 20, backgroundColor: "rgba(24,21,17,.07)", borderWidth: 1, borderColor: "rgba(24,21,17,.05)" },
+  skeletonCard: { height: 94, borderRadius: 20, backgroundColor: theme.colors.card, borderWidth: 1, borderColor: theme.colors.border },
+  skeletonCardSmall: { height: 68, borderRadius: 20, backgroundColor: theme.colors.card, borderWidth: 1, borderColor: theme.colors.border },
   errorWrap: { flex: 1, justifyContent: "center", paddingHorizontal: 2, paddingBottom: 92 },
   errorMark: { width: 42, height: 42, borderRadius: 21, alignSelf: "flex-end", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(232,163,61,.16)", borderWidth: 1, borderColor: "rgba(232,163,61,.42)" },
   errorMarkText: { color: theme.colors.gold, fontSize: 22, fontFamily: theme.font.bold },
@@ -225,7 +210,7 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: theme.colors.card,
-    borderColor: `${theme.colors.ink}22`,
+    borderColor: theme.colors.border,
     borderWidth: 1,
     borderRadius: theme.radius.md,
     padding: 16,

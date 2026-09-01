@@ -22,12 +22,15 @@ import {
 
 import { apiRequest } from "@/api";
 import { Action, ErrorState, Loading, Muted, Screen, Title } from "@/components";
-import { theme } from "@/theme";
+import { type AppTheme, useAppTheme, useThemedStyles, useThemePreference } from "@/theme";
 import type { Overview } from "@/types";
 
 const PUSH_TOKEN_KEY = "okaab-learning-fcm-token-v1";
 
 export default function Profile() {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+  const { toggleDarkMode } = useThemePreference();
   const { isLoaded, isSignedIn, getToken, sessionId } = useAuth();
   const { signOut } = useClerk();
   const { user } = useUser();
@@ -350,6 +353,20 @@ export default function Profile() {
         <View style={styles.notifications}>
           <View style={styles.switchRow}>
             <Switch
+              accessibilityLabel="الوضع الداكن"
+              value={theme.isDark}
+              onValueChange={(value) => void toggleDarkMode(value)}
+              trackColor={{ false: theme.colors.border, true: theme.colors.gold }}
+              thumbColor={theme.isDark ? theme.colors.ink : theme.colors.card}
+            />
+            <View style={styles.notificationText}>
+              <Text style={styles.label}>الوضع الداكن</Text>
+              <Muted>واجهة مريحة للعين بألوان عُقاب، ويُحفظ اختيارك على هذا الجهاز.</Muted>
+            </View>
+          </View>
+          <View style={styles.settingDivider} />
+          <View style={styles.switchRow}>
+            <Switch
               accessibilityLabel="إشعارات التعلّم"
               disabled={pushBusy}
               value={pushEnabled}
@@ -528,9 +545,9 @@ export default function Profile() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => ({
   content: { width: "100%", maxWidth: 680, alignSelf: "center", gap: 16, paddingBottom: 118 },
-  head: { alignItems: "center", gap: 9, backgroundColor: theme.colors.card, borderRadius: 24, borderWidth: 1, borderColor: `${theme.colors.ink}18`, padding: 20 },
+  head: { alignItems: "center", gap: 9, backgroundColor: theme.colors.card, borderRadius: 24, borderWidth: 1, borderColor: theme.colors.border, padding: 20 },
   avatar: {
     width: 88,
     height: 88,
@@ -562,14 +579,14 @@ const styles = StyleSheet.create({
     gap: 12,
     backgroundColor: theme.colors.card,
     borderWidth: 1,
-    borderColor: `${theme.colors.ink}22`,
+    borderColor: theme.colors.border,
     padding: 16,
     borderRadius: 16,
   },
   passwordSection: {
     gap: 10,
     borderTopWidth: 1,
-    borderTopColor: `${theme.colors.ink}18`,
+    borderTopColor: theme.colors.border,
     paddingTop: 16,
     marginTop: 4,
   },
@@ -577,7 +594,7 @@ const styles = StyleSheet.create({
   input: {
     minHeight: 48,
     borderWidth: 1,
-    borderColor: `${theme.colors.ink}44`,
+    borderColor: theme.colors.border,
     borderRadius: 10,
     paddingHorizontal: 12,
     color: theme.colors.ink,
@@ -596,17 +613,18 @@ const styles = StyleSheet.create({
     gap: 10,
     backgroundColor: theme.colors.card,
     borderWidth: 1,
-    borderColor: `${theme.colors.ink}22`,
+    borderColor: theme.colors.border,
     padding: 16,
     borderRadius: 16,
   },
   notifications: {
     backgroundColor: theme.colors.card,
     borderWidth: 1,
-    borderColor: `${theme.colors.ink}22`,
+    borderColor: theme.colors.border,
     padding: 16,
     borderRadius: 16,
   },
+  settingDivider: { height: 1, backgroundColor: theme.colors.border, marginVertical: 4 },
   notificationText: { flex: 1, direction: "rtl", gap: 3, marginLeft: 14 },
   sessionRow: {
     minHeight: 62,

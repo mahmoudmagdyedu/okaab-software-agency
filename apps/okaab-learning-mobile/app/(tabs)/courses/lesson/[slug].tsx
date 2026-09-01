@@ -1,14 +1,15 @@
 import { useAuth } from "@clerk/expo";
 import NetInfo from "@react-native-community/netinfo";
-import { createBridgeScript, createYouTubePlayerHtml } from "@okaab/bridge";
+import { createBridgeScript } from "@okaab/bridge";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { WebView } from "react-native-webview";
+import YoutubePlayer, { type YoutubeIframeRef } from "react-native-youtube-iframe";
 
 import { apiRequest, enqueueEvent, flushEvents } from "@/api";
 import { Action, ErrorState, Loading, Muted, Screen, Title } from "@/components";
-import { theme } from "@/theme";
+import { type AppTheme, useAppTheme, useThemedStyles } from "@/theme";
 
 type LessonProgress = {
   last_slide?: number;
@@ -34,10 +35,12 @@ const ANDROID_BROWSER_USER_AGENT =
   "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36";
 
 export default function LessonScreen() {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const { isLoaded, isSignedIn, getToken } = useAuth();
   const { width } = useWindowDimensions();
-  const playerRef = useRef<WebView>(null);
+  const playerRef = useRef<YoutubeIframeRef>(null);
   const slidesRef = useRef<WebView>(null);
   const [data, setData] = useState<Result | null>(null);
   const [error, setError] = useState("");
@@ -50,7 +53,6 @@ export default function LessonScreen() {
   const [muted, setMuted] = useState(false);
   const [rate, setRate] = useState(1);
   const [playerRevision, setPlayerRevision] = useState(0);
-  const [privacyEnhanced, setPrivacyEnhanced] = useState(true);
   const [playerReady, setPlayerReady] = useState(false);
   const [playerFrameLoaded, setPlayerFrameLoaded] = useState(false);
   const [deckIndex, setDeckIndex] = useState(0);
@@ -66,7 +68,6 @@ export default function LessonScreen() {
       setPlayerError("");
       setPlayerReady(false);
       setPlayerFrameLoaded(false);
-      setPrivacyEnhanced(true);
       setDeckIndex(0);
       setSlideError("");
       setViewedDecks([]);
@@ -94,37 +95,16 @@ export default function LessonScreen() {
     return off;
   }, [getToken, isSignedIn, load]);
 
-  const videoHtml = useMemo(
-    () =>
-      data?.videos[0]
-        ? createYouTubePlayerHtml(data.videos[0].youtube_video_id, {
-            origin: "https://okaab.org",
-            privacyEnhanced,
-          })
-        : null,
-    [data?.videos, privacyEnhanced],
-  );
-
   useEffect(() => {
-    if (!videoHtml || stage !== "video" || playerFrameLoaded || playerError) return;
+    if (!data?.videos[0] || stage !== "video" || playerFrameLoaded || playerError) return;
     const timeout = setTimeout(
-      () => setPlayerError("استغرق اتصال YouTube وقتًا أطول من المتوقع. أعد المحاولة أو افتح الفيديو مباشرة."),
-      22000,
+      () => setPlayerError("لم يستجب مشغّل YouTube. يمكنك إعادة المحاولة أو متابعة الشرح دون تعطيل الدرس."),
+      15000,
     );
     return () => clearTimeout(timeout);
-  }, [playerError, playerFrameLoaded, playerRevision, stage, videoHtml]);
+  }, [data?.videos, playerError, playerFrameLoaded, playerRevision, stage]);
 
-  if (!isLoaded) return <Loading />;
-  if (!isSignedIn) return <Redirect href="/(auth)/sign-in" />;
-  if (!data && !error) return <Loading />;
-  if (error && !data)
-    return (
-      <Screen>
-        <ErrorState message={error} retry={load} />
-      </Screen>
-    );
-
-  const sendProgress = async (event: Record<string, unknown>) => {
+  const sendProgress = useCallback(async (event: Record<string, unknown>) => {
     const payload = {
       ...event,
       idempotencyKey:
@@ -140,57 +120,51 @@ export default function LessonScreen() {
     } else {
       await enqueueEvent(slug, payload);
     }
-  };
+  }, [getToken, online, slug]);
+
+  useEffect(() => {
+    if (!playerReady || stage !== "video") return;
+    let cancelled = false;
+    const sample = async () => {
+      try {
+        const [current, duration] = await Promise.all([
+          playerRef.current?.getCurrentTime(),
+          playerRef.current?.getDuration(),
+        ]);
+        if (cancelled || !duration || !current) return;
+        const percent = Math.max(0, Math.min(100, (current / duration) * 100));
+        setVideoPercent((previous) => {
+          if (percent - previous >= 4) {
+            void sendProgress({ type: "video_progress", percent, currentTime: current, duration });
+            return percent;
+          }
+          return previous;
+        });
+      } catch {
+        // The native player can briefly reject while changing fullscreen state.
+      }
+    };
+    const interval = setInterval(() => void sample(), 2500);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [playerReady, sendProgress, stage]);
+
+  if (!isLoaded) return <Loading />;
+  if (!isSignedIn) return <Redirect href="/(auth)/sign-in" />;
+  if (!data && !error) return <Loading />;
+  if (error && !data)
+    return (
+      <Screen>
+        <ErrorState message={error} retry={load} />
+      </Screen>
+    );
 
   const handleMessage = async (raw: string) => {
     try {
       const event = JSON.parse(raw) as Record<string, unknown>;
       const type = String(event.type || "");
-      if (type === "player_frame_loaded") {
-        setPlayerFrameLoaded(true);
-        return;
-      }
-      if (type === "player_ready") {
-        setPlayerError("");
-        setPlayerFrameLoaded(true);
-        setPlayerReady(true);
-        return;
-      }
-      if (type === "player_state") {
-        setPlaying(Number(event.state) === 1);
-        return;
-      }
-      if (type === "player_error") {
-        const code = String(event.code ?? "");
-        if (privacyEnhanced && ["101", "150", "153", "player_timeout"].includes(code)) {
-          setPrivacyEnhanced(false);
-          setPlayerReady(false);
-          setPlayerFrameLoaded(false);
-          setPlayerRevision((current) => current + 1);
-          return;
-        }
-        setPlayerError(
-          code === "100"
-            ? "الفيديو حُذف أو أصبح خاصًا."
-            : ["101", "150"].includes(code)
-              ? "طلب YouTube التحقق من الحساب أو منع تشغيل الفيديو داخل التطبيق. افتحه مرة واحدة في YouTube ثم عُد للدرس."
-            : code === "153"
-              ? "تعذّر إرسال هوية تطبيق عُقاب إلى YouTube. أعد المحاولة بعد تحديث الاتصال."
-              : "تعذّر تشغيل الفيديو الآن. تحقّق من الإنترنت ثم أعد المحاولة.",
-        );
-        return;
-      }
-      if (type === "video_finished") {
-        setVideoPercent(100);
-        setStage(data!.slideDecks.length ? "slides" : "quiz");
-        return;
-      }
-      if (type === "video_progress") {
-        const percent = Math.max(0, Math.min(100, Number(event.percent) || 0));
-        setVideoPercent((current) => Math.max(current, percent));
-        await sendProgress(event);
-        return;
-      }
       if (type === "slide_changed") {
         const index = Math.max(0, Number(event.index) || 0);
         setLastSlide((current) => Math.max(current, index));
@@ -201,14 +175,10 @@ export default function LessonScreen() {
     }
   };
 
-  const playerCommand = (command: string, value?: number) => {
-    playerRef.current?.postMessage(JSON.stringify({ source: "okaab-player", command, value }));
-  };
   const retryPlayer = () => {
     setPlayerError("");
     setPlayerReady(false);
     setPlayerFrameLoaded(false);
-    setPrivacyEnhanced(true);
     setPlayerRevision((current) => current + 1);
   };
   const continueWithoutVideo = () => {
@@ -286,30 +256,49 @@ export default function LessonScreen() {
           ))}
         </View>
 
-        {stage === "video" && videoHtml && (
+        {stage === "video" && data!.videos[0] && (
           <View style={styles.playerCard}>
             <View style={styles.videoFrame}>
-              <WebView
+              <YoutubePlayer
                 key={`${data!.videos[0].youtube_video_id}-${playerRevision}`}
                 ref={playerRef}
-                source={{ html: videoHtml, baseUrl: "https://okaab.org" }}
-                style={styles.player}
-                userAgent={ANDROID_BROWSER_USER_AGENT}
-                javaScriptEnabled
-                domStorageEnabled
-                sharedCookiesEnabled
-                thirdPartyCookiesEnabled
-                setSupportMultipleWindows={false}
-                allowsFullscreenVideo
-                allowsInlineMediaPlayback
-                mediaPlaybackRequiresUserAction={false}
-                originWhitelist={["https://*", "about:blank"]}
-                onLoadStart={() => {
+                height={230}
+                width={Math.max(280, width - 56)}
+                videoId={data!.videos[0].youtube_video_id}
+                play={playing}
+                mute={muted}
+                playbackRate={rate}
+                forceAndroidAutoplay={false}
+                initialPlayerParams={{ controls: true, preventFullScreen: false, rel: false }}
+                webViewProps={{
+                  userAgent: ANDROID_BROWSER_USER_AGENT,
+                  androidLayerType: "hardware",
+                  setSupportMultipleWindows: false,
+                }}
+                onReady={() => {
+                  setPlayerError("");
+                  setPlayerFrameLoaded(true);
+                  setPlayerReady(true);
+                }}
+                onChangeState={(state: string) => {
+                  setPlaying(state === "playing");
+                  if (state === "ended") {
+                    setVideoPercent(100);
+                    void sendProgress({ type: "video_finished", percent: 100 });
+                    setStage(data!.slideDecks.length ? "slides" : "quiz");
+                  }
+                }}
+                onError={(code: string) => {
                   setPlayerReady(false);
                   setPlayerFrameLoaded(false);
+                  setPlayerError(
+                    code === "video_not_found"
+                      ? "الفيديو غير متاح أو أصبح خاصًا."
+                      : code === "embed_not_allowed"
+                        ? "صاحب الفيديو منع تشغيله داخل التطبيقات."
+                        : "تعذّر تشغيل الفيديو من YouTube على هذا الجهاز.",
+                  );
                 }}
-                onHttpError={() => setPlayerError("تعذّر الوصول إلى خدمة الفيديو. أعد المحاولة بعد لحظات.")}
-                onMessage={(event) => void handleMessage(event.nativeEvent.data)}
               />
               {!playerFrameLoaded && !playerError ? (
                 <View pointerEvents="none" style={styles.playerLoading}>
@@ -342,7 +331,7 @@ export default function LessonScreen() {
               <Pressable
                 accessibilityLabel={playing ? "إيقاف مؤقت" : "تشغيل"}
                 disabled={!playerReady}
-                onPress={() => playerCommand(playing ? "pause" : "play")}
+                onPress={() => setPlaying((value) => !value)}
                 style={[styles.controlPrimary, !playerReady && styles.controlDisabled]}
               >
                 <Text style={styles.controlPrimaryText}>{playing ? "Ⅱ" : "▶"}</Text>
@@ -351,7 +340,6 @@ export default function LessonScreen() {
                 accessibilityLabel={muted ? "تشغيل الصوت" : "كتم الصوت"}
                 disabled={!playerReady}
                 onPress={() => {
-                  playerCommand(muted ? "unmute" : "mute");
                   setMuted((value) => !value);
                 }}
                 style={[styles.control, !playerReady && styles.controlDisabled]}
@@ -365,7 +353,6 @@ export default function LessonScreen() {
                   const speeds = [1, 1.25, 1.5, 2];
                   const next = speeds[(speeds.indexOf(rate) + 1) % speeds.length] ?? 1;
                   setRate(next);
-                  playerCommand("rate", next);
                 }}
                 style={[styles.control, !playerReady && styles.controlDisabled]}
               >
@@ -513,14 +500,14 @@ export default function LessonScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => ({
   content: { gap: 14, paddingBottom: 118 },
   offline: { backgroundColor: theme.colors.goldLight, color: theme.colors.ink, padding: 10, borderRadius: 10, textAlign: "center" },
-  lessonHeader: { backgroundColor: theme.colors.card, borderRadius: 22, borderWidth: 1, borderColor: `${theme.colors.ink}16`, padding: 18, gap: 7 },
+  lessonHeader: { backgroundColor: theme.colors.card, borderRadius: 22, borderWidth: 1, borderColor: theme.colors.border, padding: 18, gap: 7 },
   kicker: { color: theme.colors.gold, fontWeight: "900", textAlign: "right" },
   steps: { flexDirection: "row-reverse", justifyContent: "space-between", marginVertical: 8 },
   stepWrap: { flex: 1, alignItems: "center", gap: 5 },
-  step: { width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: `${theme.colors.ink}44`, backgroundColor: theme.colors.card },
+  step: { width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.card },
   stepActive: { backgroundColor: theme.colors.gold, borderColor: theme.colors.ink, borderWidth: 2 },
   stepText: { color: theme.colors.ink, opacity: 0.55, fontWeight: "900" },
   stepTextActive: { opacity: 1 },
@@ -550,7 +537,7 @@ const styles = StyleSheet.create({
   videoFill: { height: "100%", backgroundColor: theme.colors.gold },
   videoPercent: { color: "#FFF", fontSize: 11, minWidth: 28 },
   qualityHint: { color: "#FFF", opacity: 0.58, textAlign: "right", fontSize: 11, lineHeight: 17 },
-  slidesCard: { backgroundColor: theme.colors.card, borderRadius: 24, borderWidth: 1, borderColor: `${theme.colors.ink}24`, padding: 12, gap: 12, overflow: "hidden" },
+  slidesCard: { backgroundColor: theme.colors.card, borderRadius: 24, borderWidth: 1, borderColor: theme.colors.border, padding: 12, gap: 12, overflow: "hidden" },
   slidesHeading: { minHeight: 48, flexDirection: "row-reverse", alignItems: "center", justifyContent: "space-between", gap: 12 },
   deckCounter: { color: theme.colors.gold, textAlign: "right", fontWeight: "800", fontSize: 11, marginBottom: 2 },
   sectionTitle: { color: theme.colors.ink, textAlign: "right", fontWeight: "900", fontSize: 17 },

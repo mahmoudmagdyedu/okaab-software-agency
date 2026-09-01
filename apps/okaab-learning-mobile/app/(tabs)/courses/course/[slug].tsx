@@ -12,8 +12,8 @@ import {
 
 import { apiRequest } from "@/api";
 import { ErrorState, Loading, Muted, Screen } from "@/components";
-import { theme } from "@/theme";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import { type AppTheme, useAppTheme, useThemedStyles } from "@/theme";
+import Animated, { FadeIn } from "react-native-reanimated";
 
 type Lesson = {
   id: string;
@@ -26,6 +26,8 @@ type Lesson = {
 type Result = { course: { title: string; description: string }; lessons: Lesson[] };
 
 export default function CourseMapScreen() {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const { isLoaded, isSignedIn, getToken } = useAuth();
   const [data, setData] = useState<Result | null>(null);
@@ -107,7 +109,7 @@ export default function CourseMapScreen() {
             return (
               <Animated.View
                 key={lesson.id}
-                entering={FadeInDown.delay(Math.min(index, 8) * 55).duration(380)}
+                entering={FadeIn.duration(220)}
                 style={[styles.stage, index % 2 === 0 ? styles.leftNode : styles.rightNode]}
               >
                 <Pressable
@@ -162,7 +164,7 @@ export default function CourseMapScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => ({
   content: { paddingBottom: 118, gap: 24 },
   hero: {
     backgroundColor: theme.colors.darkPaper,
@@ -211,16 +213,16 @@ const styles = StyleSheet.create({
   },
   nodeCompleted: { backgroundColor: theme.colors.ink, borderColor: theme.colors.gold },
   nodeCurrent: { backgroundColor: theme.colors.gold, borderColor: theme.colors.ink },
-  nodeLocked: { backgroundColor: "#D8D2C8", borderColor: "#AAA297" },
+  nodeLocked: { backgroundColor: theme.colors.paperAlt, borderColor: theme.colors.border },
   nodePressed: { transform: [{ scale: 0.96 }] },
   nodeIcon: { color: theme.colors.ink, fontSize: 23, fontWeight: "900" },
-  nodeIconLocked: { color: "#8D857B", fontSize: 17 },
+  nodeIconLocked: { color: theme.colors.muted, fontSize: 17 },
   stageCard: {
     width: "100%",
     backgroundColor: theme.colors.card,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: `${theme.colors.ink}20`,
+    borderColor: theme.colors.border,
     padding: 15,
     gap: 4,
   },

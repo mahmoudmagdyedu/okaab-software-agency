@@ -37,8 +37,8 @@ export function FlyingEagleLogo({ color = "#181511" }: { color?: string }) {
     }
     flight.value = withRepeat(
       withSequence(
-        withTiming(1, { duration: 920, easing: Easing.inOut(Easing.cubic) }),
-        withTiming(0, { duration: 920, easing: Easing.inOut(Easing.cubic) }),
+        withTiming(1, { duration: 1250, easing: Easing.inOut(Easing.quad) }),
+        withTiming(0, { duration: 1250, easing: Easing.inOut(Easing.quad) }),
       ),
       -1,
       false,
@@ -47,12 +47,8 @@ export function FlyingEagleLogo({ color = "#181511" }: { color?: string }) {
   }, [flight, reduceMotion]);
 
   const flightStyle = useAnimatedStyle(() => ({
-    opacity: 0.96 + flight.value * 0.04,
-    transform: [
-      { translateY: 3 - flight.value * 6 },
-      { rotateZ: `${-0.8 + flight.value * 1.6}deg` },
-      { scale: 0.985 + flight.value * 0.025 },
-    ],
+    opacity: 0.94 + flight.value * 0.06,
+    transform: [{ translateY: 2 - flight.value * 4 }],
   }));
 
   return (

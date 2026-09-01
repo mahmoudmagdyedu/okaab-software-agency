@@ -6,7 +6,7 @@ import { useVideoPlayer, VideoView } from "expo-video";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import { EagleLoader } from "@/components";
-import { theme } from "@/theme";
+import { type AppTheme, useThemedStyles } from "@/theme";
 
 export default function AuthLayout() {
   const { isLoaded, isSignedIn, sessionId } = useAuth({ treatPendingAsSignedOut: false });
@@ -48,6 +48,7 @@ export default function AuthLayout() {
 }
 
 function AuthBackdrop() {
+  const styles = useThemedStyles(createStyles);
   const player = useVideoPlayer(require("../../assets/auth-background.mp4"), (videoPlayer) => {
     videoPlayer.loop = true;
     videoPlayer.muted = true;
@@ -88,7 +89,7 @@ function AuthBackdrop() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => ({
   container: {
     flex: 1,
     backgroundColor: theme.colors.paper || "#F6F1E7",
@@ -102,7 +103,7 @@ const styles = StyleSheet.create({
   },
   overlay: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: "#F6F1E7",
+    backgroundColor: theme.colors.paper,
     opacity: 0.3,
   },
   scrim: { ...StyleSheet.absoluteFill },

@@ -2,14 +2,16 @@ import { useAuth } from "@clerk/expo";
 import { Link } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import Animated, { FadeIn } from "react-native-reanimated";
 
 import { apiRequest } from "@/api";
 import { Card, ErrorState, Loading, Muted, Screen, Title } from "@/components";
-import { theme } from "@/theme";
+import { type AppTheme, useAppTheme, useThemedStyles } from "@/theme";
 import type { Catalog, Course } from "@/types";
 
 export default function CoursesCatalog() {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const { isLoaded, isSignedIn, getToken } = useAuth();
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [error, setError] = useState("");
@@ -74,7 +76,7 @@ export default function CoursesCatalog() {
         renderItem={({ item, index }) => {
           const percent = completion(item);
           return (
-            <Animated.View entering={FadeInDown.delay(Math.min(index, 6) * 55).duration(380)}>
+            <Animated.View entering={FadeIn.duration(220)}>
               <Link href={{ pathname: "/(tabs)/courses/course/[slug]", params: { slug: item.slug } }} asChild>
                 <Pressable style={({ pressed }) => [styles.course, pressed && styles.coursePressed]}>
                   <View style={styles.courseIndex}>
@@ -109,14 +111,14 @@ export default function CoursesCatalog() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => ({
   list: { paddingBottom: 118, gap: 12 },
   header: { gap: 8, marginBottom: 16 },
   course: {
     minHeight: 116,
     flexDirection: "row-reverse",
     backgroundColor: theme.colors.card || "#FFFFFF",
-    borderColor: `${theme.colors.ink || "#181511"}22`,
+    borderColor: theme.colors.border,
     borderWidth: 1,
     borderRadius: 22,
     overflow: "hidden",
@@ -139,7 +141,7 @@ const styles = StyleSheet.create({
   courseTitle: { color: theme.colors.ink || "#181511", fontSize: 18, fontWeight: "700", textAlign: "right" },
   courseDescription: { color: theme.colors.ink || "#181511", opacity: 0.68, textAlign: "right", lineHeight: 20 },
   progressWrap: { flexDirection: "row-reverse", alignItems: "center", gap: 8, marginTop: 3 },
-  progressTrack: { flex: 1, height: 6, backgroundColor: `${theme.colors.ink}18`, borderRadius: 6, overflow: "hidden" },
+  progressTrack: { flex: 1, height: 6, backgroundColor: theme.colors.border, borderRadius: 6, overflow: "hidden" },
   progressFill: { height: "100%", backgroundColor: theme.colors.gold, borderRadius: 6 },
   progress: { color: theme.colors.success || "#388E3C", textAlign: "right", fontWeight: "800", fontSize: 11 },
 });

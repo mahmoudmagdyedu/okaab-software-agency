@@ -5,7 +5,7 @@ import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { apiRequest } from "@/api";
 import { Action, ErrorState, Loading, Muted, Screen, Title } from "@/components";
-import { theme } from "@/theme";
+import { type AppTheme, useAppTheme, useThemedStyles } from "@/theme";
 
 type LessonResult = {
   lesson: { title: string; task_enabled: boolean; task_prompt: string | null };
@@ -21,6 +21,8 @@ type TaskGrade = {
 };
 
 export default function TaskScreen() {
+  const theme = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const { slug, course } = useLocalSearchParams<{ slug: string; course?: string }>();
   const { isLoaded, isSignedIn, getToken } = useAuth();
   const [lesson, setLesson] = useState<LessonResult["lesson"] | null>(null);
@@ -169,6 +171,7 @@ export default function TaskScreen() {
 }
 
 function Feedback({ title, items }: { title: string; items: string[] }) {
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.feedback}>
       <Text style={styles.feedbackTitle}>{title}</Text>
@@ -181,7 +184,7 @@ function Feedback({ title, items }: { title: string; items: string[] }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => ({
   content: { gap: 14, paddingBottom: 118 },
   center: { flex: 1, justifyContent: "center", gap: 16 },
   kicker: { color: theme.colors.gold, textAlign: "right", fontWeight: "900" },

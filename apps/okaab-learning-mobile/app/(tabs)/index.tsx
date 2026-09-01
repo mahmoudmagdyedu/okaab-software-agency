@@ -2,14 +2,15 @@ import { useAuth } from "@clerk/expo";
 import { Link } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View, RefreshControl } from "react-native";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import Animated, { FadeIn } from "react-native-reanimated";
 
 import { apiRequest, flushEvents } from "@/api";
 import { Card, ErrorState, Loading, Muted, Screen, Title } from "@/components";
-import { theme } from "@/theme";
+import { type AppTheme, useThemedStyles } from "@/theme";
 import type { Announcement, Overview, PublicConfig } from "@/types";
 
 export default function Home() {
+  const styles = useThemedStyles(createStyles);
   const { isLoaded, isSignedIn, getToken } = useAuth();
   const [overview, setOverview] = useState<Overview | null>(null);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -56,7 +57,7 @@ export default function Home() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void load(); }} />}
       >
         <View style={styles.header}>
-          <Animated.View entering={FadeInDown.duration(420).springify().damping(18)} style={styles.brand}>
+          <Animated.View entering={FadeIn.duration(240)} style={styles.brand}>
             <View style={styles.brandTop}>
               <Image accessibilityLabel="شعار عُقاب" source={require("../../assets/okaab-brand-logo-transparent.png")} style={styles.brandLogo} />
               <View style={styles.brandTitleWrap}>
@@ -68,7 +69,7 @@ export default function Home() {
             <View style={styles.brandBadge}><Text style={styles.brandBadgeText}>منصة تعلّم من فريق Okaab</Text></View>
           </Animated.View>
 
-          <Animated.View entering={FadeInDown.delay(80).duration(420)} style={styles.aboutGrid}>
+          <Animated.View entering={FadeIn.delay(70).duration(220)} style={styles.aboutGrid}>
             <View style={styles.aboutCard}>
               <Text style={styles.aboutNumber}>01</Text>
               <Text style={styles.aboutTitle}>تعلّم بالممارسة</Text>
@@ -143,7 +144,7 @@ export default function Home() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme) => ({
   list: { paddingBottom: 118, gap: 12 },
   header: { gap: 16, marginBottom: 8 },
   brand: { backgroundColor: theme.colors.darkPaper || "#181511", borderRadius: 28, paddingHorizontal: 20, paddingVertical: 22, gap: 12, borderWidth: 1, borderColor: `${theme.colors.gold}44`, overflow: "hidden", alignItems: "center" },
@@ -156,7 +157,7 @@ const styles = StyleSheet.create({
   brandBadge: { alignSelf: "center", backgroundColor: `${theme.colors.gold}1F`, borderRadius: 99, paddingHorizontal: 11, paddingVertical: 7 },
   brandBadgeText: { color: theme.colors.gold, fontSize: 11, fontWeight: "900" },
   aboutGrid: { flexDirection: "row-reverse", gap: 10 },
-  aboutCard: { flex: 1, minHeight: 138, backgroundColor: theme.colors.card, borderRadius: 18, borderWidth: 1, borderColor: `${theme.colors.ink}20`, padding: 13, gap: 5 },
+  aboutCard: { flex: 1, minHeight: 138, backgroundColor: theme.colors.card, borderRadius: 18, borderWidth: 1, borderColor: theme.colors.border, padding: 13, gap: 5 },
   aboutNumber: { color: theme.colors.gold, fontWeight: "900", fontSize: 18, textAlign: "right" },
   aboutTitle: { color: theme.colors.ink, fontWeight: "900", textAlign: "right" },
   aboutText: { color: theme.colors.ink, opacity: 0.62, textAlign: "right", fontSize: 12, lineHeight: 18 },
