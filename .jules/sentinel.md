@@ -1,0 +1,4 @@
+## 2026-09-08 - TanStack Start Route Splat Path Traversal Prevention
+**Vulnerability:** Dynamic route splat parameter `params._splat` in TanStack Start routes was processed without explicit URL decoding or backslash normalization, allowing path traversal inputs (`%2e%2e`, backslashes, or null bytes) to bypass naive `path.includes("..")` checks when retrieving assets.
+**Learning:** Route parameters like `params._splat` may retain percent-encoded characters or OS-specific delimiters (`\`). Relying on simple string matching on raw parameter values is insufficient for security-critical boundary checks.
+**Prevention:** Always decode (`decodeURIComponent`), normalize delimiters (`replaceAll("\\", "/")`), strip leading slashes, and check for `..` and null bytes (`\0`) before querying asset databases or file systems.

@@ -1,14 +1,30 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createBridgeScript } from "../../../../packages/bridge/index.js";
 
-import { getDb, sql } from "@/lib/db.server";
+import { getDb, sql } from "../../../lib/db.server.ts";
+
+export function sanitizeSlidePath(rawSplat?: string): string | null {
+  if (!rawSplat) return "index.html";
+  let decoded = rawSplat;
+  try {
+    decoded = decodeURIComponent(rawSplat);
+  } catch {
+    return null;
+  }
+  const normalized = decoded.replaceAll("\\", "/").replace(/^\/+/, "");
+  if (!normalized || normalized.includes("..") || normalized.includes("\0")) {
+    return null;
+  }
+  return normalized;
+}
 
 export const Route = createFileRoute("/slides/$deckId/$")({
   server: {
     handlers: {
       GET: async ({ params }) => {
-        const path = (params._splat || "index.html").replace(/^\/+/, "");
-        if (path.includes("..")) return new Response("Not found", { status: 404 });
+        // Prevent path traversal by sanitizing and validating slide asset path
+        const path = sanitizeSlidePath(params._splat);
+        if (!path) return new Response("Not found", { status: 404 });
         const pool = await getDb();
         const result = await pool
           .request()

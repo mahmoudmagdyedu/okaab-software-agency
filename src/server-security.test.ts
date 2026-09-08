@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { errorResponse, secureResponse } from "./lib/secure-response.ts";
+import { sanitizeSlidePath } from "./routes/slides/$deckId/$.ts";
 
 function nonceFrom(response: Response): string {
   const csp = response.headers.get("content-security-policy") ?? "";
@@ -74,4 +75,23 @@ test("uploaded slide HTML keeps its own policy and frame behavior", async () => 
   );
   assert.equal(secured.headers.get("x-frame-options"), "SAMEORIGIN");
   assert.equal(await secured.text(), "<script>bridge()</script>");
+});
+
+test("sanitizeSlidePath prevents path traversal and normalizes valid slide paths", () => {
+  assert.equal(sanitizeSlidePath(), "index.html");
+  assert.equal(sanitizeSlidePath(""), "index.html");
+  assert.equal(sanitizeSlidePath("index.html"), "index.html");
+  assert.equal(sanitizeSlidePath("/css/style.css"), "css/style.css");
+  assert.equal(sanitizeSlidePath("assets\\images\\logo.png"), "assets/images/logo.png");
+
+  // Rejections for path traversal and invalid path characters
+  assert.equal(sanitizeSlidePath(".."), null);
+  assert.equal(sanitizeSlidePath("../index.html"), null);
+  assert.equal(sanitizeSlidePath("foo/../bar.js"), null);
+  assert.equal(sanitizeSlidePath("%2e%2e/index.html"), null);
+  assert.equal(sanitizeSlidePath("%2E%2E%2Findex.html"), null);
+  assert.equal(sanitizeSlidePath("foo\\..\\bar.js"), null);
+  assert.equal(sanitizeSlidePath("index.html\0"), null);
+  assert.equal(sanitizeSlidePath("%00index.html"), null);
+  assert.equal(sanitizeSlidePath("%FFinvalid"), null);
 });
