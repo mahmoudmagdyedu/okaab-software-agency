@@ -11,6 +11,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { THEME_INIT_SCRIPT } from "../lib/theme";
+import { getDocumentNonce } from "../lib/csp-client";
 
 function NotFoundComponent() {
   return (
@@ -91,6 +92,7 @@ export const Route = createRootRoute({
     scripts: [
       {
         type: "application/ld+json",
+        nonce: getDocumentNonce(),
         children: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "Organization",
@@ -134,6 +136,7 @@ export const Route = createRootRoute({
       },
       {
         type: "application/ld+json",
+        nonce: getDocumentNonce(),
         children: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "WebSite",
@@ -177,7 +180,10 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        <script
+          nonce={getDocumentNonce()}
+          dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }}
+        />
         {children}
         <Scripts />
       </body>

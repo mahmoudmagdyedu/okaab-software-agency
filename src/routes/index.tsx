@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { I18nProvider } from "@/lib/i18n";
 import { ThemeProvider } from "@/lib/theme";
+import { getDocumentNonce } from "@/lib/csp-client";
 import OkaabLanding from "@/components/okaab/OkaabLanding";
 
 export const Route = createFileRoute("/")({
@@ -28,6 +29,7 @@ export const Route = createFileRoute("/")({
     scripts: [
       {
         type: "application/ld+json",
+        nonce: getDocumentNonce(),
         children: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "ProfessionalService",
@@ -65,6 +67,7 @@ export const Route = createFileRoute("/")({
       },
       {
         type: "application/ld+json",
+        nonce: getDocumentNonce(),
         children: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "FAQPage",

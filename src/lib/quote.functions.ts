@@ -1,15 +1,9 @@
-import { createHash } from "node:crypto";
-
 import { createServerFn } from "@tanstack/react-start";
-import {
-  getRequestHeader,
-  getRequestIP,
-  setResponseHeader,
-  setResponseStatus,
-} from "@tanstack/react-start/server";
+import { getRequestHeader, getRequestIP } from "@tanstack/react-start/server";
 import { z } from "zod";
 
 import { consumeQuoteRateLimits } from "@/lib/quote-rate-limit";
+import { quoteIdempotencyKey, quoteRejection } from "@/lib/quote-security";
 
 const subjectField = (max: number) =>
   z
@@ -35,13 +29,7 @@ const MIN_FORM_COMPLETION_MS = 1_200;
 const MAX_FORM_AGE_MS = 24 * 60 * 60 * 1_000;
 
 function rejectAbusiveRequest(retryAfterSeconds?: number): never {
-  if (retryAfterSeconds) {
-    setResponseStatus(429);
-    setResponseHeader("retry-after", String(retryAfterSeconds));
-  } else {
-    setResponseStatus(400);
-  }
-  throw new Error("Unable to accept this quote request");
+  throw quoteRejection(retryAfterSeconds);
 }
 
 function trustedClientAddress() {
@@ -55,21 +43,6 @@ function trustedClientAddress() {
   }
 
   return getRequestIP() || "unknown";
-}
-
-function quoteIdempotencyKey(data: z.infer<typeof schema>) {
-  const fingerprint = createHash("sha256")
-    .update(
-      JSON.stringify([
-        data.email.toLowerCase(),
-        data.phone,
-        data.service,
-        data.details,
-        data.formStartedAt,
-      ]),
-    )
-    .digest("hex");
-  return `quote-${fingerprint}`;
 }
 
 export const submitQuoteRequest = createServerFn({ method: "POST" })

@@ -1,4 +1,5 @@
 import type { LegalLanguage } from "@/content/legal";
+import { getDocumentNonce } from "@/lib/csp-client";
 
 export function legalHead(
   lang: LegalLanguage,
@@ -45,6 +46,7 @@ export function aboutHead(lang: LegalLanguage, title: string, description: strin
     scripts: [
       {
         type: "application/ld+json",
+        nonce: getDocumentNonce(),
         children: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "AboutPage",

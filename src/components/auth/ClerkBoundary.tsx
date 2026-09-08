@@ -1,6 +1,7 @@
 import { ClerkProvider } from "@clerk/tanstack-react-start";
 import { arSA } from "@clerk/localizations";
 import type { ReactNode } from "react";
+import { getDocumentNonce } from "@/lib/csp-client";
 
 const OKAAB_ARABIC_LOCALIZATION = {
   ...arSA,
@@ -14,9 +15,11 @@ const OKAAB_ARABIC_LOCALIZATION = {
  * and admin pages should render this boundary.
  */
 export function ClerkBoundary({ children }: { children: ReactNode }) {
+  const nonce = getDocumentNonce();
   return (
     <ClerkProvider
       localization={OKAAB_ARABIC_LOCALIZATION}
+      {...(nonce ? { nonce } : {})}
       {...(import.meta.env.PROD ? { proxyUrl: "/clerk-proxy" } : {})}
     >
       {children}
