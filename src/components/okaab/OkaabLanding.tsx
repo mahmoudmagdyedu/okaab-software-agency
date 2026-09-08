@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Link } from "@tanstack/react-router";
 
 import {
@@ -165,9 +165,14 @@ export default function OkaabLanding() {
     };
   }, []);
 
-  const rows = t.catalog.rows
-    .map((r, i) => ({ ...r, ...ROW_META[i]!, id: i }))
-    .filter((r) => dept === 0 || r.dept === dept);
+  // Memoize catalog rows to avoid re-mapping and re-filtering array items on every state/render change (e.g. menu toggle, form typing)
+  const rows = useMemo(
+    () =>
+      t.catalog.rows
+        .map((r, i) => ({ ...r, ...ROW_META[i]!, id: i }))
+        .filter((r) => dept === 0 || r.dept === dept),
+    [t.catalog.rows, dept],
+  );
 
   return (
     <div
