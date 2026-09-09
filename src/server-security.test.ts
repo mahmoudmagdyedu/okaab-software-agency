@@ -56,6 +56,15 @@ test("non-HTML responses preserve status and retry metadata", async () => {
   assert.equal(await secured.text(), '{"error":"Request limit reached"}');
 });
 
+test("api error helper sanitizes unhandled server errors", async () => {
+  const { apiError } = await import("./lib/api-response.server.ts");
+  const response = apiError(new Error("Sensitive internal database connection error"), "Default failure");
+  assert.equal(response.status, 500);
+  const data = (await response.json()) as { data: null; error: { message: string } };
+  assert.equal(data.error.message, "Default failure");
+  assert.doesNotMatch(JSON.stringify(data), /Sensitive internal database connection error/);
+});
+
 test("uploaded slide HTML keeps its own policy and frame behavior", async () => {
   const original = new Response("<script>bridge()</script>", {
     headers: {

@@ -31,8 +31,10 @@ export function apiError(error: unknown, fallback = "تعذّر تنفيذ ال�
   );
 }
 export class ApiProblem extends Error {
-  constructor(message: string, public readonly status: number) {
+  readonly status: number;
+  constructor(message: string, status: number) {
     super(message);
+    this.status = status;
     this.name = "ApiProblem";
   }
 }

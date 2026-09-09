@@ -14,7 +14,7 @@ export const Route = createFileRoute("/api/admin/youtube/sync")({
           if (error instanceof Response) return error;
           console.error("YouTube sync failed", error);
           return Response.json(
-            { error: error instanceof Error ? error.message : "تعذّرت مزامنة YouTube" },
+            { error: "تعذّرت مزامنة YouTube" },
             { status: 500 },
           );
         }
