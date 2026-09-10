@@ -19,12 +19,28 @@ export type LearnerProfile = {
 };
 
 export type LessonEvent = {
-  type: "slide_changed" | "video_progress" | "quiz_finished" | "task_result" | "lesson_finished";
+  type:
+    | "slide_changed"
+    | "video_progress"
+    | "quiz_finished"
+    | "task_result"
+    | "lesson_finished"
+    | "quiz_completed";
   idempotencyKey: string;
   index?: number | undefined;
   percent?: number | undefined;
   score?: number | undefined;
   passed?: boolean | undefined;
+  attemptId?: string | undefined;
+  deckId?: string | undefined;
+  courseSlug?: string | undefined;
+  lessonSlug?: string | undefined;
+  lessonNumber?: number | undefined;
+  questionSetVersion?: string | undefined;
+  correctAnswers?: number | undefined;
+  totalQuestions?: number | undefined;
+  scorePercent?: number | undefined;
+  completedAt?: string | undefined;
 };
 
 const DEFAULT_POINTS = {
@@ -338,6 +354,27 @@ export async function answerQuiz(input: {
   const transaction = new sql.Transaction(pool);
   await transaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
   try {
+    if (event.type === "quiz_completed") {
+      const priorAttempt = await new sql.Request(transaction)
+        .input("user_id", sql.NVarChar(64), learner.id)
+        .input("attempt_id", sql.NVarChar(64), event.attemptId).query<{
+        score_percent: number;
+        awarded_xp: number;
+      }>(`
+          select top (1) score_percent,awarded_xp
+          from okaab.slide_quiz_attempts
+          where user_id=@user_id and attempt_id=@attempt_id
+        `);
+      if (priorAttempt.recordset[0]) {
+        await transaction.commit();
+        return {
+          accepted: true,
+          duplicate: true,
+          scorePercent: priorAttempt.recordset[0].score_percent,
+          awardedXp: priorAttempt.recordset[0].awarded_xp,
+        };
+      }
+    }
     const duplicate = await new sql.Request(transaction)
       .input("user_id", sql.NVarChar(64), learner.id)
       .input("key", sql.NVarChar(100), input.idempotencyKey).query<{
@@ -402,6 +439,63 @@ export async function answerQuiz(input: {
         `insert into okaab.quiz_attempts (user_id,question_id,option_id,is_correct,is_first_attempt,idempotency_key) values (@user_id,@question_id,@option_id,@is_correct,@is_first,@key)`,
       );
     const rules = await pointsRules(transaction);
+    if (event.type === "quiz_completed") {
+      const previousBest = await new sql.Request(transaction)
+        .input("user_id", sql.NVarChar(64), learner.id)
+        .input("lesson_id", sql.NVarChar(64), lessonId)
+        .input("version", sql.NVarChar(128), event.questionSetVersion).query<{
+        best_correct: number;
+      }>(`
+          select coalesce(max(correct_answers),0) best_correct
+          from okaab.slide_quiz_attempts
+          where user_id=@user_id and lesson_id=@lesson_id and question_set_version=@version
+        `);
+      const gainedAnswers = Math.max(
+        0,
+        (event.correctAnswers ?? 0) - (previousBest.recordset[0]?.best_correct ?? 0),
+      );
+      const awardedXp = gainedAnswers * rules.quiz_first_correct;
+      await new sql.Request(transaction)
+        .input("user_id", sql.NVarChar(64), learner.id)
+        .input("attempt_id", sql.NVarChar(64), event.attemptId)
+        .input("lesson_id", sql.NVarChar(64), lessonId)
+        .input("deck_id", sql.NVarChar(64), event.deckId)
+        .input("course_slug", sql.NVarChar(180), event.courseSlug)
+        .input("lesson_slug", sql.NVarChar(180), event.lessonSlug)
+        .input("lesson_number", sql.Int, event.lessonNumber)
+        .input("version", sql.NVarChar(128), event.questionSetVersion)
+        .input("correct", sql.Int, event.correctAnswers)
+        .input("total", sql.Int, event.totalQuestions)
+        .input("percent", sql.Int, event.scorePercent)
+        .input("awarded_xp", sql.Int, awardedXp)
+        .input("completed_at", sql.DateTimeOffset, new Date(event.completedAt ?? Date.now()))
+        .query(`
+          insert into okaab.slide_quiz_attempts
+            (user_id,attempt_id,lesson_id,deck_id,course_slug,lesson_slug,lesson_number,question_set_version,correct_answers,total_questions,score_percent,awarded_xp,completed_at)
+          values
+            (@user_id,@attempt_id,@lesson_id,@deck_id,@course_slug,@lesson_slug,@lesson_number,@version,@correct,@total,@percent,@awarded_xp,@completed_at)
+        `);
+      await new sql.Request(transaction)
+        .input("user_id", sql.NVarChar(64), learner.id)
+        .input("lesson_id", sql.NVarChar(64), lessonId)
+        .input("percent", sql.Int, event.scorePercent).query(`
+          update okaab.lesson_progress
+          set quiz_score=case when @percent>quiz_score then @percent else quiz_score end,updated_at=sysutcdatetime()
+          where user_id=@user_id and lesson_id=@lesson_id
+        `);
+      if (awardedXp > 0) {
+        await awardPoints(transaction, {
+          userId: learner.id,
+          amount: awardedXp,
+          reason: "deck_quiz_improvement",
+          lessonId,
+          idempotencyKey: `deck-quiz:${learner.id}:${event.attemptId}`,
+        });
+      }
+      await touchDailyStreak(transaction, learner.id);
+      await transaction.commit();
+      return { accepted: true, duplicate: false, scorePercent: event.scorePercent, awardedXp };
+    }
     const awarded = first && option.is_correct ? rules.quiz_first_correct : 0;
     if (awarded)
       await awardPoints(transaction, {
