@@ -1,0 +1,4 @@
+## 2025-03-09 - [HIGH] Fix DoS vulnerability in timingSafeEqual buffer comparison
+**Vulnerability:** The `crypto.timingSafeEqual` function in Node.js was called after only checking the length of the string representation, instead of the instantiated `Buffer` length. Because multi-byte characters could result in different byte lengths for strings of the same length, this could lead to `timingSafeEqual` throwing an unhandled exception (since it requires Buffers to be of equal length), causing a Denial of Service (DoS).
+**Learning:** `timingSafeEqual` strictly expects the two `Buffer` instances passed to it to have the same `byteLength`. String lengths and Buffer lengths are not strictly equivalent when multi-byte characters are involved.
+**Prevention:** Always instantiate `Buffer` objects first and verify that `bufferA.length === bufferB.length` before attempting to compare them using `crypto.timingSafeEqual`.
