@@ -7,11 +7,11 @@ import { OKAAB_CHANNEL_ID, syncYouTubeChannel } from "@/lib/youtube-sync.server"
 function validSignature(body: string, signature: string | null) {
   const secret = process.env["YOUTUBE_WEBSUB_SECRET"];
   if (!secret || !signature?.startsWith("sha1=")) return false;
-  const expected = createHmac("sha1", secret).update(body).digest("hex");
-  const supplied = signature.slice(5);
+  const expectedBuf = Buffer.from(createHmac("sha1", secret).update(body).digest("hex"));
+  const suppliedBuf = Buffer.from(signature.slice(5));
   return (
-    expected.length === supplied.length &&
-    timingSafeEqual(Buffer.from(expected), Buffer.from(supplied))
+    expectedBuf.length === suppliedBuf.length &&
+    timingSafeEqual(expectedBuf, suppliedBuf)
   );
 }
 
