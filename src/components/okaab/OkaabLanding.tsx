@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Link } from "@tanstack/react-router";
 
 import {
@@ -44,6 +44,12 @@ const ROW_META = [
   { dept: 3, color: "#0D9B5C" },
   { dept: 4, color: "#B048D6" },
 ];
+
+// Precompute department counts once at module load instead of filtering ROW_META on every render
+const DEPT_COUNTS = ROW_META.reduce<Record<number, number>>((acc, r) => {
+  acc[r.dept] = (acc[r.dept] || 0) + 1;
+  return acc;
+}, {});
 
 const SERVICE_META = [
   { icon: Globe, bg: "#FFD43B", rotate: "-2deg" },
@@ -165,9 +171,14 @@ export default function OkaabLanding() {
     };
   }, []);
 
-  const rows = t.catalog.rows
-    .map((r, i) => ({ ...r, ...ROW_META[i]!, id: i }))
-    .filter((r) => dept === 0 || r.dept === dept);
+  // Memoize catalog rows calculation to avoid re-filtering on unrelated state updates (e.g. form inputs)
+  const rows = useMemo(
+    () =>
+      t.catalog.rows
+        .map((r, i) => ({ ...r, ...ROW_META[i]!, id: i }))
+        .filter((r) => dept === 0 || r.dept === dept),
+    [t.catalog.rows, dept],
+  );
 
   return (
     <div
@@ -765,7 +776,7 @@ export default function OkaabLanding() {
                     <span>{d}</span>
                     {i !== 0 && (
                       <span className="opacity-60" dir="ltr">
-                        {ROW_META.filter((r) => r.dept === i).length}
+                      {DEPT_COUNTS[i] ?? 0}
                       </span>
                     )}
                   </button>
