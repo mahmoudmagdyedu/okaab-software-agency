@@ -42,6 +42,24 @@ function getErrorMessage(error: unknown) {
   return "تعذّر إكمال تسجيل الدخول. حاول مرة أخرى.";
 }
 
+function getClerkFlowErrorMessage(error: unknown, fallback: string) {
+  if (!error || typeof error !== "object") return fallback;
+
+  const clerkError = error as { code?: string; longMessage?: string; message?: string };
+  switch (clerkError.code) {
+    case "form_identifier_not_found":
+      return "لا يوجد حساب Clerk بهذا البريد. تأكد من البريد أو اطلب إضافته من المسؤول.";
+    case "verification_expired":
+      return "انتهت صلاحية الكود. اطلب كودًا جديدًا.";
+    case "form_code_incorrect":
+      return "الكود غير صحيح. راجع البريد وحاول مرة أخرى.";
+    case "too_many_requests":
+      return "تمت محاولات كثيرة خلال وقت قصير. انتظر قليلًا ثم أعد المحاولة.";
+    default:
+      return clerkError.longMessage || clerkError.message || fallback;
+  }
+}
+
 function GoogleMark() {
   return (
     <svg aria-hidden viewBox="0 0 24 24" className="size-5 shrink-0">
@@ -112,10 +130,16 @@ function AdminLoginPage() {
     event.preventDefault();
     setErrorMessage("");
     try {
-      signIn.reset();
+      const { error: resetError } = await signIn.reset();
+      if (resetError) {
+        setErrorMessage(
+          getClerkFlowErrorMessage(resetError, "تعذّر بدء محاولة دخول جديدة. حاول مرة أخرى."),
+        );
+        return;
+      }
       const { error } = await signIn.emailCode.sendCode({ emailAddress: email.trim() });
       if (error) {
-        setErrorMessage("هذا البريد غير مضاف إلى فريق عُقاب. اطلب دعوة من المسؤول.");
+        setErrorMessage(getClerkFlowErrorMessage(error, "تعذّر إرسال كود الدخول. حاول مرة أخرى."));
         return;
       }
       setStep("code");
@@ -130,7 +154,12 @@ function AdminLoginPage() {
     try {
       const { error } = await signIn.emailCode.verifyCode({ code: code.trim() });
       if (error) {
-        setErrorMessage("الكود غير صحيح أو انتهت صلاحيته. اطلب كودًا جديدًا.");
+        setErrorMessage(
+          getClerkFlowErrorMessage(
+            error,
+            "الكود غير صحيح أو انتهت صلاحيته. اطلب كودًا جديدًا.",
+          ),
+        );
         return;
       }
       if (signIn.status === "complete") await continueToAdmin();
