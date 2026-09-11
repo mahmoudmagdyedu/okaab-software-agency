@@ -4,6 +4,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { requireAdminProfile } from "@/lib/admin-auth.server";
 import { getDb, sql } from "@/lib/db.server";
 import { sendTemplateEmail } from "@/lib/email-templates/send-email";
+import { buildInvitationRedirectUrl } from "@/lib/invitation-url";
 import type { AppRole } from "@/integrations/supabase/types";
 
 const ROLE_LABELS: Record<Exclude<AppRole, "super_admin">, string> = {
@@ -105,8 +106,9 @@ export const Route = createFileRoute("/api/admin/invite")({
 
           const invitation = await clerk.invitations.createInvitation({
             emailAddress: email,
-            redirectUrl:
-              role === "student" ? "https://okaab.org/dashboard" : "https://okaab.org/admin",
+            redirectUrl: buildInvitationRedirectUrl(
+              role as Exclude<AppRole, "super_admin">,
+            ),
             expiresInDays: 7,
             ignoreExisting: false,
             notify: false,

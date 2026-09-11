@@ -16,7 +16,7 @@
     "build:mobile": "npm --prefix apps/okaab-learning-mobile run typecheck",
     "build:dev": "vite build --mode development",
     "test:security": "node --experimental-strip-types --test src/lib/security-headers.test.ts src/lib/quote-security.test.ts src/server-security.test.ts",
-    "test:learning": "node --experimental-strip-types --test src/lib/slide-quiz-score.test.ts src/lib/roles.test.ts",
+    "test:learning": "node --experimental-strip-types --test src/lib/slide-quiz-score.test.ts src/lib/roles.test.ts src/lib/invitation-url.test.ts",
     "start": "node scripts/start-production.mjs",
     "preview": "vite preview",
     "lint": "eslint .",
