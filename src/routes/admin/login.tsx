@@ -76,13 +76,19 @@ function AdminLoginPage() {
   const isBusy = fetchStatus === "fetching";
 
   useEffect(() => {
-    if (isLoaded && isSignedIn) window.location.replace("/admin");
+    if (!isLoaded || !isSignedIn) return;
+    void fetch("/api/account/me", { credentials: "same-origin", cache: "no-store" })
+      .then(async (response) => {
+        const result = (await response.json()) as { dashboard?: "admin" | "student" };
+        window.location.replace(result.dashboard === "admin" ? "/admin" : "/dashboard");
+      })
+      .catch(() => setErrorMessage("تعذّر تحديد صلاحية الحساب. حاول مرة أخرى."));
   }, [isLoaded, isSignedIn]);
 
   const continueToAdmin = async () => {
     await signIn.finalize({
       navigate: ({ decorateUrl }) => {
-        window.location.href = decorateUrl("/admin");
+        window.location.href = decorateUrl("/admin/login");
       },
     });
   };
@@ -93,7 +99,7 @@ function AdminLoginPage() {
       await clerk.client.signIn.authenticateWithRedirect({
         strategy: "oauth_google",
         redirectUrl: "/sso-callback",
-        redirectUrlComplete: "/admin",
+        redirectUrlComplete: "/admin/login",
         continueSignIn: false,
         continueSignUp: false,
       });

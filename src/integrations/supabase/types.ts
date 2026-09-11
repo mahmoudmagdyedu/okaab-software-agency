@@ -1,6 +1,6 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
-export type AppRole = "super_admin" | "admin" | "team_leader" | "employee";
+export type AppRole = "super_admin" | "admin" | "team_leader" | "employee" | "student";
 export type TaskStatus = "scheduled" | "in_progress" | "blocked" | "completed" | "cancelled";
 export type HealthStatus = "healthy" | "degraded" | "down" | "unknown";
 
@@ -281,7 +281,7 @@ export type Enums<Name extends keyof DefaultSchema["Enums"]> = DefaultSchema["En
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["super_admin", "admin", "team_leader", "employee"],
+      app_role: ["super_admin", "admin", "team_leader", "employee", "student"],
       task_status: ["scheduled", "in_progress", "blocked", "completed", "cancelled"],
       health_status: ["healthy", "degraded", "down", "unknown"],
     },

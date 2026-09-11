@@ -30,12 +30,14 @@ import { getDocumentNonce } from "@/lib/csp-client";
 import { ClerkBoundary } from "@/components/auth/ClerkBoundary";
 import type { AppRole, Profile } from "@/integrations/supabase/types";
 import { ThemeProvider, useTheme } from "@/lib/theme";
+import { hasMinimumRole } from "@/lib/roles";
 
 const ROLE_LABELS: Record<AppRole, string> = {
   super_admin: "سوبر أدمن",
   admin: "أدمن",
   team_leader: "تيم ليدر",
   employee: "موظف",
+  student: "طالب",
 };
 
 type AdminAuthValue = {
@@ -122,6 +124,12 @@ function AdminGate({ children }: { children: ReactNode }) {
           >
             فتح صفحة الدخول
           </Link>
+          <Link
+            to="/dashboard"
+            className="mt-3 block font-bold text-[var(--ok-accent-text)] underline"
+          >
+            الذهاب إلى لوحة الطالب
+          </Link>
         </div>
       </div>
     );
@@ -166,15 +174,11 @@ function AdminFrame({ title, children }: { title: string; children: ReactNode })
       <nav aria-label="أقسام الإدارة" className="min-h-0 flex-1 space-y-1 overflow-y-auto p-3">
         {navItems.map(({ to, label, icon: Icon }) => {
           const active = to === "/admin" ? pathname === to : pathname.startsWith(to);
-          if (to === "/admin/health" && !["super_admin", "admin"].includes(profile!.role))
-            return null;
+          if (to === "/admin/health" && !hasMinimumRole(profile!.role, "admin")) return null;
           if (to === "/admin/team" && profile!.role === "employee") return null;
-          if (to === "/admin/courses" && !["super_admin", "admin"].includes(profile!.role))
-            return null;
-          if (to === "/admin/questions" && !["super_admin", "admin"].includes(profile!.role))
-            return null;
-          if (to === "/admin/learning" && !["super_admin", "admin"].includes(profile!.role))
-            return null;
+          if (to === "/admin/courses" && !hasMinimumRole(profile!.role, "admin")) return null;
+          if (to === "/admin/questions" && !hasMinimumRole(profile!.role, "admin")) return null;
+          if (to === "/admin/learning" && !hasMinimumRole(profile!.role, "admin")) return null;
           return (
             <Link
               key={to}

@@ -1,9 +1,10 @@
-import { auth, clerkClient } from "@clerk/tanstack-react-start/server";
+import { clerkClient } from "@clerk/tanstack-react-start/server";
 
 import { ApiProblem } from "@/lib/api-response.server";
 import { getDb, sql } from "@/lib/db.server";
 import { consumeQuoteRateLimits } from "@/lib/quote-rate-limit";
 import { slideQuizAward } from "@/lib/slide-quiz-score";
+import { getAccountProfile } from "@/lib/admin-auth.server";
 
 export type LearnerProfile = {
   id: string;
@@ -55,30 +56,19 @@ const DEFAULT_POINTS = {
   streak_30: 250,
 };
 
-function learnerName(
-  user: Awaited<ReturnType<ReturnType<typeof clerkClient>["users"]["getUser"]>>,
-) {
-  return (
-    [user.firstName, user.lastName].filter(Boolean).join(" ").trim() ||
-    user.username ||
-    user.primaryEmailAddress?.emailAddress ||
-    "متعلّم عُقاب"
-  );
-}
-
 export async function getLearnerProfile(): Promise<LearnerProfile | null> {
-  const { userId } = await auth();
-  if (!userId) return null;
+  const account = await getAccountProfile();
+  if (!account) return null;
 
   const pool = await getDb();
   const existing = await pool
     .request()
-    .input("id", sql.NVarChar(64), userId)
+    .input("id", sql.NVarChar(64), account.id)
     .query<LearnerProfile>("select top (1) * from okaab.learner_profiles where id=@id");
   const profile = existing.recordset[0];
   if (profile?.status === "banned") throw new ApiProblem("الحساب موقوف", 403);
   if (profile?.status === "deleted") {
-    const restored = await pool.request().input("id", sql.NVarChar(64), userId)
+    const restored = await pool.request().input("id", sql.NVarChar(64), account.id)
       .query<LearnerProfile>(`
         update okaab.learner_profiles
         set status='active',deleted_at=null,updated_at=sysutcdatetime()
@@ -88,22 +78,7 @@ export async function getLearnerProfile(): Promise<LearnerProfile | null> {
     if (restored.recordset[0]) return restored.recordset[0];
     throw new ApiProblem("انتهت مهلة استعادة الحساب", 403);
   }
-  if (profile) return profile;
-
-  const user = await clerkClient().users.getUser(userId);
-  const email = user.primaryEmailAddress?.emailAddress?.trim().toLowerCase();
-  if (!email) throw new ApiProblem("لا يوجد بريد موثّق للحساب", 400);
-  const created = await pool
-    .request()
-    .input("id", sql.NVarChar(64), userId)
-    .input("email", sql.NVarChar(320), email)
-    .input("display_name", sql.NVarChar(160), learnerName(user))
-    .input("avatar_url", sql.NVarChar(1000), user.imageUrl || null).query<LearnerProfile>(`
-      insert into okaab.learner_profiles (id,email,display_name,avatar_url)
-      output inserted.*
-      values (@id,@email,@display_name,@avatar_url)
-    `);
-  return created.recordset[0] ?? null;
+  return profile ?? null;
 }
 
 export async function requireLearnerProfile() {
@@ -567,8 +542,7 @@ export async function recordLessonEvent(slug: string, event: LessonEvent) {
         .input("total", sql.Int, event.totalQuestions)
         .input("percent", sql.Int, event.scorePercent)
         .input("awarded_xp", sql.Int, awardedXp)
-        .input("completed_at", sql.DateTimeOffset, new Date(event.completedAt))
-        .query(`
+        .input("completed_at", sql.DateTimeOffset, new Date(event.completedAt)).query(`
           insert into okaab.slide_quiz_attempts
             (user_id,attempt_id,lesson_id,deck_id,course_slug,lesson_slug,lesson_number,question_set_version,correct_answers,total_questions,score_percent,awarded_xp,completed_at)
           values
@@ -983,9 +957,8 @@ export async function updateLearner(input: {
   leaderboardVisible?: boolean | undefined;
 }) {
   const learner = await requireLearnerProfile();
-  const result = await (
-    await getDb()
-  )
+  const pool = await getDb();
+  const result = await pool
     .request()
     .input("id", sql.NVarChar(64), learner.id)
     .input("name", sql.NVarChar(160), input.displayName ?? learner.display_name)
@@ -994,6 +967,15 @@ export async function updateLearner(input: {
     .query<LearnerProfile>(
       "update okaab.learner_profiles set display_name=@name,birthdate=@birthdate,leaderboard_visible=@visible,updated_at=sysutcdatetime() output inserted.* where id=@id",
     );
+  if (input.displayName) {
+    await pool
+      .request()
+      .input("id", sql.NVarChar(64), learner.id)
+      .input("name", sql.NVarChar(160), input.displayName)
+      .query(
+        "update okaab.profiles set display_name=@name,updated_at=sysutcdatetime() where id=@id",
+      );
+  }
   return result.recordset[0];
 }
 
@@ -1001,14 +983,20 @@ export async function syncLearnerAvatar() {
   const learner = await requireLearnerProfile();
   const user = await clerkClient().users.getUser(learner.id);
   const avatarUrl = user.imageUrl || null;
-  const result = await (
-    await getDb()
-  )
+  const pool = await getDb();
+  const result = await pool
     .request()
     .input("id", sql.NVarChar(64), learner.id)
     .input("avatar_url", sql.NVarChar(1000), avatarUrl)
     .query<LearnerProfile>(
       "update okaab.learner_profiles set avatar_url=@avatar_url,updated_at=sysutcdatetime() output inserted.* where id=@id",
+    );
+  await pool
+    .request()
+    .input("id", sql.NVarChar(64), learner.id)
+    .input("avatar_url", sql.NVarChar(1000), avatarUrl)
+    .query(
+      "update okaab.profiles set avatar_url=@avatar_url,updated_at=sysutcdatetime() where id=@id",
     );
   return result.recordset[0];
 }
