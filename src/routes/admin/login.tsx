@@ -1,4 +1,4 @@
-import { useAuth, useClerk, useSignIn } from "@clerk/tanstack-react-start";
+import { useAuth, useClerk } from "@clerk/tanstack-react-start";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowLeft,
@@ -45,7 +45,9 @@ function getErrorMessage(error: unknown) {
 function getClerkFlowErrorMessage(error: unknown, fallback: string) {
   if (!error || typeof error !== "object") return fallback;
 
-  const clerkError = error as { code?: string; longMessage?: string; message?: string };
+  type ClerkFlowError = { code?: string; longMessage?: string; message?: string };
+  const errorContainer = error as ClerkFlowError & { errors?: ClerkFlowError[] };
+  const clerkError = errorContainer.errors?.[0] ?? errorContainer;
   switch (clerkError.code) {
     case "form_identifier_not_found":
       return "لا يوجد حساب Clerk بهذا البريد. تأكد من البريد أو اطلب إضافته من المسؤول.";
@@ -86,12 +88,11 @@ function GoogleMark() {
 function AdminLoginPage() {
   const { isLoaded, isSignedIn } = useAuth();
   const clerk = useClerk();
-  const { signIn, fetchStatus } = useSignIn();
   const [step, setStep] = useState<"email" | "code">("email");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
-  const isBusy = fetchStatus === "fetching";
+  const [isBusy, setIsBusy] = useState(false);
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn) return;
@@ -103,8 +104,9 @@ function AdminLoginPage() {
       .catch(() => setErrorMessage("تعذّر تحديد صلاحية الحساب. حاول مرة أخرى."));
   }, [isLoaded, isSignedIn]);
 
-  const continueToAdmin = async () => {
-    await signIn.finalize({
+  const continueToAdmin = async (sessionId: string) => {
+    await clerk.setActive({
+      session: sessionId,
       navigate: ({ decorateUrl }) => {
         window.location.href = decorateUrl("/admin/login");
       },
@@ -129,35 +131,51 @@ function AdminLoginPage() {
   const handleEmailCode = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setErrorMessage("");
+    setIsBusy(true);
     try {
-      const { error } = await signIn.emailCode.sendCode({ emailAddress: email.trim() });
-      if (error) {
-        setErrorMessage(getClerkFlowErrorMessage(error, "تعذّر إرسال كود الدخول. حاول مرة أخرى."));
+      const signInAttempt = await clerk.client.signIn.create({ identifier: email.trim() });
+      const emailCodeFactor = signInAttempt.supportedFirstFactors?.find(
+        (factor) => factor.strategy === "email_code",
+      );
+      if (!emailCodeFactor || !("emailAddressId" in emailCodeFactor)) {
+        setErrorMessage("هذا الحساب لا يدعم الدخول بكود البريد. استخدم Google أو تواصل مع المسؤول.");
         return;
       }
+      await signInAttempt.prepareFirstFactor({
+        strategy: "email_code",
+        emailAddressId: emailCodeFactor.emailAddressId,
+      });
       setStep("code");
     } catch (error) {
-      setErrorMessage(getErrorMessage(error));
+      setErrorMessage(getClerkFlowErrorMessage(error, getErrorMessage(error)));
+    } finally {
+      setIsBusy(false);
     }
   };
 
   const handleVerifyCode = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setErrorMessage("");
+    setIsBusy(true);
     try {
-      const { error } = await signIn.emailCode.verifyCode({ code: code.trim() });
-      if (error) {
-        setErrorMessage(
-          getClerkFlowErrorMessage(
-            error,
-            "الكود غير صحيح أو انتهت صلاحيته. اطلب كودًا جديدًا.",
-          ),
-        );
-        return;
+      const signInAttempt = await clerk.client.signIn.attemptFirstFactor({
+        strategy: "email_code",
+        code: code.trim(),
+      });
+      if (signInAttempt.status === "complete" && signInAttempt.createdSessionId) {
+        await continueToAdmin(signInAttempt.createdSessionId);
+      } else {
+        setErrorMessage("يحتاج الحساب إلى خطوة تحقق إضافية غير مفعلة في هذه الصفحة.");
       }
-      if (signIn.status === "complete") await continueToAdmin();
     } catch (error) {
-      setErrorMessage(getErrorMessage(error));
+      setErrorMessage(
+        getClerkFlowErrorMessage(
+          error,
+          "الكود غير صحيح أو انتهت صلاحيته. اطلب كودًا جديدًا.",
+        ),
+      );
+    } finally {
+      setIsBusy(false);
     }
   };
 
@@ -299,7 +317,6 @@ function AdminLoginPage() {
                     <button
                       type="button"
                       onClick={() => {
-                        void signIn.reset();
                         setCode("");
                         setErrorMessage("");
                         setStep("email");
