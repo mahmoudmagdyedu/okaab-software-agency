@@ -24,6 +24,7 @@ import { Route as SsoCallbackRouteImport } from './routes/sso-callback'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
+import { Route as _clerkSplatRouteImport } from './routes/__clerk/$'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminCoursesRouteImport } from './routes/admin/courses'
 import { Route as AdminHealthRouteImport } from './routes/admin/health'
@@ -168,6 +169,11 @@ const Char91DotwellKnownChar93OauthProtectedResourceRoute =
     path: '/.well-known/oauth-protected-resource',
     getParentRoute: () => rootRouteImport,
   } as any)
+const _clerkSplatRoute = _clerkSplatRouteImport.update({
+  id: '/__clerk/$',
+  path: '/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/admin/',
   path: '/admin/',
@@ -518,6 +524,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  '/$': typeof _clerkSplatRoute
   '/admin/courses': typeof AdminCoursesRoute
   '/admin/health': typeof AdminHealthRoute
   '/admin/learning': typeof AdminLearningRoute
@@ -599,6 +606,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  '/$': typeof _clerkSplatRoute
   '/admin/courses': typeof AdminCoursesRoute
   '/admin/health': typeof AdminHealthRoute
   '/admin/learning': typeof AdminLearningRoute
@@ -681,6 +689,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  '/__clerk/$': typeof _clerkSplatRoute
   '/admin/courses': typeof AdminCoursesRoute
   '/admin/health': typeof AdminHealthRoute
   '/admin/learning': typeof AdminLearningRoute
@@ -764,6 +773,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
+    | '/$'
     | '/admin/courses'
     | '/admin/health'
     | '/admin/learning'
@@ -845,6 +855,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
+    | '/$'
     | '/admin/courses'
     | '/admin/health'
     | '/admin/learning'
@@ -926,6 +937,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
+    | '/__clerk/$'
     | '/admin/courses'
     | '/admin/health'
     | '/admin/learning'
@@ -1008,6 +1020,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  _clerkSplatRoute: typeof _clerkSplatRoute
   AdminCoursesRoute: typeof AdminCoursesRoute
   AdminHealthRoute: typeof AdminHealthRoute
   AdminLearningRoute: typeof AdminLearningRoute
@@ -1175,6 +1188,13 @@ declare module '@tanstack/react-router' {
       path: '/.well-known/oauth-protected-resource'
       fullPath: '/.well-known/oauth-protected-resource'
       preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/__clerk/$': {
+      id: '/__clerk/$'
+      path: '/$'
+      fullPath: '/$'
+      preLoaderRoute: typeof _clerkSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/': {
@@ -1662,6 +1682,7 @@ const rootRouteChildren: RootRouteChildren = {
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
+  _clerkSplatRoute: _clerkSplatRoute,
   AdminCoursesRoute: AdminCoursesRoute,
   AdminHealthRoute: AdminHealthRoute,
   AdminLearningRoute: AdminLearningRoute,
