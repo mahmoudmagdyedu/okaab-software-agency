@@ -1,19 +1,8 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
 import { createFileRoute } from "@tanstack/react-router";
 
 import { getDb, sql } from "@/lib/db.server";
 import { OKAAB_CHANNEL_ID, syncYouTubeChannel } from "@/lib/youtube-sync.server";
-
-function validSignature(body: string, signature: string | null) {
-  const secret = process.env["YOUTUBE_WEBSUB_SECRET"];
-  if (!secret || !signature?.startsWith("sha1=")) return false;
-  const expected = createHmac("sha1", secret).update(body).digest("hex");
-  const supplied = signature.slice(5);
-  return (
-    expected.length === supplied.length &&
-    timingSafeEqual(Buffer.from(expected), Buffer.from(supplied))
-  );
-}
+import { validWebhookSignature } from "@/lib/youtube-security";
 
 export const Route = createFileRoute("/api/youtube/webhook")({
   server: {
@@ -28,7 +17,7 @@ export const Route = createFileRoute("/api/youtube/webhook")({
       },
       POST: async ({ request }) => {
         const body = await request.text();
-        if (!validSignature(body, request.headers.get("x-hub-signature")))
+        if (!validWebhookSignature(body, request.headers.get("x-hub-signature")))
           return new Response("Unauthorized", { status: 401 });
         const pool = await getDb();
         await pool

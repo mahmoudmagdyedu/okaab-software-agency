@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { createHmac } from "node:crypto";
+
 import { errorResponse, secureResponse } from "./lib/secure-response.ts";
+import { validWebhookSignature } from "./lib/youtube-security.ts";
 
 function nonceFrom(response: Response): string {
   const csp = response.headers.get("content-security-policy") ?? "";
@@ -74,4 +77,26 @@ test("uploaded slide HTML keeps its own policy and frame behavior", async () => 
   );
   assert.equal(secured.headers.get("x-frame-options"), "SAMEORIGIN");
   assert.equal(await secured.text(), "<script>bridge()</script>");
+});
+
+test("webhook signature verification handles multi-byte strings safely without throwing", () => {
+  process.env["YOUTUBE_WEBSUB_SECRET"] = "test-secret-key";
+  const body = "sample-payload-data";
+  const expectedHex = createHmac("sha1", "test-secret-key").update(body).digest("hex");
+
+  // Valid signature
+  assert.equal(validWebhookSignature(body, `sha1=${expectedHex}`), true);
+
+  // Mismatched signature of same string length
+  assert.equal(validWebhookSignature(body, `sha1=${"0".repeat(expectedHex.length)}`), false);
+
+  // Multi-byte string with same string length (40 chars) but different byte length (80 bytes)
+  // Must return false and NOT throw RangeError: Input buffers must have the same length
+  const multiByteSig = "sha1=" + "😀".repeat(20); // 20 surrogate pairs = 40 chars, 80 bytes UTF-8
+  assert.doesNotThrow(() => {
+    assert.equal(validWebhookSignature(body, multiByteSig), false);
+  });
+
+  // Null/missing signature
+  assert.equal(validWebhookSignature(body, null), false);
 });
