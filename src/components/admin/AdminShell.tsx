@@ -42,6 +42,7 @@ const ROLE_LABELS: Record<AppRole, string> = {
 
 type AdminAuthValue = {
   loading: boolean;
+  error: string | null;
   profile: Profile | null;
   reload: () => Promise<void>;
 };
@@ -51,29 +52,42 @@ const AdminAuthContext = createContext<AdminAuthValue | null>(null);
 function AdminAuthProvider({ children }: { children: ReactNode }) {
   const { isLoaded, isSignedIn, user } = useUser();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
 
   const reload = useCallback(async () => {
     setLoading(true);
+    setError(null);
     if (!isLoaded || !isSignedIn) {
       setProfile(null);
       setLoading(!isLoaded);
       return;
     }
-    const response = await fetch("/api/admin/me", {
-      credentials: "same-origin",
-      cache: "no-store",
-    });
-    const result = await response.json().catch(() => ({ profile: null }));
-    setProfile(response.ok && result.profile?.is_active ? result.profile : null);
-    setLoading(false);
+    try {
+      const response = await fetch("/api/admin/me", {
+        credentials: "same-origin",
+        cache: "no-store",
+        signal: AbortSignal.timeout(20_000),
+      });
+      const result = await response.json().catch(() => ({ profile: null }));
+      setProfile(response.ok && result.profile?.is_active ? result.profile : null);
+      if (response.status >= 500) setError("تعذّر التحقق من صلاحيات الإدارة حاليًا.");
+    } catch {
+      setProfile(null);
+      setError("تعذّر الاتصال بخدمة تسجيل الدخول.");
+    } finally {
+      setLoading(false);
+    }
   }, [isLoaded, isSignedIn]);
 
   useEffect(() => {
     void reload();
   }, [reload, user?.id]);
 
-  const value = useMemo(() => ({ loading, profile, reload }), [loading, profile, reload]);
+  const value = useMemo(
+    () => ({ loading, error, profile, reload }),
+    [loading, error, profile, reload],
+  );
   return <AdminAuthContext.Provider value={value}>{children}</AdminAuthContext.Provider>;
 }
 
@@ -94,7 +108,7 @@ const navItems = [
 ] as const;
 
 function AdminGate({ children }: { children: ReactNode }) {
-  const { loading, profile } = useAdminAuth();
+  const { loading, error, profile, reload } = useAdminAuth();
   if (loading) {
     return (
       <div className="grid min-h-screen place-items-center bg-[var(--ok-paper)] text-[var(--ok-ink)]">
@@ -105,6 +119,23 @@ function AdminGate({ children }: { children: ReactNode }) {
             className="mx-auto size-14 animate-pulse object-contain"
           />
           <p className="mt-4 text-sm opacity-70">جاري التحقق من صلاحية الدخول…</p>
+        </div>
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-[var(--ok-paper)] px-4 text-[var(--ok-ink)]">
+        <div className="max-w-md rounded-3xl border-2 border-[var(--ok-ink)] bg-[var(--ok-card)] p-8 text-center">
+          <h1 className="font-display text-3xl font-bold">تعذّر فتح لوحة الإدارة</h1>
+          <p className="mt-3 leading-7 opacity-70">{error}</p>
+          <button
+            type="button"
+            onClick={() => void reload()}
+            className="mt-6 rounded-full bg-[#E8A33D] px-6 py-3 font-bold text-[#181511]"
+          >
+            إعادة المحاولة
+          </button>
         </div>
       </div>
     );

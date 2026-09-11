@@ -56,6 +56,18 @@ test("non-HTML responses preserve status and retry metadata", async () => {
   assert.equal(await secured.text(), '{"error":"Request limit reached"}');
 });
 
+test("production CSP permits the Clerk custom Frontend API domain", async () => {
+  const secured = secureResponse(
+    new Response("<!doctype html><main>admin</main>", {
+      headers: { "content-type": "text/html; charset=utf-8" },
+    }),
+    "clerk-nonce",
+  );
+
+  const csp = secured.headers.get("content-security-policy") ?? "";
+  assert.match(csp, /connect-src[^;]*https:\/\/clerk\.okaab\.org/);
+});
+
 test("uploaded slide HTML keeps its own policy and frame behavior", async () => {
   const original = new Response("<script>bridge()</script>", {
     headers: {

@@ -17,11 +17,7 @@ const OKAAB_ARABIC_LOCALIZATION = {
 export function ClerkBoundary({ children }: { children: ReactNode }) {
   const nonce = getDocumentNonce();
   return (
-    <ClerkProvider
-      localization={OKAAB_ARABIC_LOCALIZATION}
-      {...(nonce ? { nonce } : {})}
-      {...(import.meta.env.PROD ? { proxyUrl: "/clerk-proxy" } : {})}
-    >
+    <ClerkProvider localization={OKAAB_ARABIC_LOCALIZATION} {...(nonce ? { nonce } : {})}>
       {children}
     </ClerkProvider>
   );
