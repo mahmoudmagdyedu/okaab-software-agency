@@ -12,8 +12,10 @@ async function loadAccountProfile(userId: string) {
   const pool = await getDb();
   const result = await pool.request().input("id", sql.NVarChar(64), userId).query<StoredProfile>(`
     select top (1) p.*,coalesce(ar.role_key,p.role) effective_role
-    from okaab.profiles p left join okaab.account_roles ar on ar.user_id=p.id
-    where p.id=@id
+    from okaab.profiles p
+    left join okaab.account_roles ar on ar.user_id=p.id
+    left join okaab.clerk_user_links cul on cul.profile_id=p.id
+    where p.id=@id or cul.clerk_user_id=@id
   `);
   const stored = result.recordset[0];
   return stored
@@ -59,34 +61,57 @@ export async function getAccountProfile(): Promise<Profile | null> {
     const user = await clerkClient().users.getUser(userId);
     const email = user.primaryEmailAddress?.emailAddress?.trim().toLowerCase();
     if (!email) return null;
-    const invite = await pool
+    const existing = await pool
       .request()
       .input("email", sql.NVarChar(320), email)
-      .query<{ role: AppRole; team_id: string | null }>(
-        "select top (1) role,team_id from okaab.pending_invites where email=@email and accepted_at is null and expires_at>sysutcdatetime() order by created_at desc",
-      );
-    const invited = invite.recordset[0];
-    const role: AppRole = email === SUPER_ADMIN_EMAIL ? "super_admin" : invited?.role || "student";
-    const teamId =
-      role === "student" || role === "admin" || role === "super_admin"
-        ? null
-        : invited?.team_id || null;
-    await pool
-      .request()
-      .input("id", sql.NVarChar(64), userId)
-      .input("email", sql.NVarChar(320), email)
-      .input("display_name", sql.NVarChar(160), displayName(user))
-      .input("avatar_url", sql.NVarChar(1000), user.imageUrl || null)
-      .input("role", sql.NVarChar(32), role)
-      .input("team_id", sql.NVarChar(64), teamId).query(`
-        if not exists (select 1 from okaab.profiles where id=@id)
-          insert into okaab.profiles (id,email,display_name,avatar_url,role,team_id,is_active,last_seen_at)
-          values (@id,@email,@display_name,@avatar_url,@role,@team_id,1,sysutcdatetime());
-        if not exists (select 1 from okaab.account_roles where user_id=@id)
-          insert into okaab.account_roles (user_id,role_key) values (@id,@role);
-        update okaab.pending_invites set accepted_at=sysutcdatetime() where email=@email and accepted_at is null;
-      `);
-    profile = await loadAccountProfile(userId);
+      .query<{ id: string }>("select top (1) id from okaab.profiles where lower(email)=@email");
+    const existingProfileId = existing.recordset[0]?.id;
+    if (existingProfileId) {
+      await pool
+        .request()
+        .input("clerk_user_id", sql.NVarChar(64), userId)
+        .input("profile_id", sql.NVarChar(64), existingProfileId)
+        .input("email", sql.NVarChar(320), email).query(`
+          if not exists (select 1 from okaab.clerk_user_links where clerk_user_id=@clerk_user_id)
+            insert into okaab.clerk_user_links (clerk_user_id,profile_id,linked_email)
+            values (@clerk_user_id,@profile_id,@email);
+        `);
+      profile = await loadAccountProfile(userId);
+    }
+    if (!profile) {
+      const invite = await pool
+        .request()
+        .input("email", sql.NVarChar(320), email)
+        .query<{ role: AppRole; team_id: string | null }>(
+          "select top (1) role,team_id from okaab.pending_invites where email=@email and accepted_at is null and expires_at>sysutcdatetime() order by created_at desc",
+        );
+      const invited = invite.recordset[0];
+      const role: AppRole =
+        email === SUPER_ADMIN_EMAIL ? "super_admin" : invited?.role || "student";
+      const teamId =
+        role === "student" || role === "admin" || role === "super_admin"
+          ? null
+          : invited?.team_id || null;
+      await pool
+        .request()
+        .input("id", sql.NVarChar(64), userId)
+        .input("email", sql.NVarChar(320), email)
+        .input("display_name", sql.NVarChar(160), displayName(user))
+        .input("avatar_url", sql.NVarChar(1000), user.imageUrl || null)
+        .input("role", sql.NVarChar(32), role)
+        .input("team_id", sql.NVarChar(64), teamId).query(`
+          if not exists (select 1 from okaab.profiles where id=@id)
+            insert into okaab.profiles (id,email,display_name,avatar_url,role,team_id,is_active,last_seen_at)
+            values (@id,@email,@display_name,@avatar_url,@role,@team_id,1,sysutcdatetime());
+          if not exists (select 1 from okaab.account_roles where user_id=@id)
+            insert into okaab.account_roles (user_id,role_key) values (@id,@role);
+          if not exists (select 1 from okaab.clerk_user_links where clerk_user_id=@id)
+            insert into okaab.clerk_user_links (clerk_user_id,profile_id,linked_email)
+            values (@id,@id,@email);
+          update okaab.pending_invites set accepted_at=sysutcdatetime() where email=@email and accepted_at is null;
+        `);
+      profile = await loadAccountProfile(userId);
+    }
   }
 
   if (!profile) return null;
