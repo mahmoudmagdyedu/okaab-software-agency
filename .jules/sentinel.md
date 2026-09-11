@@ -1,0 +1,4 @@
+## 2024-05-18 - `crypto.timingSafeEqual` Buffer Length Mismatch DoS
+**Vulnerability:** Unhandled exception (DoS) in `timingSafeEqual` due to buffer length mismatch when checking signatures. If a request sends a signature with the same string length as the expected hash, but containing multi-byte characters, the instantiated `Buffer` objects will have different lengths. `crypto.timingSafeEqual` throws an error when buffers have different byte lengths.
+**Learning:** `timingSafeEqual` requires inputs to have exactly the same byte length. Comparing string lengths before converting to Buffers is insufficient because string length != byte length for multi-byte characters.
+**Prevention:** Always compare the `byteLength` of the instantiated `Buffer` objects (not the original strings) before passing them to `timingSafeEqual`.
