@@ -130,13 +130,6 @@ function AdminLoginPage() {
     event.preventDefault();
     setErrorMessage("");
     try {
-      const { error: resetError } = await signIn.reset();
-      if (resetError) {
-        setErrorMessage(
-          getClerkFlowErrorMessage(resetError, "تعذّر بدء محاولة دخول جديدة. حاول مرة أخرى."),
-        );
-        return;
-      }
       const { error } = await signIn.emailCode.sendCode({ emailAddress: email.trim() });
       if (error) {
         setErrorMessage(getClerkFlowErrorMessage(error, "تعذّر إرسال كود الدخول. حاول مرة أخرى."));
@@ -306,7 +299,7 @@ function AdminLoginPage() {
                     <button
                       type="button"
                       onClick={() => {
-                        signIn.reset();
+                        void signIn.reset();
                         setCode("");
                         setErrorMessage("");
                         setStep("email");
