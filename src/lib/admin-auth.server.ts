@@ -6,6 +6,21 @@ import { hasMinimumRole, isAdminDashboardRole, ROLE_LEVEL } from "@/lib/roles";
 
 const SUPER_ADMIN_EMAIL = (process.env["SUPER_ADMIN_EMAIL"] || "okaab@okaab.org").toLowerCase();
 
+type StoredProfile = Profile & { effective_role?: AppRole };
+
+async function loadAccountProfile(userId: string) {
+  const pool = await getDb();
+  const result = await pool.request().input("id", sql.NVarChar(64), userId).query<StoredProfile>(`
+    select top (1) p.*,coalesce(ar.role_key,p.role) effective_role
+    from okaab.profiles p left join okaab.account_roles ar on ar.user_id=p.id
+    where p.id=@id
+  `);
+  const stored = result.recordset[0];
+  return stored
+    ? ({ ...stored, role: stored.effective_role || stored.role } as Profile)
+    : undefined;
+}
+
 function displayName(
   user: Awaited<ReturnType<ReturnType<typeof clerkClient>["users"]["getUser"]>>,
 ) {
@@ -38,11 +53,7 @@ export async function getAccountProfile(): Promise<Profile | null> {
   if (!userId) return null;
 
   const pool = await getDb();
-  const current = await pool
-    .request()
-    .input("id", sql.NVarChar(64), userId)
-    .query<Profile>("select top (1) * from okaab.profiles where id=@id");
-  let profile = current.recordset[0];
+  let profile = await loadAccountProfile(userId);
 
   if (!profile) {
     const user = await clerkClient().users.getUser(userId);
@@ -71,13 +82,11 @@ export async function getAccountProfile(): Promise<Profile | null> {
         if not exists (select 1 from okaab.profiles where id=@id)
           insert into okaab.profiles (id,email,display_name,avatar_url,role,team_id,is_active,last_seen_at)
           values (@id,@email,@display_name,@avatar_url,@role,@team_id,1,sysutcdatetime());
+        if not exists (select 1 from okaab.account_roles where user_id=@id)
+          insert into okaab.account_roles (user_id,role_key) values (@id,@role);
         update okaab.pending_invites set accepted_at=sysutcdatetime() where email=@email and accepted_at is null;
       `);
-    const created = await pool
-      .request()
-      .input("id", sql.NVarChar(64), userId)
-      .query<Profile>("select top (1) * from okaab.profiles where id=@id");
-    profile = created.recordset[0];
+    profile = await loadAccountProfile(userId);
   }
 
   if (!profile) return null;
@@ -89,7 +98,8 @@ export async function getAccountProfile(): Promise<Profile | null> {
       .request()
       .input("id", sql.NVarChar(64), profile.id)
       .query(
-        "update okaab.profiles set role='super_admin',team_id=null,is_active=1,last_seen_at=sysutcdatetime(),updated_at=sysutcdatetime() where id=@id",
+        `update okaab.profiles set role='super_admin',team_id=null,is_active=1,last_seen_at=sysutcdatetime(),updated_at=sysutcdatetime() where id=@id;
+         update okaab.account_roles set role_key='super_admin',updated_at=sysutcdatetime() where user_id=@id;`,
       );
     profile = { ...profile, role: "super_admin", team_id: null, is_active: true };
   } else {

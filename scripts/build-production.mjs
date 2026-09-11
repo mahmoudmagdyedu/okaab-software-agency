@@ -1,5 +1,16 @@
 import { spawnSync } from "node:child_process";
 
+const APPROVED_CLERK_KEY = "pk_live_Y2xlcmsub2thYWIub3JnJA";
+
+if (
+  process.env["NODE_ENV"] === "production" &&
+  process.env["VITE_CLERK_PUBLISHABLE_KEY"] !== APPROVED_CLERK_KEY
+) {
+  throw new Error(
+    "Production VITE_CLERK_PUBLISHABLE_KEY does not match the approved okaab.org Clerk instance",
+  );
+}
+
 const npmCli = process.env["npm_execpath"];
 
 if (!npmCli) {

@@ -17,7 +17,13 @@ export type DataRequest = {
   single?: "single" | "maybe";
 };
 
-const roleRank: Record<AppRole, number> = { super_admin: 1, admin: 2, team_leader: 3, employee: 4, student: 5 };
+const roleRank: Record<AppRole, number> = {
+  super_admin: 1,
+  admin: 2,
+  team_leader: 3,
+  employee: 4,
+  student: 5,
+};
 
 const tables = {
   teams: [
@@ -494,6 +500,21 @@ async function mutate(table: TableName, input: DataRequest, profile: Profile) {
   const result = await request.query(
     `update okaab.${identifier(table)} set ${assignments.join(",")} output inserted.* where ${where.join(" and ")}`,
   );
+  if (table === "profiles" && input.operation === "update" && result.recordset[0]) {
+    const updated = result.recordset[0] as { id?: string; role?: AppRole };
+    if (updated.id && updated.role) {
+      await pool
+        .request()
+        .input("user_id", sql.NVarChar(64), updated.id)
+        .input("role", sql.NVarChar(32), updated.role)
+        .input("actor", sql.NVarChar(64), profile.id).query(`
+          merge okaab.account_roles as target using (select @user_id user_id) as source
+          on target.user_id=source.user_id
+          when matched then update set role_key=@role,assigned_by=@actor,updated_at=sysutcdatetime()
+          when not matched then insert (user_id,role_key,assigned_by) values (@user_id,@role,@actor);
+        `);
+    }
+  }
   return {
     data: input.single ? (result.recordset[0] ?? null) : result.recordset,
     count: result.rowsAffected[0] || 0,
