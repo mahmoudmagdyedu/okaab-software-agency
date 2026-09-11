@@ -784,7 +784,7 @@ export function LessonExperience({
       method: "POST",
       credentials: "same-origin",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ ...event, idempotencyKey: event.idempotencyKey ?? learningEventKey(event.type) }),
+      body: JSON.stringify({ ...event, idempotencyKey: event["idempotencyKey"] ?? learningEventKey(event.type) }),
     });
     const payload = await response.json().catch(() => null);
     if (response.status === 401) {

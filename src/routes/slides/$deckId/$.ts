@@ -26,7 +26,7 @@ export const Route = createFileRoute("/slides/$deckId/$")({
         const asset = result.recordset[0];
         if (!asset) return new Response("Not found", { status: 404 });
         const isHtml = asset.content_type.toLowerCase().includes("text/html") || path.toLowerCase().endsWith(".html");
-        let body: Uint8Array | string = new Uint8Array(asset.content);
+        let body: BodyInit = Uint8Array.from(asset.content).buffer;
         if (isHtml) {
           const source = asset.content.toString("utf8");
           const bridge = `<script data-okaab-bridge>${createBridgeScript()}</script>`;

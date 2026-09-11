@@ -3,6 +3,7 @@ import { auth, clerkClient } from "@clerk/tanstack-react-start/server";
 import { ApiProblem } from "@/lib/api-response.server";
 import { getDb, sql } from "@/lib/db.server";
 import { consumeQuoteRateLimits } from "@/lib/quote-rate-limit";
+import { slideQuizAward } from "@/lib/slide-quiz-score";
 
 export type LearnerProfile = {
   id: string;
@@ -18,30 +19,31 @@ export type LearnerProfile = {
   updated_at: string;
 };
 
-export type LessonEvent = {
-  type:
-    | "slide_changed"
-    | "video_progress"
-    | "quiz_finished"
-    | "task_result"
-    | "lesson_finished"
-    | "quiz_completed";
+type LegacyLessonEvent = {
+  type: "slide_changed" | "video_progress" | "quiz_finished" | "task_result" | "lesson_finished";
   idempotencyKey: string;
   index?: number | undefined;
   percent?: number | undefined;
   score?: number | undefined;
   passed?: boolean | undefined;
-  attemptId?: string | undefined;
-  deckId?: string | undefined;
-  courseSlug?: string | undefined;
-  lessonSlug?: string | undefined;
-  lessonNumber?: number | undefined;
-  questionSetVersion?: string | undefined;
-  correctAnswers?: number | undefined;
-  totalQuestions?: number | undefined;
-  scorePercent?: number | undefined;
-  completedAt?: string | undefined;
 };
+
+type CompletedSlideQuizEvent = {
+  type: "quiz_completed";
+  idempotencyKey: string;
+  attemptId: string;
+  deckId: string;
+  courseSlug: string;
+  lessonSlug: string;
+  lessonNumber: number;
+  questionSetVersion: string;
+  correctAnswers: number;
+  totalQuestions: number;
+  scorePercent: number;
+  completedAt: string;
+};
+
+export type LessonEvent = LegacyLessonEvent | CompletedSlideQuizEvent;
 
 const DEFAULT_POINTS = {
   quiz_first_correct: 10,
@@ -354,27 +356,6 @@ export async function answerQuiz(input: {
   const transaction = new sql.Transaction(pool);
   await transaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
   try {
-    if (event.type === "quiz_completed") {
-      const priorAttempt = await new sql.Request(transaction)
-        .input("user_id", sql.NVarChar(64), learner.id)
-        .input("attempt_id", sql.NVarChar(64), event.attemptId).query<{
-        score_percent: number;
-        awarded_xp: number;
-      }>(`
-          select top (1) score_percent,awarded_xp
-          from okaab.slide_quiz_attempts
-          where user_id=@user_id and attempt_id=@attempt_id
-        `);
-      if (priorAttempt.recordset[0]) {
-        await transaction.commit();
-        return {
-          accepted: true,
-          duplicate: true,
-          scorePercent: priorAttempt.recordset[0].score_percent,
-          awardedXp: priorAttempt.recordset[0].awarded_xp,
-        };
-      }
-    }
     const duplicate = await new sql.Request(transaction)
       .input("user_id", sql.NVarChar(64), learner.id)
       .input("key", sql.NVarChar(100), input.idempotencyKey).query<{
@@ -439,63 +420,6 @@ export async function answerQuiz(input: {
         `insert into okaab.quiz_attempts (user_id,question_id,option_id,is_correct,is_first_attempt,idempotency_key) values (@user_id,@question_id,@option_id,@is_correct,@is_first,@key)`,
       );
     const rules = await pointsRules(transaction);
-    if (event.type === "quiz_completed") {
-      const previousBest = await new sql.Request(transaction)
-        .input("user_id", sql.NVarChar(64), learner.id)
-        .input("lesson_id", sql.NVarChar(64), lessonId)
-        .input("version", sql.NVarChar(128), event.questionSetVersion).query<{
-        best_correct: number;
-      }>(`
-          select coalesce(max(correct_answers),0) best_correct
-          from okaab.slide_quiz_attempts
-          where user_id=@user_id and lesson_id=@lesson_id and question_set_version=@version
-        `);
-      const gainedAnswers = Math.max(
-        0,
-        (event.correctAnswers ?? 0) - (previousBest.recordset[0]?.best_correct ?? 0),
-      );
-      const awardedXp = gainedAnswers * rules.quiz_first_correct;
-      await new sql.Request(transaction)
-        .input("user_id", sql.NVarChar(64), learner.id)
-        .input("attempt_id", sql.NVarChar(64), event.attemptId)
-        .input("lesson_id", sql.NVarChar(64), lessonId)
-        .input("deck_id", sql.NVarChar(64), event.deckId)
-        .input("course_slug", sql.NVarChar(180), event.courseSlug)
-        .input("lesson_slug", sql.NVarChar(180), event.lessonSlug)
-        .input("lesson_number", sql.Int, event.lessonNumber)
-        .input("version", sql.NVarChar(128), event.questionSetVersion)
-        .input("correct", sql.Int, event.correctAnswers)
-        .input("total", sql.Int, event.totalQuestions)
-        .input("percent", sql.Int, event.scorePercent)
-        .input("awarded_xp", sql.Int, awardedXp)
-        .input("completed_at", sql.DateTimeOffset, new Date(event.completedAt ?? Date.now()))
-        .query(`
-          insert into okaab.slide_quiz_attempts
-            (user_id,attempt_id,lesson_id,deck_id,course_slug,lesson_slug,lesson_number,question_set_version,correct_answers,total_questions,score_percent,awarded_xp,completed_at)
-          values
-            (@user_id,@attempt_id,@lesson_id,@deck_id,@course_slug,@lesson_slug,@lesson_number,@version,@correct,@total,@percent,@awarded_xp,@completed_at)
-        `);
-      await new sql.Request(transaction)
-        .input("user_id", sql.NVarChar(64), learner.id)
-        .input("lesson_id", sql.NVarChar(64), lessonId)
-        .input("percent", sql.Int, event.scorePercent).query(`
-          update okaab.lesson_progress
-          set quiz_score=case when @percent>quiz_score then @percent else quiz_score end,updated_at=sysutcdatetime()
-          where user_id=@user_id and lesson_id=@lesson_id
-        `);
-      if (awardedXp > 0) {
-        await awardPoints(transaction, {
-          userId: learner.id,
-          amount: awardedXp,
-          reason: "deck_quiz_improvement",
-          lessonId,
-          idempotencyKey: `deck-quiz:${learner.id}:${event.attemptId}`,
-        });
-      }
-      await touchDailyStreak(transaction, learner.id);
-      await transaction.commit();
-      return { accepted: true, duplicate: false, scorePercent: event.scorePercent, awardedXp };
-    }
     const awarded = first && option.is_correct ? rules.quiz_first_correct : 0;
     if (awarded)
       await awardPoints(transaction, {
@@ -549,14 +473,45 @@ export async function recordLessonEvent(slug: string, event: LessonEvent) {
   const lesson = await pool
     .request()
     .input("slug", sql.NVarChar(180), slug)
-    .query<{ id: string }>(
-      "select top (1) id from okaab.lessons where slug=@slug and is_published=1",
+    .query<{ id: string; course_slug: string; lesson_number: number }>(
+      `select top (1) l.id,c.slug course_slug,l.sort_order+1 lesson_number
+       from okaab.lessons l join okaab.courses c on c.id=l.course_id
+       where l.slug=@slug and l.is_published=1 and c.is_published=1`,
     );
-  const lessonId = lesson.recordset[0]?.id;
-  if (!lessonId) throw new ApiProblem("الدرس غير موجود", 404);
+  const lessonRow = lesson.recordset[0];
+  const lessonId = lessonRow?.id;
+  if (!lessonId || !lessonRow) throw new ApiProblem("الدرس غير موجود", 404);
   const transaction = new sql.Transaction(pool);
   await transaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
   try {
+    if (event.type === "quiz_completed") {
+      const priorAttempt = await new sql.Request(transaction)
+        .input("user_id", sql.NVarChar(64), learner.id)
+        .input("attempt_id", sql.NVarChar(64), event.attemptId).query<{
+        score_percent: number;
+        awarded_xp: number;
+      }>(`
+          select top (1) score_percent,awarded_xp
+          from okaab.slide_quiz_attempts
+          where user_id=@user_id and attempt_id=@attempt_id
+        `);
+      if (priorAttempt.recordset[0]) {
+        await transaction.commit();
+        return {
+          accepted: true,
+          duplicate: true,
+          scorePercent: priorAttempt.recordset[0].score_percent,
+          awardedXp: priorAttempt.recordset[0].awarded_xp,
+        };
+      }
+      const deck = await new sql.Request(transaction)
+        .input("deck_id", sql.NVarChar(64), event.deckId)
+        .input("lesson_id", sql.NVarChar(64), lessonId)
+        .query<{ id: string }>(
+          "select top (1) id from okaab.slide_decks where id=@deck_id and lesson_id=@lesson_id and is_published=1",
+        );
+      if (!deck.recordset[0]) throw new ApiProblem("الشرائح لا تتبع هذا الدرس", 422);
+    }
     const duplicate = await new sql.Request(transaction)
       .input("user_id", sql.NVarChar(64), learner.id)
       .input("key", sql.NVarChar(100), event.idempotencyKey)
@@ -583,6 +538,67 @@ export async function recordLessonEvent(slug: string, event: LessonEvent) {
         `if not exists (select 1 from okaab.lesson_progress where user_id=@user_id and lesson_id=@lesson_id) insert into okaab.lesson_progress (user_id,lesson_id,status,started_at) values (@user_id,@lesson_id,'in_progress',sysutcdatetime())`,
       );
     const rules = await pointsRules(transaction);
+    if (event.type === "quiz_completed") {
+      const previousBest = await new sql.Request(transaction)
+        .input("user_id", sql.NVarChar(64), learner.id)
+        .input("lesson_id", sql.NVarChar(64), lessonId)
+        .input("version", sql.NVarChar(128), event.questionSetVersion).query<{
+        best_correct: number;
+      }>(`
+          select coalesce(max(correct_answers),0) best_correct
+          from okaab.slide_quiz_attempts
+          where user_id=@user_id and lesson_id=@lesson_id and question_set_version=@version
+        `);
+      const { awardedXp } = slideQuizAward(
+        event.correctAnswers,
+        previousBest.recordset[0]?.best_correct ?? 0,
+        rules.quiz_first_correct,
+      );
+      await new sql.Request(transaction)
+        .input("user_id", sql.NVarChar(64), learner.id)
+        .input("attempt_id", sql.NVarChar(64), event.attemptId)
+        .input("lesson_id", sql.NVarChar(64), lessonId)
+        .input("deck_id", sql.NVarChar(64), event.deckId)
+        .input("course_slug", sql.NVarChar(180), lessonRow.course_slug)
+        .input("lesson_slug", sql.NVarChar(180), slug)
+        .input("lesson_number", sql.Int, lessonRow.lesson_number)
+        .input("version", sql.NVarChar(128), event.questionSetVersion)
+        .input("correct", sql.Int, event.correctAnswers)
+        .input("total", sql.Int, event.totalQuestions)
+        .input("percent", sql.Int, event.scorePercent)
+        .input("awarded_xp", sql.Int, awardedXp)
+        .input("completed_at", sql.DateTimeOffset, new Date(event.completedAt))
+        .query(`
+          insert into okaab.slide_quiz_attempts
+            (user_id,attempt_id,lesson_id,deck_id,course_slug,lesson_slug,lesson_number,question_set_version,correct_answers,total_questions,score_percent,awarded_xp,completed_at)
+          values
+            (@user_id,@attempt_id,@lesson_id,@deck_id,@course_slug,@lesson_slug,@lesson_number,@version,@correct,@total,@percent,@awarded_xp,@completed_at)
+        `);
+      await new sql.Request(transaction)
+        .input("user_id", sql.NVarChar(64), learner.id)
+        .input("lesson_id", sql.NVarChar(64), lessonId)
+        .input("percent", sql.Int, event.scorePercent).query(`
+          update okaab.lesson_progress
+          set quiz_score=case when @percent>coalesce(quiz_score,0) then @percent else quiz_score end,
+              updated_at=sysutcdatetime()
+          where user_id=@user_id and lesson_id=@lesson_id
+        `);
+      if (awardedXp > 0) {
+        await awardPoints(transaction, {
+          userId: learner.id,
+          amount: awardedXp,
+          reason: "deck_quiz_improvement",
+          lessonId,
+          idempotencyKey: `deck-quiz:${learner.id}:${event.attemptId}`,
+        });
+      }
+      if (event.scorePercent === 100) {
+        await unlockBadge(transaction, learner.id, "perfect_quiz", `deck-quiz:${lessonId}`);
+      }
+      await touchDailyStreak(transaction, learner.id);
+      await transaction.commit();
+      return { accepted: true, duplicate: false, scorePercent: event.scorePercent, awardedXp };
+    }
     if (event.type === "slide_changed") {
       await new sql.Request(transaction)
         .input("user_id", sql.NVarChar(64), learner.id)
@@ -870,12 +886,12 @@ export async function getLeaderboard(period: "weekly" | "monthly" | "all") {
         .map((part) => [part.type, Number(part.value)]),
     ) as Record<string, number>;
     const observed = Date.UTC(
-      local.year ?? boundary.year,
-      (local.month ?? boundary.month) - 1,
-      local.day ?? boundary.day,
-      local.hour ?? 0,
-      local.minute ?? 0,
-      local.second ?? 0,
+      local["year"] ?? boundary.year,
+      (local["month"] ?? boundary.month) - 1,
+      local["day"] ?? boundary.day,
+      local["hour"] ?? 0,
+      local["minute"] ?? 0,
+      local["second"] ?? 0,
     );
     sinceMs -= observed - target;
   }
@@ -1040,5 +1056,5 @@ export async function unregisterDevice(token: string) {
     .input("user_id", sql.NVarChar(64), learner.id)
     .input("token", sql.NVarChar(500), token)
     .query("delete from okaab.learning_devices where user_id=@user_id and fcm_token=@token");
-  return { unregistered: result.rowsAffected[0] > 0 };
+  return { unregistered: (result.rowsAffected[0] ?? 0) > 0 };
 }
