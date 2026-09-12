@@ -1,0 +1,27 @@
+# Keep the Android build archive focused on the Expo app and its local packages.
+node_modules/
+**/node_modules/
+.git/
+.expo/
+**/.expo/
+.output/
+**/.output/
+.wrangler/
+.nitro/
+.tanstack/
+
+# Web applications and server sources are deployed separately to Heroku.
+/apps/mawid/
+/apps/bun-al-deerah-pos/
+/public/
+/src/
+/database/
+/docs/
+/scripts/
+/supabase/
+/.github/
+/.lovable/
+
+*.log
+.env
+*.local
