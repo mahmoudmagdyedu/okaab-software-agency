@@ -6,6 +6,7 @@ import { getDb, sql } from "@/lib/db.server";
 import { sendTemplateEmail } from "@/lib/email-templates/send-email";
 import { buildInvitationRedirectUrl } from "@/lib/invitation-url";
 import type { AppRole } from "@/integrations/supabase/types";
+import { canInviteRole } from "@/lib/roles";
 
 const ROLE_LABELS: Record<Exclude<AppRole, "super_admin">, string> = {
   admin: "أدمن",
@@ -67,8 +68,8 @@ export const Route = createFileRoute("/api/admin/invite")({
           const role = input.role;
           if (!email || !role || !["admin", "team_leader", "employee", "student"].includes(role))
             return Response.json({ error: "بيانات الدعوة غير مكتملة" }, { status: 400 });
-          if (role === "admin" && actor.role !== "super_admin")
-            return Response.json({ error: "السوبر أدمن فقط يمكنه تعيين أدمن" }, { status: 403 });
+          if (!canInviteRole(actor.role, role))
+            return Response.json({ error: "لا تملك صلاحية دعوة هذا الدور" }, { status: 403 });
           if (!["student", "admin"].includes(role) && !input.teamId)
             return Response.json({ error: "اختر الفريق أولًا" }, { status: 400 });
 
@@ -106,9 +107,7 @@ export const Route = createFileRoute("/api/admin/invite")({
 
           const invitation = await clerk.invitations.createInvitation({
             emailAddress: email,
-            redirectUrl: buildInvitationRedirectUrl(
-              role as Exclude<AppRole, "super_admin">,
-            ),
+            redirectUrl: buildInvitationRedirectUrl(role as Exclude<AppRole, "super_admin">),
             expiresInDays: 7,
             ignoreExisting: false,
             notify: false,

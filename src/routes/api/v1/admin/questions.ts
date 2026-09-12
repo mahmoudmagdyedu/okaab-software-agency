@@ -1,36 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { z } from "zod";
-
 import { apiData, apiError } from "@/lib/api-response.server";
 import { requireAdminProfile } from "@/lib/admin-auth.server";
 import { getDb, sql } from "@/lib/db.server";
-
-const optionSchema = z.object({
-  text: z.string().trim().min(1).max(1000),
-  explanation: z.string().trim().min(1).max(2000),
-  correct: z.boolean(),
-});
-const saveSchema = z
-  .object({
-    questionId: z.string().min(1).max(64).optional(),
-    lessonId: z.string().min(1).max(64),
-    text: z.string().trim().min(3).max(4000),
-    level: z.enum(["easy", "medium", "apply"]),
-    sortOrder: z.number().int().min(0).max(10_000),
-    published: z.boolean(),
-    options: z.array(optionSchema).min(2).max(8),
-  })
-  .refine((value) => value.options.filter((option) => option.correct).length === 1, {
-    message: "يجب تحديد إجابة صحيحة واحدة فقط",
-    path: ["options"],
-  });
-
-const lessonTaskSchema = z.object({
-  lessonId: z.string().min(1).max(64),
-  enabled: z.boolean(),
-  prompt: z.string().trim().max(12_000),
-  requiredSlideIndex: z.number().int().min(0).max(10_000).nullable(),
-});
+import { lessonTaskSaveSchema, questionSaveSchema } from "@/lib/question-bank-validation";
 
 async function audit(
   actorId: string,
@@ -83,7 +55,7 @@ export const Route = createFileRoute("/api/v1/admin/questions")({
       POST: async ({ request }) => {
         try {
           const actor = await requireAdminProfile(["super_admin", "admin"]);
-          const input = saveSchema.parse(await request.json());
+          const input = questionSaveSchema.parse(await request.json());
           const pool = await getDb();
           const lesson = await pool
             .request()
@@ -175,9 +147,7 @@ export const Route = createFileRoute("/api/v1/admin/questions")({
       PATCH: async ({ request }) => {
         try {
           const actor = await requireAdminProfile(["super_admin", "admin"]);
-          const input = lessonTaskSchema.parse(await request.json());
-          if (input.enabled && input.prompt.length < 10)
-            throw new Response("Task prompt is required", { status: 400 });
+          const input = lessonTaskSaveSchema.parse(await request.json());
           const updated = await (
             await getDb()
           )

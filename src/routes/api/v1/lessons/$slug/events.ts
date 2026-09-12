@@ -23,7 +23,11 @@ const completedQuizSchema = z
   .object({
     type: z.literal("quiz_completed"),
     idempotencyKey: z.string().min(12).max(100).optional(),
-    attemptId: z.string().uuid(),
+    attemptId: z
+      .string()
+      .min(12)
+      .max(64)
+      .regex(/^[a-zA-Z0-9-]+$/),
     deckId: z.string().min(1).max(64),
     courseSlug: z.string().min(1).max(180),
     lessonSlug: z.string().min(1).max(180),

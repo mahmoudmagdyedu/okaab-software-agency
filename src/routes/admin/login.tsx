@@ -1,17 +1,9 @@
 import { useAuth, useClerk } from "@clerk/tanstack-react-start";
-import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-  ArrowLeft,
-  ArrowRight,
-  CheckCircle2,
-  KeyRound,
-  LoaderCircle,
-  Mail,
-  ShieldCheck,
-} from "lucide-react";
+import { createFileRoute } from "@tanstack/react-router";
+import { ArrowRight, CheckCircle2, KeyRound, LoaderCircle, Mail, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { OkaabStyles } from "@/components/okaab/SiteChrome";
+import { AuthExperience, useAuthLocale } from "@/components/auth/AuthExperience";
 import { ClerkBoundary } from "@/components/auth/ClerkBoundary";
 import { ThemeProvider } from "@/lib/theme";
 
@@ -28,18 +20,93 @@ export const Route = createFileRoute("/admin/login")({
 
 function AdminLoginRoute() {
   return (
-    <ClerkBoundary>
-      <AdminLoginPage />
-    </ClerkBoundary>
+    <ThemeProvider>
+      <ClerkBoundary>
+        <AuthExperience audience="admin">
+          <AdminLoginPage />
+        </AuthExperience>
+      </ClerkBoundary>
+    </ThemeProvider>
   );
 }
 
-function getErrorMessage(error: unknown) {
+const ADMIN_COPY = {
+  ar: {
+    error: "تعذّر إكمال تسجيل الدخول. حاول مرة أخرى.",
+    unauthorized: "هذا البريد غير مضاف إلى فريق عُقاب. اطلب دعوة من المسؤول.",
+    invalidCode: "الكود غير صحيح أو انتهت صلاحيته. اطلب كودًا جديدًا.",
+    eyebrow: "ADMIN DASHBOARD",
+    title: "أهلًا بك في عُقاب",
+    subtitle: "دخول آمن لأعضاء الفريق المعتمدين فقط",
+    google: "المتابعة باستخدام Google",
+    divider: "أو بكود على البريد",
+    email: "البريد الإلكتروني",
+    sendCode: "إرسال كود الدخول",
+    sentTo: "أرسلنا كودًا إلى",
+    code: "كود الدخول",
+    confirm: "تأكيد والدخول",
+    otherEmail: "استخدام بريد آخر",
+    security: "لن نطلب منك كلمة مرور. استخدم Google أو الكود الذي يصلك على بريدك.",
+  },
+  en: {
+    error: "We couldn't complete sign-in. Please try again.",
+    unauthorized: "This email is not on the Okaab team. Ask an administrator for an invite.",
+    invalidCode: "That code is invalid or expired. Request a new code.",
+    eyebrow: "ADMIN DASHBOARD",
+    title: "Welcome back to Okaab",
+    subtitle: "Secure access for approved team members only",
+    google: "Continue with Google",
+    divider: "or use an email code",
+    email: "Email address",
+    sendCode: "Send sign-in code",
+    sentTo: "We sent a code to",
+    code: "Sign-in code",
+    confirm: "Verify and continue",
+    otherEmail: "Use another email",
+    security: "No password needed. Use Google or the one-time code sent to your email.",
+  },
+  fr: {
+    error: "La connexion n’a pas abouti. Réessayez.",
+    unauthorized: "Cet e-mail ne fait pas partie de l’équipe Okaab. Demandez une invitation.",
+    invalidCode: "Ce code est incorrect ou expiré. Demandez-en un nouveau.",
+    eyebrow: "TABLEAU DE BORD ADMIN",
+    title: "Bienvenue sur Okaab",
+    subtitle: "Accès sécurisé réservé aux membres autorisés",
+    google: "Continuer avec Google",
+    divider: "ou utiliser un code par e-mail",
+    email: "Adresse e-mail",
+    sendCode: "Envoyer le code",
+    sentTo: "Nous avons envoyé un code à",
+    code: "Code de connexion",
+    confirm: "Vérifier et continuer",
+    otherEmail: "Utiliser un autre e-mail",
+    security: "Aucun mot de passe requis. Utilisez Google ou le code reçu par e-mail.",
+  },
+  es: {
+    error: "No pudimos completar el acceso. Inténtalo de nuevo.",
+    unauthorized: "Este correo no pertenece al equipo de Okaab. Solicita una invitación.",
+    invalidCode: "El código no es válido o ha caducado. Solicita uno nuevo.",
+    eyebrow: "PANEL DE ADMINISTRACIÓN",
+    title: "Te damos la bienvenida a Okaab",
+    subtitle: "Acceso seguro solo para miembros autorizados",
+    google: "Continuar con Google",
+    divider: "o usar un código por correo",
+    email: "Correo electrónico",
+    sendCode: "Enviar código de acceso",
+    sentTo: "Enviamos un código a",
+    code: "Código de acceso",
+    confirm: "Verificar y continuar",
+    otherEmail: "Usar otro correo",
+    security: "No necesitas contraseña. Usa Google o el código enviado a tu correo.",
+  },
+} as const;
+
+function getErrorMessage(error: unknown, fallback: string) {
   if (error && typeof error === "object") {
     const clerkError = error as { longMessage?: string; message?: string };
-    return clerkError.longMessage || clerkError.message || "تعذّر إكمال تسجيل الدخول.";
+    return clerkError.longMessage || clerkError.message || fallback;
   }
-  return "تعذّر إكمال تسجيل الدخول. حاول مرة أخرى.";
+  return fallback;
 }
 
 function getClerkFlowErrorMessage(error: unknown, fallback: string) {
@@ -48,18 +115,7 @@ function getClerkFlowErrorMessage(error: unknown, fallback: string) {
   type ClerkFlowError = { code?: string; longMessage?: string; message?: string };
   const errorContainer = error as ClerkFlowError & { errors?: ClerkFlowError[] };
   const clerkError = errorContainer.errors?.[0] ?? errorContainer;
-  switch (clerkError.code) {
-    case "form_identifier_not_found":
-      return "لا يوجد حساب Clerk بهذا البريد. تأكد من البريد أو اطلب إضافته من المسؤول.";
-    case "verification_expired":
-      return "انتهت صلاحية الكود. اطلب كودًا جديدًا.";
-    case "form_code_incorrect":
-      return "الكود غير صحيح. راجع البريد وحاول مرة أخرى.";
-    case "too_many_requests":
-      return "تمت محاولات كثيرة خلال وقت قصير. انتظر قليلًا ثم أعد المحاولة.";
-    default:
-      return clerkError.longMessage || clerkError.message || fallback;
-  }
+  return clerkError.longMessage || clerkError.message || fallback;
 }
 
 function GoogleMark() {
@@ -86,6 +142,10 @@ function GoogleMark() {
 }
 
 function AdminLoginPage() {
+  const { locale } = useAuthLocale();
+  const language = locale.startsWith("ar") ? "ar" : locale;
+  const t = ADMIN_COPY[language as keyof typeof ADMIN_COPY] || ADMIN_COPY.en;
+  const dir = language === "ar" ? "rtl" : "ltr";
   const { isLoaded, isSignedIn } = useAuth();
   const clerk = useClerk();
   const [step, setStep] = useState<"email" | "code">("email");
@@ -101,8 +161,8 @@ function AdminLoginPage() {
         const result = (await response.json()) as { dashboard?: "admin" | "student" };
         window.location.replace(result.dashboard === "admin" ? "/admin" : "/dashboard");
       })
-      .catch(() => setErrorMessage("تعذّر تحديد صلاحية الحساب. حاول مرة أخرى."));
-  }, [isLoaded, isSignedIn]);
+      .catch(() => setErrorMessage(t.error));
+  }, [isLoaded, isSignedIn, t.error]);
 
   const continueToAdmin = async (sessionId: string) => {
     await clerk.setActive({
@@ -124,7 +184,7 @@ function AdminLoginPage() {
         continueSignUp: false,
       });
     } catch (error) {
-      setErrorMessage(getErrorMessage(error));
+      setErrorMessage(getErrorMessage(error, t.error));
     }
   };
 
@@ -138,7 +198,7 @@ function AdminLoginPage() {
         (factor) => factor.strategy === "email_code",
       );
       if (!emailCodeFactor || !("emailAddressId" in emailCodeFactor)) {
-        setErrorMessage("هذا الحساب لا يدعم الدخول بكود البريد. استخدم Google أو تواصل مع المسؤول.");
+        setErrorMessage(t.unauthorized);
         return;
       }
       await signInAttempt.prepareFirstFactor({
@@ -147,7 +207,7 @@ function AdminLoginPage() {
       });
       setStep("code");
     } catch (error) {
-      setErrorMessage(getClerkFlowErrorMessage(error, getErrorMessage(error)));
+      setErrorMessage(getClerkFlowErrorMessage(error, t.error));
     } finally {
       setIsBusy(false);
     }
@@ -165,179 +225,135 @@ function AdminLoginPage() {
       if (signInAttempt.status === "complete" && signInAttempt.createdSessionId) {
         await continueToAdmin(signInAttempt.createdSessionId);
       } else {
-        setErrorMessage("يحتاج الحساب إلى خطوة تحقق إضافية غير مفعلة في هذه الصفحة.");
+        setErrorMessage(t.invalidCode);
       }
     } catch (error) {
-      setErrorMessage(
-        getClerkFlowErrorMessage(
-          error,
-          "الكود غير صحيح أو انتهت صلاحيته. اطلب كودًا جديدًا.",
-        ),
-      );
+      setErrorMessage(getClerkFlowErrorMessage(error, t.invalidCode));
     } finally {
       setIsBusy(false);
     }
   };
 
   return (
-    <ThemeProvider>
-      <div
-        dir="rtl"
-        lang="ar"
-        className="relative grid min-h-screen place-items-center overflow-hidden bg-[var(--ok-paper)] px-4 py-8 text-[var(--ok-ink)] sm:py-12"
-      >
-        <OkaabStyles />
+    <div dir={dir}>
+      <header className="text-center">
+        <div className="mx-auto grid size-18 place-items-center rounded-3xl bg-[#E8A33D]/10 ring-1 ring-[#E8A33D]/25">
+          <img src="/logo-96.webp" alt="عُقاب" className="size-14 object-contain" />
+        </div>
+        <p className="mt-4 text-xs font-bold tracking-[0.18em] text-[#D88C20]">{t.eyebrow}</p>
+        <h1 className="mt-2 text-3xl font-black">{t.title}</h1>
+        <p className="mt-2 text-sm leading-6 text-[var(--ok-ink)]/60">{t.subtitle}</p>
+      </header>
+
+      {errorMessage ? (
         <div
-          aria-hidden
-          className="absolute -right-32 -top-32 size-96 rounded-full bg-[#E8A33D]/20 blur-3xl"
-        />
-        <div
-          aria-hidden
-          className="absolute -bottom-40 -left-32 size-[28rem] rounded-full bg-[#E8A33D]/10 blur-3xl"
-        />
+          role="alert"
+          className="mt-6 rounded-2xl border border-red-500/35 bg-red-500/10 px-4 py-3 text-center text-sm leading-6 text-red-500"
+        >
+          {errorMessage}
+        </div>
+      ) : null}
 
-        <main className="relative w-full max-w-[28rem]">
-          <section className="relative overflow-hidden rounded-[2rem] border border-[var(--ok-ink)]/15 bg-[var(--ok-card)] shadow-[0_28px_90px_rgba(25,20,13,0.16)]">
-            <div aria-hidden className="h-1.5 bg-[#E8A33D]" />
-            <div className="px-5 pb-6 pt-5 sm:px-9 sm:pb-8 sm:pt-7">
-              <Link
-                to="/"
-                aria-label="العودة للرئيسية"
-                className="absolute left-5 top-6 grid size-10 place-items-center rounded-full border border-[var(--ok-ink)]/15 bg-[var(--ok-paper-2)] transition hover:-translate-x-1 hover:border-[#E8A33D] sm:left-7 sm:top-8"
-              >
-                <ArrowLeft size={17} />
-              </Link>
+      <div className="mt-7">
+        <button
+          type="button"
+          onClick={handleGoogleSignIn}
+          disabled={isBusy}
+          className="flex h-13 w-full items-center justify-center gap-3 rounded-2xl border border-[var(--ok-ink)]/15 bg-[var(--ok-paper-2)] px-4 font-bold transition hover:-translate-y-0.5 hover:border-[#E8A33D] hover:bg-[#E8A33D]/10 disabled:cursor-wait disabled:opacity-60"
+        >
+          {isBusy ? <LoaderCircle className="size-5 animate-spin" /> : <GoogleMark />}
+          {t.google}
+        </button>
 
-              <header className="text-center">
-                <div className="mx-auto grid size-20 place-items-center rounded-3xl bg-[#E8A33D]/10 ring-1 ring-[#E8A33D]/25">
-                  <img src="/logo-96.webp" alt="عُقاب" className="size-16 object-contain" />
-                </div>
-                <p className="mt-5 text-xs font-bold tracking-[0.18em] text-[#D88C20]">
-                  لوحة الإدارة
-                </p>
-                <h1 className="mt-2 text-2xl font-black">أهلًا بك في عُقاب</h1>
-                <p className="mt-2 text-sm leading-6 text-[var(--ok-ink)]/60">
-                  دخول آمن للحسابات المعتمدة فقط
-                </p>
-              </header>
+        <div className="my-6 flex items-center gap-3 text-xs text-[var(--ok-ink)]/40">
+          <span className="h-px flex-1 bg-[var(--ok-ink)]/12" />
+          {t.divider}
+          <span className="h-px flex-1 bg-[var(--ok-ink)]/12" />
+        </div>
 
-              {errorMessage ? (
-                <div
-                  role="alert"
-                  className="mt-6 rounded-2xl border border-red-500/35 bg-red-500/10 px-4 py-3 text-center text-sm leading-6 text-red-500"
-                >
-                  {errorMessage}
-                </div>
-              ) : null}
-
-              <div className="mt-7">
-                <button
-                  type="button"
-                  onClick={handleGoogleSignIn}
-                  disabled={isBusy}
-                  className="flex h-13 w-full items-center justify-center gap-3 rounded-2xl border border-[var(--ok-ink)]/15 bg-[var(--ok-paper-2)] px-4 font-bold transition hover:-translate-y-0.5 hover:border-[#E8A33D] hover:bg-[#E8A33D]/10 disabled:cursor-wait disabled:opacity-60"
-                >
-                  {isBusy ? <LoaderCircle className="size-5 animate-spin" /> : <GoogleMark />}
-                  المتابعة باستخدام Google
-                </button>
-
-                <div className="my-6 flex items-center gap-3 text-xs text-[var(--ok-ink)]/40">
-                  <span className="h-px flex-1 bg-[var(--ok-ink)]/12" />
-                  أو بكود على البريد
-                  <span className="h-px flex-1 bg-[var(--ok-ink)]/12" />
-                </div>
-
-                {step === "email" ? (
-                  <form onSubmit={handleEmailCode} className="space-y-3">
-                    <label htmlFor="admin-email" className="block text-sm font-bold">
-                      البريد الإلكتروني
-                    </label>
-                    <div className="relative">
-                      <Mail
-                        aria-hidden
-                        className="absolute right-4 top-1/2 size-5 -translate-y-1/2 text-[var(--ok-ink)]/40"
-                      />
-                      <input
-                        id="admin-email"
-                        type="email"
-                        required
-                        autoComplete="email"
-                        value={email}
-                        onChange={(event) => setEmail(event.target.value)}
-                        placeholder="name@okaab.org"
-                        className="h-13 w-full rounded-2xl border border-[var(--ok-ink)]/15 bg-[var(--ok-paper)] px-12 text-left outline-none transition placeholder:text-[var(--ok-ink)]/35 focus:border-[#E8A33D] focus:ring-4 focus:ring-[#E8A33D]/10"
-                        dir="ltr"
-                      />
-                    </div>
-                    <button
-                      type="submit"
-                      disabled={isBusy || !email.trim()}
-                      className="flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-[#E8A33D] px-4 font-black text-[#181511] transition hover:bg-[#F0B14D] disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {isBusy ? (
-                        <LoaderCircle className="size-5 animate-spin" />
-                      ) : (
-                        <KeyRound size={18} />
-                      )}
-                      إرسال كود الدخول
-                    </button>
-                  </form>
-                ) : (
-                  <form onSubmit={handleVerifyCode} className="space-y-3">
-                    <div className="rounded-2xl bg-[#E8A33D]/10 px-4 py-3 text-center text-sm leading-6">
-                      أرسلنا كودًا إلى <bdi dir="ltr">{email}</bdi>
-                    </div>
-                    <label htmlFor="admin-code" className="block text-sm font-bold">
-                      كود الدخول
-                    </label>
-                    <input
-                      id="admin-code"
-                      type="text"
-                      required
-                      inputMode="numeric"
-                      autoComplete="one-time-code"
-                      value={code}
-                      onChange={(event) => setCode(event.target.value)}
-                      placeholder="000000"
-                      className="h-14 w-full rounded-2xl border border-[var(--ok-ink)]/15 bg-[var(--ok-paper)] px-4 text-center text-xl font-black tracking-[0.4em] outline-none transition focus:border-[#E8A33D] focus:ring-4 focus:ring-[#E8A33D]/10"
-                      dir="ltr"
-                    />
-                    <button
-                      type="submit"
-                      disabled={isBusy || !code.trim()}
-                      className="flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-[#E8A33D] px-4 font-black text-[#181511] transition hover:bg-[#F0B14D] disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {isBusy ? (
-                        <LoaderCircle className="size-5 animate-spin" />
-                      ) : (
-                        <CheckCircle2 size={18} />
-                      )}
-                      تأكيد والدخول
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCode("");
-                        setErrorMessage("");
-                        setStep("email");
-                      }}
-                      className="mx-auto flex items-center gap-2 py-2 text-xs font-bold text-[var(--ok-ink)]/55 hover:text-[#D88C20]"
-                    >
-                      <ArrowRight size={15} />
-                      استخدام بريد آخر
-                    </button>
-                  </form>
-                )}
-              </div>
-
-              <div className="mt-7 flex items-start gap-3 border-t border-[var(--ok-ink)]/10 pt-5 text-xs leading-5 text-[var(--ok-ink)]/55">
-                <ShieldCheck className="mt-0.5 size-5 shrink-0 text-[#D88C20]" aria-hidden />
-                <p>لن نطلب منك كلمة مرور. استخدم Google أو الكود الذي يصلك على بريدك.</p>
-              </div>
+        {step === "email" ? (
+          <form onSubmit={handleEmailCode} className="space-y-3">
+            <label htmlFor="admin-email" className="block text-sm font-bold">
+              {t.email}
+            </label>
+            <div className="relative">
+              <Mail
+                aria-hidden
+                className="absolute start-4 top-1/2 size-5 -translate-y-1/2 text-[var(--ok-ink)]/40"
+              />
+              <input
+                id="admin-email"
+                type="email"
+                required
+                autoComplete="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="name@okaab.org"
+                className="h-13 w-full rounded-2xl border border-[var(--ok-ink)]/15 bg-[var(--ok-paper)] px-12 text-left outline-none transition placeholder:text-[var(--ok-ink)]/35 focus:border-[#E8A33D] focus:ring-4 focus:ring-[#E8A33D]/10"
+                dir="ltr"
+              />
             </div>
-          </section>
-        </main>
+            <button
+              type="submit"
+              disabled={isBusy || !email.trim()}
+              className="flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-[#E8A33D] px-4 font-black text-[#181511] transition hover:bg-[#F0B14D] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isBusy ? <LoaderCircle className="size-5 animate-spin" /> : <KeyRound size={18} />}
+              {t.sendCode}
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleVerifyCode} className="space-y-3">
+            <div className="rounded-2xl bg-[#E8A33D]/10 px-4 py-3 text-center text-sm leading-6">
+              {t.sentTo} <bdi dir="ltr">{email}</bdi>
+            </div>
+            <label htmlFor="admin-code" className="block text-sm font-bold">
+              {t.code}
+            </label>
+            <input
+              id="admin-code"
+              type="text"
+              required
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              value={code}
+              onChange={(event) => setCode(event.target.value)}
+              placeholder="000000"
+              className="h-14 w-full rounded-2xl border border-[var(--ok-ink)]/15 bg-[var(--ok-paper)] px-4 text-center text-xl font-black tracking-[0.4em] outline-none transition focus:border-[#E8A33D] focus:ring-4 focus:ring-[#E8A33D]/10"
+              dir="ltr"
+            />
+            <button
+              type="submit"
+              disabled={isBusy || !code.trim()}
+              className="flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-[#E8A33D] px-4 font-black text-[#181511] transition hover:bg-[#F0B14D] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isBusy ? (
+                <LoaderCircle className="size-5 animate-spin" />
+              ) : (
+                <CheckCircle2 size={18} />
+              )}
+              {t.confirm}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setCode("");
+                setErrorMessage("");
+                setStep("email");
+              }}
+              className="mx-auto flex items-center gap-2 py-2 text-xs font-bold text-[var(--ok-ink)]/55 hover:text-[#D88C20]"
+            >
+              <ArrowRight size={15} />
+              {t.otherEmail}
+            </button>
+          </form>
+        )}
       </div>
-    </ThemeProvider>
+
+      <div className="mt-7 flex items-start gap-3 border-t border-[var(--ok-ink)]/10 pt-5 text-xs leading-5 text-[var(--ok-ink)]/55">
+        <ShieldCheck className="mt-0.5 size-5 shrink-0 text-[#D88C20]" aria-hidden />
+        <p>{t.security}</p>
+      </div>
+    </div>
   );
 }

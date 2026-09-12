@@ -9,6 +9,8 @@ import {
   Plus,
   Shield,
   UserRound,
+  UserCheck,
+  UserX,
   UsersRound,
 } from "lucide-react";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
@@ -165,6 +167,30 @@ function TeamContent() {
     if (result.error) toast.error("تعذّر تعديل الصلاحية", { description: result.error.message });
     else {
       toast.success("تم تحديث الصلاحية");
+      await load();
+    }
+  }
+
+  async function updatePersonStatus(person: Profile) {
+    if (
+      !person.is_active &&
+      !window.confirm(`إعادة تفعيل حساب ${person.display_name || person.email}؟`)
+    )
+      return;
+    if (
+      person.is_active &&
+      !window.confirm(
+        `تعطيل حساب ${person.display_name || person.email}؟ سيتوقف دخوله إلى الإدارة والتعلّم فورًا، ويمكن إعادة تفعيله لاحقًا.`,
+      )
+    )
+      return;
+    const result = await supabase
+      .from("profiles")
+      .update({ is_active: !person.is_active })
+      .eq("id", person.id);
+    if (result.error) toast.error("تعذّر تغيير حالة العضو", { description: result.error.message });
+    else {
+      toast.success(person.is_active ? "تم تعطيل العضو" : "تمت إعادة تفعيل العضو");
       await load();
     }
   }
@@ -398,7 +424,7 @@ function TeamContent() {
             return (
               <article
                 key={person.id}
-                className="grid gap-4 p-4 sm:grid-cols-[1fr_180px_180px] sm:items-center sm:p-5"
+                className={`grid gap-4 p-4 sm:grid-cols-[minmax(0,1fr)_150px_150px_auto] sm:items-center sm:p-5 ${person.is_active ? "" : "opacity-60"}`}
               >
                 <div className="flex min-w-0 items-center gap-3">
                   <span className="grid size-11 shrink-0 place-items-center rounded-full bg-[var(--ok-paper)] font-bold">
@@ -440,6 +466,15 @@ function TeamContent() {
                     </option>
                   ))}
                 </select>
+                <button
+                  type="button"
+                  disabled={!editable || person.id === profile?.id}
+                  onClick={() => void updatePersonStatus(person)}
+                  className={`flex h-10 items-center justify-center gap-2 rounded-xl border-2 px-3 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-40 ${person.is_active ? "border-red-700 text-red-700" : "border-emerald-700 text-emerald-700"}`}
+                >
+                  {person.is_active ? <UserX size={16} /> : <UserCheck size={16} />}
+                  {person.is_active ? "تعطيل" : "تفعيل"}
+                </button>
               </article>
             );
           })}

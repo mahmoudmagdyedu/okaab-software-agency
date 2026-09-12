@@ -7,6 +7,7 @@ const dict: Dict = {
   label: "Français",
   nav: {
     courses: "Cours",
+    dashboard: "Tableau de bord",
     services: "Services",
     projects: "Projets",
     why: "Pourquoi Okaab",
@@ -37,19 +38,22 @@ const dict: Dict = {
   testimonialsKicker: "ils nous font confiance",
   testimonials: [
     {
-      quote: "La plateforme a été livrée avec une semaine d'avance, et chaque remarque trouve une réponse en quelques minutes.",
+      quote:
+        "La plateforme a été livrée avec une semaine d'avance, et chaque remarque trouve une réponse en quelques minutes.",
       name: "Mohamed Shaaban",
       role: "Fondateur, plateforme éducative — Le Caire",
       tag: "Plateforme éducative",
     },
     {
-      quote: "Un suivi très professionnel, des délais tenus, et une boutique nettement plus rapide qu'avant.",
+      quote:
+        "Un suivi très professionnel, des délais tenus, et une boutique nettement plus rapide qu'avant.",
       name: "Noura Al-Otaibi",
       role: "Directrice marketing — Riyad",
       tag: "E-commerce",
     },
     {
-      quote: "Équipe organisée, communication limpide : l'application est sortie sur les deux stores en moins de deux mois.",
+      quote:
+        "Équipe organisée, communication limpide : l'application est sortie sur les deux stores en moins de deux mois.",
       name: "Lukas Berger",
       role: "CTO — Berlin",
       tag: "Application mobile",
@@ -112,11 +116,27 @@ const dict: Dict = {
     rows: [
       { title: "Site vitrine ou portfolio", stack: "Next.js / WordPress", time: "1–2 semaines" },
       { title: "Boutique e-commerce complète", stack: "Laravel / Next.js", time: "3–5 semaines" },
-      { title: "Plateforme SaaS ou tableau de bord", stack: "React / Node.js", time: "6–10 semaines" },
-      { title: "Application Android et iOS", stack: "Flutter / React Native", time: "4–8 semaines" },
+      {
+        title: "Plateforme SaaS ou tableau de bord",
+        stack: "React / Node.js",
+        time: "6–10 semaines",
+      },
+      {
+        title: "Application Android et iOS",
+        stack: "Flutter / React Native",
+        time: "4–8 semaines",
+      },
       { title: "APIs et back-office mobile", stack: "Node.js / Laravel", time: "1–3 semaines" },
-      { title: "Configuration et supervision serveurs", stack: "AWS / VPS / Cloudflare", time: "en ligne sous 48 h" },
-      { title: "Maintenance et mises à jour de sécurité", stack: "Remote", time: "forfait mensuel" },
+      {
+        title: "Configuration et supervision serveurs",
+        stack: "AWS / VPS / Cloudflare",
+        time: "en ligne sous 48 h",
+      },
+      {
+        title: "Maintenance et mises à jour de sécurité",
+        stack: "Remote",
+        time: "forfait mensuel",
+      },
       { title: "SEO technique et performance", stack: "Core Web Vitals", time: "1–2 semaines" },
     ],
   },
@@ -126,10 +146,22 @@ const dict: Dict = {
     paragraph:
       "Okaab est une petite équipe de développeurs et de designers basée en Égypte, qui accompagne des entreprises et des fondateurs en Égypte, dans le Golfe et en Europe. Nous écoutons d'abord, nous comprenons votre métier, puis nous construisons quelque chose qui dure et qui grandit avec vous.",
     steps: [
-      { title: "Découverte", copy: "Un échange court pour cerner l'objectif, le public et le budget — vous repartez avec un plan et un périmètre écrits." },
-      { title: "Design", copy: "Des interfaces claires et rapides, validées avec vous étape par étape avant la moindre ligne de code." },
-      { title: "Développement et tests", copy: "Un code propre et évolutif, testé sur plusieurs appareils et navigateurs avant livraison." },
-      { title: "Lancement et support", copy: "Nous déployons, réglons le serveur et le SEO, puis restons à vos côtés avec un support 24h/24." },
+      {
+        title: "Découverte",
+        copy: "Un échange court pour cerner l'objectif, le public et le budget — vous repartez avec un plan et un périmètre écrits.",
+      },
+      {
+        title: "Design",
+        copy: "Des interfaces claires et rapides, validées avec vous étape par étape avant la moindre ligne de code.",
+      },
+      {
+        title: "Développement et tests",
+        copy: "Un code propre et évolutif, testé sur plusieurs appareils et navigateurs avant livraison.",
+      },
+      {
+        title: "Lancement et support",
+        copy: "Nous déployons, réglons le serveur et le SEO, puis restons à vos côtés avec un support 24h/24.",
+      },
     ],
   },
   quote: {
@@ -145,12 +177,20 @@ const dict: Dict = {
       details: "Détails du projet",
     },
     servicePlaceholder: "Choisissez un type de service",
-    serviceOptions: ["Site web", "Boutique e-commerce", "Plateforme ou tableau de bord", "Application mobile", "Serveurs et support", "SEO technique"],
+    serviceOptions: [
+      "Site web",
+      "Boutique e-commerce",
+      "Plateforme ou tableau de bord",
+      "Application mobile",
+      "Serveurs et support",
+      "SEO technique",
+    ],
     submit: "Devis gratuit",
     whatsapp: "Écrire sur WhatsApp",
     sending: "Envoi…",
     sent: "Demande reçue ✅ — notre équipe la traite et vous répond en quelques minutes par e-mail ou WhatsApp.",
-    failed: "Échec de l'envoi — nous avons ouvert WhatsApp et votre messagerie avec les détails, envoyez-le et nous répondrons aussitôt.",
+    failed:
+      "Échec de l'envoi — nous avons ouvert WhatsApp et votre messagerie avec les détails, envoyez-le et nous répondrons aussitôt.",
   },
   footer: {
     links: ["Services en détail", "Notre méthode", "Projets", "Devis"],
@@ -170,11 +210,26 @@ const dict: Dict = {
     kicker: "FAQ",
     title: "Questions fréquentes",
     items: [
-      { q: "Travaillez-vous avec des clients hors d\u2019Égypte ?", a: "Oui. Nous travaillons avec des entreprises en Égypte, dans le Golfe (Arabie saoudite, Émirats, Koweït, Qatar) et en Europe, à distance, en arabe ou en anglais." },
-      { q: "Combien de temps dure un projet de développement web ?", a: "Un site vitrine prend 1 à 2 semaines, une boutique en ligne 3 à 5 semaines, une plateforme SaaS ou un tableau de bord 6 à 10 semaines." },
-      { q: "Développez-vous des applications Android et iOS ?", a: "Oui, en Flutter ou React Native, avec backend, APIs et panneau d\u2019administration, publiées sur Google Play et l\u2019App Store." },
-      { q: "Gérez-vous l\u2019hébergement et les serveurs ?", a: "Nous déployons sur AWS, VPS ou Cloudflare et configurons sauvegardes, certificats SSL, supervision et montée en charge." },
-      { q: "Quand le support est-il disponible ?", a: "Le support fonctionne 24h/24 avec une première réponse en moins de 15 minutes." },
+      {
+        q: "Travaillez-vous avec des clients hors d\u2019Égypte ?",
+        a: "Oui. Nous travaillons avec des entreprises en Égypte, dans le Golfe (Arabie saoudite, Émirats, Koweït, Qatar) et en Europe, à distance, en arabe ou en anglais.",
+      },
+      {
+        q: "Combien de temps dure un projet de développement web ?",
+        a: "Un site vitrine prend 1 à 2 semaines, une boutique en ligne 3 à 5 semaines, une plateforme SaaS ou un tableau de bord 6 à 10 semaines.",
+      },
+      {
+        q: "Développez-vous des applications Android et iOS ?",
+        a: "Oui, en Flutter ou React Native, avec backend, APIs et panneau d\u2019administration, publiées sur Google Play et l\u2019App Store.",
+      },
+      {
+        q: "Gérez-vous l\u2019hébergement et les serveurs ?",
+        a: "Nous déployons sur AWS, VPS ou Cloudflare et configurons sauvegardes, certificats SSL, supervision et montée en charge.",
+      },
+      {
+        q: "Quand le support est-il disponible ?",
+        a: "Le support fonctionne 24h/24 avec une première réponse en moins de 15 minutes.",
+      },
     ],
   },
   tagline: "Performance. Vision. Rapidité.",

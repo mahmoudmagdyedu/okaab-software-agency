@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { ArrowUpRight, Menu, X, Sun, Moon, Globe } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 import { getDocumentNonce } from "@/lib/csp-client";
+import { LOCALE_LABELS, LOCALE_ORDER } from "@/lib/i18n";
 
 export const ACCENT = "#E8A33D";
 export const ACCENT_HOVER = "#F2B95C";
@@ -26,6 +27,7 @@ type ChromeCopy = {
   courses: string;
   projects: string;
   leaderboard: string;
+  dashboard: string;
 };
 
 export const CHROME: Record<ChromeLang, ChromeCopy> = {
@@ -40,6 +42,7 @@ export const CHROME: Record<ChromeLang, ChromeCopy> = {
     courses: "الكورسات",
     projects: "المشاريع",
     leaderboard: "المتصدرون",
+    dashboard: "لوحة التعلّم",
     footerLinks: [
       { label: "الخدمات", hash: "catalog" },
       { label: "طريقة شغلنا", hash: "about" },
@@ -63,6 +66,7 @@ export const CHROME: Record<ChromeLang, ChromeCopy> = {
     courses: "Courses",
     projects: "Projects",
     leaderboard: "Leaderboard",
+    dashboard: "Dashboard",
     footerLinks: [
       { label: "Services", hash: "catalog" },
       { label: "How we work", hash: "about" },
@@ -86,6 +90,7 @@ export const CHROME: Record<ChromeLang, ChromeCopy> = {
     courses: "Cours",
     projects: "Projets",
     leaderboard: "Classement",
+    dashboard: "Tableau de bord",
     footerLinks: [
       { label: "Services", hash: "catalog" },
       { label: "Notre méthode", hash: "about" },
@@ -109,6 +114,7 @@ export const CHROME: Record<ChromeLang, ChromeCopy> = {
     courses: "Cursos",
     projects: "Proyectos",
     leaderboard: "Clasificación",
+    dashboard: "Panel",
     footerLinks: [
       { label: "Servicios", hash: "catalog" },
       { label: "Cómo trabajamos", hash: "about" },
@@ -226,10 +232,14 @@ export function SiteHeader({
   lang = "ar",
   alternates,
   path,
+  locale,
+  onLocaleChange,
 }: {
   lang?: ChromeLang;
   alternates?: Record<string, string>;
   path?: string;
+  locale?: string;
+  onLocaleChange?: (locale: string) => void;
 }) {
   const { theme, toggleTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -274,6 +284,9 @@ export function SiteHeader({
           <Link to="/leaderboard" className="accent-link transition-colors whitespace-nowrap">
             {c.leaderboard}
           </Link>
+          <Link to="/dashboard" className="accent-link transition-colors whitespace-nowrap">
+            {c.dashboard}
+          </Link>
           {navLinks.map((l) => (
             <Link
               key={l.hash}
@@ -285,6 +298,20 @@ export function SiteHeader({
             </Link>
           ))}
           {alternates && path && <LangSwitch lang={lang} alternates={alternates} path={path} />}
+          {locale && onLocaleChange && (
+            <select
+              aria-label={LANG_SWITCH_LABEL[lang]}
+              value={locale}
+              onChange={(event) => onLocaleChange(event.target.value)}
+              className="max-w-28 rounded-full border-2 border-[var(--ok-ink)] bg-[var(--ok-paper)] px-2 py-1.5 text-xs font-bold"
+            >
+              {LOCALE_ORDER.map((option) => (
+                <option key={option} value={option}>
+                  {LOCALE_LABELS[option]}
+                </option>
+              ))}
+            </select>
+          )}
           <button
             onClick={toggleTheme}
             aria-label={theme === "dark" ? "Light mode" : "Dark mode"}
@@ -338,8 +365,19 @@ export function SiteHeader({
           >
             {c.courses}
           </Link>
-          <Link to="/leaderboard" onClick={() => setMenuOpen(false)} className="accent-link transition-colors py-1">
+          <Link
+            to="/leaderboard"
+            onClick={() => setMenuOpen(false)}
+            className="accent-link transition-colors py-1"
+          >
             {c.leaderboard}
+          </Link>
+          <Link
+            to="/dashboard"
+            onClick={() => setMenuOpen(false)}
+            className="accent-link transition-colors py-1"
+          >
+            {c.dashboard}
           </Link>
           {alternates && path && (
             <div className="flex items-center justify-between pt-3 mt-1 border-t border-[var(--ok-ink)]/20">
@@ -350,6 +388,23 @@ export function SiteHeader({
                 path={path}
                 onNavigate={() => setMenuOpen(false)}
               />
+            </div>
+          )}
+          {locale && onLocaleChange && (
+            <div className="flex items-center justify-between gap-3 border-t border-[var(--ok-ink)]/20 pt-3">
+              <span className="text-sm opacity-70">{LANG_SWITCH_LABEL[lang]}</span>
+              <select
+                aria-label={LANG_SWITCH_LABEL[lang]}
+                value={locale}
+                onChange={(event) => onLocaleChange(event.target.value)}
+                className="rounded-full border-2 border-[var(--ok-ink)] bg-[var(--ok-paper)] px-3 py-2 text-sm font-bold"
+              >
+                {LOCALE_ORDER.map((option) => (
+                  <option key={option} value={option}>
+                    {LOCALE_LABELS[option]}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
           <div className="flex items-center justify-between pt-3 mt-1 border-t border-[var(--ok-ink)]/20">
@@ -410,6 +465,9 @@ export function SiteFooter({ lang = "ar" }: { lang?: ChromeLang }) {
           </Link>
           <Link to="/leaderboard" className="text-[var(--ok-ink)]/75 accent-link transition-colors">
             {c.leaderboard}
+          </Link>
+          <Link to="/dashboard" className="text-[var(--ok-ink)]/75 accent-link transition-colors">
+            {c.dashboard}
           </Link>
           <Link
             to="/"
