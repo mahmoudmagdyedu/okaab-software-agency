@@ -23,6 +23,7 @@ import type {
   SlideDeck,
   YouTubeVideo,
 } from "@/integrations/supabase/types";
+import { LEARNING_COPY, learningLanguage } from "@/lib/learning-copy";
 
 type RoadmapCourse = { roadmap_id: string; course_id: string; sort_order: number };
 type LearningEvent = { type: string; [key: string]: unknown };
@@ -31,32 +32,29 @@ function learningEventKey(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-function EmptyCourses({ error }: { error?: string }) {
+function EmptyCourses({ error, locale = "ar" }: { error?: string; locale?: string }) {
+  const copy = LEARNING_COPY[learningLanguage(locale)].catalog;
   return (
     <div className="rounded-[2rem] border-2 border-dashed border-[var(--ok-ink)] bg-[var(--ok-card)] p-8 text-center sm:p-12">
       <BookOpen className="mx-auto text-[var(--ok-accent-text)]" size={46} />
-      <h2 className="mt-5 font-display text-3xl font-bold">المكتبة تجهّز أول محتواها</h2>
-      <p className="mx-auto mt-3 max-w-lg leading-7 opacity-65">
-        ستظهر فيديوهات قناة عُقاب هنا تلقائيًا، وستُنظّم داخل مسارات Frontend وBackend وFull Stack.
-      </p>
-      {error && (
-        <p className="mt-4 text-xs text-[var(--ok-error-text)]">
-          تعذّر تحديث المحتوى الآن. حاول لاحقًا.
-        </p>
-      )}
+      <h2 className="mt-5 font-display text-3xl font-bold">{copy.emptyTitle}</h2>
+      <p className="mx-auto mt-3 max-w-lg leading-7 opacity-65">{copy.emptyBody}</p>
+      {error && <p className="mt-4 text-xs text-[var(--ok-error-text)]">{copy.loadError}</p>}
       <a
         href="https://www.youtube.com/@Okaab-Team"
         target="_blank"
         rel="noreferrer"
         className="mt-6 inline-flex rounded-full border-2 border-[var(--ok-ink)] bg-[var(--ok-ink)] px-5 py-2.5 font-bold text-[var(--ok-paper)]"
       >
-        زيارة قناة عُقاب
+        {copy.youtube}
       </a>
     </div>
   );
 }
 
-function CourseCard({ course, index }: { course: Course; index: number }) {
+function CourseCard({ course, index, locale }: { course: Course; index: number; locale: string }) {
+  const language = learningLanguage(locale);
+  const copy = LEARNING_COPY[language].catalog;
   return (
     <Link
       to="/courses/$courseSlug"
@@ -79,20 +77,24 @@ function CourseCard({ course, index }: { course: Course; index: number }) {
       </div>
       <div className="p-5">
         <span className="text-xs font-bold text-[var(--ok-accent-text)]">
-          {course.level === "all" ? "لكل المستويات" : course.level}
+          {course.level === "all" ? copy.allLevels : course.level}
         </span>
         <h3 className="mt-2 font-display text-2xl font-bold">{course.title}</h3>
         <p className="mt-2 line-clamp-2 text-sm leading-6 opacity-65">{course.description}</p>
         <span className="mt-5 flex items-center gap-2 text-sm font-bold">
-          ابدأ الكورس
-          <ArrowLeft size={16} className="transition-transform group-hover:-translate-x-1" />
+          {copy.start}
+          <ArrowLeft
+            size={16}
+            className={`transition-transform ${language === "ar" ? "group-hover:-translate-x-1" : "rotate-180 group-hover:translate-x-1"}`}
+          />
         </span>
       </div>
     </Link>
   );
 }
 
-export function CoursesCatalog() {
+export function CoursesCatalog({ locale = "ar" }: { locale?: string }) {
+  const copy = LEARNING_COPY[learningLanguage(locale)].catalog;
   const [roadmaps, setRoadmaps] = useState<Roadmap[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [links, setLinks] = useState<RoadmapCourse[]>([]);
@@ -103,8 +105,17 @@ export function CoursesCatalog() {
   useEffect(() => {
     void fetch("/api/v1/catalog", { credentials: "same-origin" })
       .then(async (response) => {
-        const payload = await response.json() as { data?: { roadmaps: Roadmap[]; courses: Course[]; roadmapCourses: RoadmapCourse[]; videos: YouTubeVideo[] }; error?: { message?: string } };
-        if (!response.ok || !payload.data) throw new Error(payload.error?.message || "تعذّر تحميل الكتالوج");
+        const payload = (await response.json()) as {
+          data?: {
+            roadmaps: Roadmap[];
+            courses: Course[];
+            roadmapCourses: RoadmapCourse[];
+            videos: YouTubeVideo[];
+          };
+          error?: { message?: string };
+        };
+        if (!response.ok || !payload.data)
+          throw new Error(payload.error?.message || "تعذّر تحميل الكتالوج");
         setRoadmaps(payload.data.roadmaps);
         setCourses(payload.data.courses);
         setLinks(payload.data.roadmapCourses);
@@ -125,7 +136,8 @@ export function CoursesCatalog() {
         ))}
       </div>
     );
-  if (!roadmaps.length && !courses.length && !latest.length) return <EmptyCourses error={error} />;
+  if (!roadmaps.length && !courses.length && !latest.length)
+    return <EmptyCourses error={error} locale={locale} />;
 
   const linkedCourseIds = new Set(links.map((link) => link.course_id));
   const standaloneCourses = courses.filter((course) => !linkedCourseIds.has(course.id));
@@ -144,7 +156,7 @@ export function CoursesCatalog() {
             <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <p className="text-sm font-bold text-[var(--ok-accent-text)]">
-                  المسار {String(roadmapIndex + 1).padStart(2, "0")}
+                  {copy.roadmap} {String(roadmapIndex + 1).padStart(2, "0")}
                 </p>
                 <h2
                   id={`roadmap-${roadmap.id}`}
@@ -154,11 +166,13 @@ export function CoursesCatalog() {
                 </h2>
                 <p className="mt-2 max-w-2xl leading-7 opacity-65">{roadmap.description}</p>
               </div>
-              <span className="text-sm font-bold opacity-55">{roadmapCourses.length} كورس</span>
+              <span className="text-sm font-bold opacity-55">
+                {roadmapCourses.length} {copy.courseCount}
+              </span>
             </div>
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {roadmapCourses.map((course, index) => (
-                <CourseCard key={course.id} course={course} index={index} />
+                <CourseCard key={course.id} course={course} index={index} locale={locale} />
               ))}
             </div>
           </section>
@@ -169,22 +183,22 @@ export function CoursesCatalog() {
         <section aria-labelledby="standalone-courses">
           <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-sm font-bold text-[var(--ok-accent-text)]">تعلّم حسب اختيارك</p>
+              <p className="text-sm font-bold text-[var(--ok-accent-text)]">{copy.choose}</p>
               <h2
                 id="standalone-courses"
                 className="mt-1 font-display text-3xl font-bold sm:text-4xl"
               >
-                كورسات مستقلة
+                {copy.standalone}
               </h2>
-              <p className="mt-2 max-w-2xl leading-7 opacity-65">
-                كورسات كاملة يمكنك البدء بها مباشرة دون الارتباط بمسار تعليمي.
-              </p>
+              <p className="mt-2 max-w-2xl leading-7 opacity-65">{copy.standaloneBody}</p>
             </div>
-            <span className="text-sm font-bold opacity-55">{standaloneCourses.length} كورس</span>
+            <span className="text-sm font-bold opacity-55">
+              {standaloneCourses.length} {copy.courseCount}
+            </span>
           </div>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {standaloneCourses.map((course, index) => (
-              <CourseCard key={course.id} course={course} index={index} />
+              <CourseCard key={course.id} course={course} index={index} locale={locale} />
             ))}
           </div>
         </section>
@@ -193,10 +207,8 @@ export function CoursesCatalog() {
       {latest.length > 0 && (
         <section>
           <div className="mb-6">
-            <p className="text-sm font-bold text-[var(--ok-accent-text)]">
-              يصل تلقائيًا من YouTube
-            </p>
-            <h2 className="mt-1 font-display text-3xl font-bold">أحدث الفيديوهات</h2>
+            <p className="text-sm font-bold text-[var(--ok-accent-text)]">YouTube</p>
+            <h2 className="mt-1 font-display text-3xl font-bold">{copy.latest}</h2>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {latest.map((video) => (
@@ -218,7 +230,7 @@ export function CoursesCatalog() {
                 />
                 <div className="p-4">
                   <h3 className="line-clamp-2 font-bold leading-6">{video.title}</h3>
-                  <p className="mt-2 text-xs opacity-55">غير مصنف بعد</p>
+                  <p className="mt-2 text-xs opacity-55">{copy.unclassified}</p>
                 </div>
               </a>
             ))}
@@ -229,26 +241,27 @@ export function CoursesCatalog() {
   );
 }
 
-export function CourseOverview({ slug }: { slug: string }) {
+export function CourseOverview({ slug, locale = "ar" }: { slug: string; locale?: string }) {
+  const copy = LEARNING_COPY[learningLanguage(locale)].course;
   const [course, setCourse] = useState<Course | null>(null);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [videos, setVideos] = useState<YouTubeVideo[]>([]);
   const [slides, setSlides] = useState<SlideDeck[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    void supabase
-      .from("courses")
-      .select("*")
-      .eq("slug", slug)
-      .maybeSingle()
-      .then(async (result) => {
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+    void (async () => {
+      try {
+        const result = await supabase.from("courses").select("*").eq("slug", slug).maybeSingle();
+        if (result.error) throw result.error;
         const found = result.data as Course | null;
+        if (cancelled) return;
         setCourse(found);
-        if (!found) {
-          setLoading(false);
-          return;
-        }
+        if (!found) return;
         const [lessonResult, videoResult] = await Promise.all([
           supabase
             .from("lessons")
@@ -263,6 +276,9 @@ export function CourseOverview({ slug }: { slug: string }) {
             .eq("is_available", true)
             .order("sort_order"),
         ]);
+        if (lessonResult.error) throw lessonResult.error;
+        if (videoResult.error) throw videoResult.error;
+        if (cancelled) return;
         const lessonRows = (lessonResult.data ?? []) as Lesson[];
         setLessons(lessonRows);
         setVideos((videoResult.data ?? []) as YouTubeVideo[]);
@@ -276,24 +292,33 @@ export function CourseOverview({ slug }: { slug: string }) {
             )
             .eq("is_published", true)
             .order("sort_order");
+          if (slideResult.error) throw slideResult.error;
+          if (cancelled) return;
           setSlides((slideResult.data ?? []) as SlideDeck[]);
         }
-        setLoading(false);
-      });
-  }, [slug]);
+      } catch {
+        if (!cancelled) setError(LEARNING_COPY[learningLanguage(locale)].catalog.loadError);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [locale, slug]);
 
   if (loading)
     return (
       <div className="h-80 animate-pulse rounded-3xl border-2 border-[var(--ok-ink)]/20 bg-[var(--ok-card)]" />
     );
-  if (!course) return <EmptyCourses />;
+  if (!course) return <EmptyCourses error={error} locale={locale} />;
 
   return (
     <div>
       <section className="grid gap-8 rounded-[2rem] border-2 border-[var(--ok-ink)] bg-[var(--ok-card)] p-6 sm:p-9 lg:grid-cols-[1fr_320px] lg:items-center">
         <div>
           <Link to="/courses" className="text-sm font-bold text-[var(--ok-accent-text)]">
-            كل الكورسات
+            {copy.all}
           </Link>
           <h1 className="mt-3 font-display text-4xl font-bold sm:text-6xl">{course.title}</h1>
           <p className="mt-5 max-w-2xl text-lg leading-8 opacity-70">{course.description}</p>
@@ -310,8 +335,10 @@ export function CourseOverview({ slug }: { slug: string }) {
       </section>
       <section className="mt-8">
         <div className="mb-5 flex items-center justify-between">
-          <h2 className="font-display text-3xl font-bold">دروس الكورس</h2>
-          <span className="text-sm font-bold opacity-55">{lessons.length} درس</span>
+          <h2 className="font-display text-3xl font-bold">{copy.lessons}</h2>
+          <span className="text-sm font-bold opacity-55">
+            {lessons.length} {copy.lessonCount}
+          </span>
         </div>
         <div className="space-y-3">
           {lessons.map((lesson, index) => {
@@ -322,7 +349,7 @@ export function CourseOverview({ slug }: { slug: string }) {
                 key={lesson.id}
                 to="/courses/$courseSlug/$lessonSlug"
                 params={{ courseSlug: slug, lessonSlug: lesson.slug }}
-                className="group grid gap-4 rounded-2xl border-2 border-[var(--ok-ink)] bg-[var(--ok-card)] p-4 transition-transform hover:-translate-x-1 sm:grid-cols-[58px_1fr_auto] sm:items-center"
+                className="group grid gap-4 rounded-2xl border-2 border-[var(--ok-ink)] bg-[var(--ok-card)] p-4 transition-transform hover:-translate-y-0.5 sm:grid-cols-[58px_1fr_auto] sm:items-center"
               >
                 <span className="grid size-12 place-items-center rounded-full bg-[#E8A33D] font-display text-xl font-bold text-[#181511]">
                   {index + 1}
@@ -350,7 +377,7 @@ export function CourseOverview({ slug }: { slug: string }) {
           })}
           {lessons.length === 0 && (
             <div className="rounded-2xl border-2 border-dashed border-[var(--ok-ink)] p-8 text-center opacity-60">
-              سيُضاف أول درس قريبًا.
+              {copy.soon}
             </div>
           )}
         </div>
@@ -400,7 +427,7 @@ function loadYouTubeApi() {
     const previous = window.onYouTubeIframeAPIReady;
     const timeout = window.setTimeout(() => {
       youtubeApiPromise = null;
-      reject(new Error("انتهت مهلة تحميل مشغل YouTube"));
+      reject(new Error("youtube-player-timeout"));
     }, 15_000);
     window.onYouTubeIframeAPIReady = () => {
       window.clearTimeout(timeout);
@@ -416,7 +443,7 @@ function loadYouTubeApi() {
         window.clearTimeout(timeout);
         script.remove();
         youtubeApiPromise = null;
-        reject(new Error("تعذّر تنزيل مشغل YouTube"));
+        reject(new Error("youtube-player-download"));
       };
       document.head.appendChild(script);
     }
@@ -424,7 +451,18 @@ function loadYouTubeApi() {
   return youtubeApiPromise;
 }
 
-function OkaabVideoPlayer({ video, onEnded, onProgress }: { video: YouTubeVideo; onEnded: () => void; onProgress: (percent: number) => void }) {
+function OkaabVideoPlayer({
+  video,
+  onEnded,
+  onProgress,
+  locale,
+}: {
+  video: YouTubeVideo;
+  onEnded: () => void;
+  onProgress: (percent: number) => void;
+  locale: string;
+}) {
+  const copy = LEARNING_COPY[learningLanguage(locale)].lesson;
   const hostRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YouTubePlayerInstance | null>(null);
   const onEndedRef = useRef(onEnded);
@@ -490,31 +528,24 @@ function OkaabVideoPlayer({ video, onEnded, onProgress }: { video: YouTubeVideo;
                 setFailure("");
                 return;
               }
-              const messages: Record<number, string> = {
-                2: "رابط الفيديو غير صحيح.",
-                5: "تعذّر تشغيل صيغة الفيديو على هذا الجهاز.",
-                100: "الفيديو حُذف أو أصبح خاصًا.",
-                101: "تعذّر تشغيل الفيديو داخل YouTube لهذا المتصفح.",
-                150: "طلب YouTube تسجيل الدخول للتحقق من المتصفح.",
-                153: "تعذّر إرسال هوية موقع عُقاب إلى YouTube.",
-              };
               setReady(false);
               setPlaying(false);
-              setFailure(messages[event.data] ?? "تعذّر تشغيل الفيديو الآن.");
+              setFailure(copy.playerError);
             },
           },
         });
         playerRef.current = createdPlayer;
       })
-      .catch((error: unknown) => {
+      .catch(() => {
         if (!cancelled) {
-          setFailure(error instanceof Error ? error.message : "تعذّر تحميل مشغل الفيديو");
+          setFailure(copy.playerError);
         }
       });
     const progressTimer = window.setInterval(() => {
       const duration = playerRef.current?.getDuration?.() ?? 0;
       const current = playerRef.current?.getCurrentTime?.() ?? 0;
-      if (duration > 0 && current > 0) onProgressRef.current(Math.min(100, (current / duration) * 100));
+      if (duration > 0 && current > 0)
+        onProgressRef.current(Math.min(100, (current / duration) * 100));
     }, 10_000);
     return () => {
       cancelled = true;
@@ -527,7 +558,7 @@ function OkaabVideoPlayer({ video, onEnded, onProgress }: { video: YouTubeVideo;
       if (playerRef.current === createdPlayer) playerRef.current = null;
       host?.replaceChildren();
     };
-  }, [privacyHost, retryNonce, video.youtube_video_id]);
+  }, [copy.playerError, privacyHost, retryNonce, video.youtube_video_id]);
 
   const runPlayerCommand = (command: (player: YouTubePlayerInstance) => void) => {
     const player = playerRef.current;
@@ -537,7 +568,7 @@ function OkaabVideoPlayer({ video, onEnded, onProgress }: { video: YouTubeVideo;
     } catch {
       setReady(false);
       setPlaying(false);
-      setFailure("تعذّر إرسال أمر التشغيل إلى YouTube. أعد المحاولة.");
+      setFailure(copy.playerError);
     }
   };
 
@@ -546,22 +577,27 @@ function OkaabVideoPlayer({ video, onEnded, onProgress }: { video: YouTubeVideo;
       <div className="relative aspect-video w-full">
         <div className="size-full" ref={hostRef} />
         {!ready && !failure && (
-          <div className="pointer-events-none absolute inset-0 grid place-items-center bg-[#0d0c0b]" role="status">
+          <div
+            className="pointer-events-none absolute inset-0 grid place-items-center bg-[#0d0c0b]"
+            role="status"
+          >
             <span className="rounded-full border border-white/20 px-4 py-2 text-sm font-bold text-white/75">
-              جاري تجهيز الفيديو…
+              {copy.preparingVideo}
             </span>
           </div>
         )}
         {failure && (
           <div className="absolute inset-0 grid place-items-center bg-[#0d0c0b] p-6 text-center">
             <div>
-              <p role="alert" className="font-bold text-white">{failure}</p>
+              <p role="alert" className="font-bold text-white">
+                {failure}
+              </p>
               <button
                 type="button"
                 onClick={() => setRetryNonce((value) => value + 1)}
                 className="mt-4 min-h-11 rounded-full bg-[#E8A33D] px-5 font-bold text-[#181511]"
               >
-                إعادة المحاولة
+                {copy.retry}
               </button>
               <a
                 href={`https://www.youtube.com/watch?v=${video.youtube_video_id}`}
@@ -569,7 +605,7 @@ function OkaabVideoPlayer({ video, onEnded, onProgress }: { video: YouTubeVideo;
                 rel="noreferrer"
                 className="mt-3 block text-sm font-bold text-[#E8A33D] underline underline-offset-4"
               >
-                تأكيد الحساب في YouTube ثم العودة
+                {copy.youtubeVerify}
               </a>
             </div>
           </div>
@@ -579,7 +615,7 @@ function OkaabVideoPlayer({ video, onEnded, onProgress }: { video: YouTubeVideo;
         <button
           disabled={!ready}
           type="button"
-          aria-label={playing ? "إيقاف مؤقت" : "تشغيل"}
+          aria-label={playing ? copy.pause : copy.play}
           onClick={() =>
             runPlayerCommand((player) => (playing ? player.pauseVideo() : player.playVideo()))
           }
@@ -590,7 +626,7 @@ function OkaabVideoPlayer({ video, onEnded, onProgress }: { video: YouTubeVideo;
         <button
           disabled={!ready}
           type="button"
-          aria-label={muted ? "تشغيل الصوت" : "كتم الصوت"}
+          aria-label={muted ? copy.unmute : copy.mute}
           onClick={() => {
             runPlayerCommand((player) => {
               if (muted) player.unMute();
@@ -603,7 +639,7 @@ function OkaabVideoPlayer({ video, onEnded, onProgress }: { video: YouTubeVideo;
           {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
         </button>
         <input
-          aria-label="مستوى الصوت"
+          aria-label={copy.volume}
           type="range"
           min="0"
           max="100"
@@ -616,7 +652,7 @@ function OkaabVideoPlayer({ video, onEnded, onProgress }: { video: YouTubeVideo;
           className="w-24 accent-[#E8A33D]"
         />
         <select
-          aria-label="سرعة التشغيل"
+          aria-label={copy.speed}
           defaultValue="1"
           onChange={(event) =>
             runPlayerCommand((player) => player.setPlaybackRate(Number(event.target.value)))
@@ -632,7 +668,7 @@ function OkaabVideoPlayer({ video, onEnded, onProgress }: { video: YouTubeVideo;
         </select>
         <button
           type="button"
-          aria-label="ملء الشاشة"
+          aria-label={copy.fullscreen}
           onClick={() => playerRef.current?.getIframe?.()?.requestFullscreen?.()}
           className="mr-auto grid size-10 place-items-center rounded-full border border-white/25"
         >
@@ -643,14 +679,27 @@ function OkaabVideoPlayer({ video, onEnded, onProgress }: { video: YouTubeVideo;
   );
 }
 
-function SlideViewer({ deck, onEvent }: { deck: SlideDeck; onEvent: (event: LearningEvent) => void }) {
+function SlideViewer({
+  deck,
+  onEvent,
+  locale,
+}: {
+  deck: SlideDeck;
+  onEvent: (event: LearningEvent) => void;
+  locale: string;
+}) {
+  const copy = LEARNING_COPY[learningLanguage(locale)].lesson;
   const base = `/slides/${deck.id}`;
   const slideUrl = `${base}/${deck.entry_path}`;
   const frameRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
     const receive = (message: MessageEvent) => {
-      if (message.origin !== window.location.origin || message.source !== frameRef.current?.contentWindow) return;
+      if (
+        message.origin !== window.location.origin ||
+        message.source !== frameRef.current?.contentWindow
+      )
+        return;
       const payload = message.data as { source?: string; event?: LearningEvent };
       if (payload?.source === "okaab-lesson" && payload.event) onEvent(payload.event);
     };
@@ -680,7 +729,7 @@ function SlideViewer({ deck, onEvent }: { deck: SlideDeck; onEvent: (event: Lear
             className="flex items-center gap-2 rounded-full border-2 border-[var(--ok-ink)] bg-[var(--ok-ink)] px-4 py-2 text-xs font-bold text-[var(--ok-paper)] transition-transform hover:-translate-y-0.5"
           >
             <Expand size={15} />
-            ملء الشاشة
+            {copy.fullscreen}
           </button>
           {deck.allow_download && deck.archive_name && (
             <a
@@ -690,7 +739,7 @@ function SlideViewer({ deck, onEvent }: { deck: SlideDeck; onEvent: (event: Lear
               className="flex items-center gap-2 rounded-full border-2 border-[var(--ok-ink)] px-4 py-2 text-xs font-bold transition-colors hover:bg-[var(--ok-paper-2)]"
             >
               <Download size={15} />
-              تنزيل الملفات
+              {copy.download}
             </a>
           )}
         </div>
@@ -714,43 +763,49 @@ function SlideViewer({ deck, onEvent }: { deck: SlideDeck; onEvent: (event: Lear
 export function LessonExperience({
   courseSlug,
   lessonSlug,
+  locale = "ar",
 }: {
   courseSlug: string;
   lessonSlug: string;
+  locale?: string;
 }) {
+  const copy = LEARNING_COPY[learningLanguage(locale)].lesson;
   const [course, setCourse] = useState<Course | null>(null);
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [videos, setVideos] = useState<YouTubeVideo[]>([]);
   const [slides, setSlides] = useState<SlideDeck[]>([]);
   const [stage, setStage] = useState<"video" | "slides">("video");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [progressMessage, setProgressMessage] = useState("");
 
   useEffect(() => {
-    void supabase
-      .from("courses")
-      .select("*")
-      .eq("slug", courseSlug)
-      .maybeSingle()
-      .then(async (courseResult) => {
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+    void (async () => {
+      try {
+        const courseResult = await supabase
+          .from("courses")
+          .select("*")
+          .eq("slug", courseSlug)
+          .maybeSingle();
+        if (courseResult.error) throw courseResult.error;
         const foundCourse = courseResult.data as Course | null;
+        if (cancelled) return;
         setCourse(foundCourse);
-        if (!foundCourse) {
-          setLoading(false);
-          return;
-        }
+        if (!foundCourse) return;
         const lessonResult = await supabase
           .from("lessons")
           .select("*")
           .eq("course_id", foundCourse.id)
           .eq("slug", lessonSlug)
           .maybeSingle();
+        if (lessonResult.error) throw lessonResult.error;
         const foundLesson = lessonResult.data as Lesson | null;
+        if (cancelled) return;
         setLesson(foundLesson);
-        if (!foundLesson) {
-          setLoading(false);
-          return;
-        }
+        if (!foundLesson) return;
         const [videoResult, slideResult] = await Promise.all([
           supabase
             .from("youtube_videos")
@@ -765,37 +820,50 @@ export function LessonExperience({
             .eq("is_published", true)
             .order("sort_order"),
         ]);
+        if (videoResult.error) throw videoResult.error;
+        if (slideResult.error) throw slideResult.error;
+        if (cancelled) return;
         const videoRows = (videoResult.data ?? []) as YouTubeVideo[];
         setVideos(videoRows);
         setSlides((slideResult.data ?? []) as SlideDeck[]);
         setStage(videoRows.length ? "video" : "slides");
-        setLoading(false);
-      });
-  }, [courseSlug, lessonSlug]);
+      } catch {
+        if (!cancelled) setError(LEARNING_COPY[learningLanguage(locale)].catalog.loadError);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [courseSlug, lessonSlug, locale]);
 
   const firstVideo = videos[0];
   const hasSlides = slides.length > 0;
-  const heading = useMemo(() => lesson?.title ?? "الدرس", [lesson]);
+  const heading = useMemo(() => lesson?.title ?? copy.fallback, [copy.fallback, lesson]);
   if (loading) return <div className="h-[60vh] animate-pulse rounded-3xl bg-[var(--ok-card)]" />;
-  if (!course || !lesson) return <EmptyCourses />;
+  if (!course || !lesson) return <EmptyCourses error={error} locale={locale} />;
 
   async function sendLearningEvent(event: LearningEvent, endpoint = "events") {
     const response = await fetch(`/api/v1/lessons/${encodeURIComponent(lessonSlug)}/${endpoint}`, {
       method: "POST",
       credentials: "same-origin",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ ...event, idempotencyKey: event["idempotencyKey"] ?? learningEventKey(event.type) }),
+      body: JSON.stringify({
+        ...event,
+        idempotencyKey: event["idempotencyKey"] ?? learningEventKey(event.type),
+      }),
     });
     const payload = await response.json().catch(() => null);
     if (response.status === 401) {
-      setProgressMessage("سجّل دخولك عشان تقدّمك ونقاطك يفضلوا محفوظين على الموقع والموبايل.");
+      setProgressMessage(copy.signInToSave);
       return false;
     }
     if (!response.ok) {
-      setProgressMessage(payload?.error?.message || "تعذّر حفظ التقدّم. حاول مرة تانية.");
+      setProgressMessage(payload?.error?.message || copy.saveFailed);
       return false;
     }
-    setProgressMessage(endpoint === "complete" ? "تم اعتماد إكمال الدرس وحفظ نقاطك." : "تم حفظ تقدّمك.");
+    setProgressMessage(endpoint === "complete" ? copy.completed : copy.saved);
     return true;
   }
 
@@ -816,6 +884,7 @@ export function LessonExperience({
         <div className="space-y-4">
           <OkaabVideoPlayer
             video={firstVideo}
+            locale={locale}
             onProgress={(percent) => void sendLearningEvent({ type: "video_progress", percent })}
             onEnded={() => {
               void sendLearningEvent({ type: "video_progress", percent: 100 });
@@ -829,14 +898,19 @@ export function LessonExperience({
               className="flex items-center gap-2 rounded-full border-2 border-[var(--ok-ink)] bg-[#E8A33D] px-5 py-2.5 font-bold text-[#181511]"
             >
               <SkipForward size={17} />
-              تخطي الفيديو وفتح الـSlides
+              {copy.skip}
             </button>
           )}
         </div>
       ) : hasSlides ? (
         <div className="space-y-5">
           {slides.map((deck) => (
-            <SlideViewer key={deck.id} deck={deck} onEvent={(event) => void sendLearningEvent(event)} />
+            <SlideViewer
+              key={deck.id}
+              deck={deck}
+              locale={locale}
+              onEvent={(event) => void sendLearningEvent(event)}
+            />
           ))}
           {firstVideo && (
             <button
@@ -845,14 +919,14 @@ export function LessonExperience({
               className="flex items-center gap-2 rounded-full border-2 border-[var(--ok-ink)] px-5 py-2.5 font-bold"
             >
               <Play size={17} />
-              العودة للفيديو
+              {copy.backVideo}
             </button>
           )}
         </div>
       ) : (
         <div className="rounded-3xl border-2 border-dashed border-[var(--ok-ink)] p-10 text-center">
           <CheckCircle2 className="mx-auto text-[var(--ok-accent-text)]" size={42} />
-          <h2 className="mt-4 font-display text-2xl font-bold">محتوى الدرس قيد الإعداد</h2>
+          <h2 className="mt-4 font-display text-2xl font-bold">{copy.preparing}</h2>
         </div>
       )}
       <div className="mt-5 flex flex-wrap items-center gap-3">
@@ -861,12 +935,16 @@ export function LessonExperience({
           onClick={() => void sendLearningEvent({ type: "lesson_finished" }, "complete")}
           className="min-h-11 rounded-full border-2 border-[var(--ok-ink)] bg-[var(--ok-ink)] px-5 py-2.5 font-bold text-[var(--ok-paper)]"
         >
-          اعتماد إكمال الدرس
+          {copy.finish}
         </button>
         {progressMessage && (
           <p role="status" className="text-sm font-medium">
             {progressMessage}{" "}
-            {progressMessage.startsWith("سجّل") && <a className="font-bold text-[var(--ok-accent-text)] underline" href="/sign-in/">تسجيل الدخول</a>}
+            {progressMessage === copy.signInToSave && (
+              <a className="font-bold text-[var(--ok-accent-text)] underline" href="/sign-in/">
+                {copy.signIn}
+              </a>
+            )}
           </p>
         )}
       </div>

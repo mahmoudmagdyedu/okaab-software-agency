@@ -7,6 +7,7 @@ const dict: Dict = {
   label: "Español",
   nav: {
     courses: "Cursos",
+    dashboard: "Panel",
     services: "Servicios",
     projects: "Proyectos",
     why: "Por qué Okaab",
@@ -49,7 +50,8 @@ const dict: Dict = {
       tag: "E-commerce",
     },
     {
-      quote: "Equipo ordenado y comunicación clara: la app salió en ambas tiendas en menos de dos meses.",
+      quote:
+        "Equipo ordenado y comunicación clara: la app salió en ambas tiendas en menos de dos meses.",
       name: "Lukas Berger",
       role: "CTO — Berlín",
       tag: "App móvil",
@@ -115,8 +117,16 @@ const dict: Dict = {
       { title: "Plataforma SaaS o panel", stack: "React / Node.js", time: "6–10 semanas" },
       { title: "Aplicación Android e iOS", stack: "Flutter / React Native", time: "4–8 semanas" },
       { title: "APIs y panel de administración", stack: "Node.js / Laravel", time: "1–3 semanas" },
-      { title: "Configuración y monitorización de servidores", stack: "AWS / VPS / Cloudflare", time: "en línea en 48 h" },
-      { title: "Mantenimiento y actualizaciones de seguridad", stack: "Remote", time: "cuota mensual" },
+      {
+        title: "Configuración y monitorización de servidores",
+        stack: "AWS / VPS / Cloudflare",
+        time: "en línea en 48 h",
+      },
+      {
+        title: "Mantenimiento y actualizaciones de seguridad",
+        stack: "Remote",
+        time: "cuota mensual",
+      },
       { title: "SEO técnico y velocidad", stack: "Core Web Vitals", time: "1–2 semanas" },
     ],
   },
@@ -126,10 +136,22 @@ const dict: Dict = {
     paragraph:
       "Okaab es un equipo pequeño de desarrolladores y diseñadores en Egipto que trabaja con empresas y fundadores de Egipto, el Golfo y Europa. Primero escuchamos, entendemos cómo funciona tu negocio y después construimos algo que sigue funcionando y crece contigo.",
     steps: [
-      { title: "Descubrimiento", copy: "Una llamada corta para entender objetivo, público y presupuesto: sales con un plan y un alcance por escrito." },
-      { title: "Diseño", copy: "Interfaces claras y rápidas, revisadas contigo paso a paso antes de escribir una sola línea de código." },
-      { title: "Desarrollo y pruebas", copy: "Código limpio y escalable, probado en varios dispositivos y navegadores antes de entregar." },
-      { title: "Lanzamiento y soporte", copy: "Desplegamos, afinamos servidor y SEO, y seguimos contigo con soporte 24/7." },
+      {
+        title: "Descubrimiento",
+        copy: "Una llamada corta para entender objetivo, público y presupuesto: sales con un plan y un alcance por escrito.",
+      },
+      {
+        title: "Diseño",
+        copy: "Interfaces claras y rápidas, revisadas contigo paso a paso antes de escribir una sola línea de código.",
+      },
+      {
+        title: "Desarrollo y pruebas",
+        copy: "Código limpio y escalable, probado en varios dispositivos y navegadores antes de entregar.",
+      },
+      {
+        title: "Lanzamiento y soporte",
+        copy: "Desplegamos, afinamos servidor y SEO, y seguimos contigo con soporte 24/7.",
+      },
     ],
   },
   quote: {
@@ -145,12 +167,20 @@ const dict: Dict = {
       details: "Detalles del proyecto",
     },
     servicePlaceholder: "Elige un tipo de servicio",
-    serviceOptions: ["Sitio web", "Tienda online", "Plataforma o panel", "App móvil", "Servidores y soporte", "SEO técnico"],
+    serviceOptions: [
+      "Sitio web",
+      "Tienda online",
+      "Plataforma o panel",
+      "App móvil",
+      "Servidores y soporte",
+      "SEO técnico",
+    ],
     submit: "Presupuesto gratis",
     whatsapp: "Escríbenos por WhatsApp",
     sending: "Enviando…",
     sent: "Solicitud recibida ✅ — la revisamos y te respondemos en minutos por correo o WhatsApp.",
-    failed: "No se pudo enviar — abrimos WhatsApp y tu correo con los detalles, envíalo y te respondemos enseguida.",
+    failed:
+      "No se pudo enviar — abrimos WhatsApp y tu correo con los detalles, envíalo y te respondemos enseguida.",
   },
   footer: {
     links: ["Servicios en detalle", "Cómo trabajamos", "Proyectos", "Presupuesto"],
@@ -170,11 +200,26 @@ const dict: Dict = {
     kicker: "Preguntas frecuentes",
     title: "Preguntas habituales",
     items: [
-      { q: "¿Trabajáis con clientes fuera de Egipto?", a: "Sí. Trabajamos con empresas de Egipto, el Golfo (Arabia Saudí, Emiratos, Kuwait, Catar) y Europa, en remoto, en árabe o inglés y con reuniones en tu franja horaria." },
-      { q: "¿Cuánto dura un proyecto de desarrollo web?", a: "Un sitio corporativo tarda 1–2 semanas, una tienda online 3–5 semanas y una plataforma SaaS o panel 6–10 semanas, según la sesión inicial de descubrimiento." },
-      { q: "¿Desarrolláis apps Android e iOS?", a: "Sí, con Flutter o React Native, incluyendo backend, APIs y panel de administración, publicadas en Google Play y App Store." },
-      { q: "¿Gestionáis hosting y servidores?", a: "Desplegamos en AWS, VPS o Cloudflare y configuramos copias de seguridad, certificados SSL, monitorización y escalado." },
-      { q: "¿Cuándo está disponible el soporte?", a: "El soporte es 24/7 con una primera respuesta en menos de 15 minutos." },
+      {
+        q: "¿Trabajáis con clientes fuera de Egipto?",
+        a: "Sí. Trabajamos con empresas de Egipto, el Golfo (Arabia Saudí, Emiratos, Kuwait, Catar) y Europa, en remoto, en árabe o inglés y con reuniones en tu franja horaria.",
+      },
+      {
+        q: "¿Cuánto dura un proyecto de desarrollo web?",
+        a: "Un sitio corporativo tarda 1–2 semanas, una tienda online 3–5 semanas y una plataforma SaaS o panel 6–10 semanas, según la sesión inicial de descubrimiento.",
+      },
+      {
+        q: "¿Desarrolláis apps Android e iOS?",
+        a: "Sí, con Flutter o React Native, incluyendo backend, APIs y panel de administración, publicadas en Google Play y App Store.",
+      },
+      {
+        q: "¿Gestionáis hosting y servidores?",
+        a: "Desplegamos en AWS, VPS o Cloudflare y configuramos copias de seguridad, certificados SSL, monitorización y escalado.",
+      },
+      {
+        q: "¿Cuándo está disponible el soporte?",
+        a: "El soporte es 24/7 con una primera respuesta en menos de 15 minutos.",
+      },
     ],
   },
   tagline: "Rendimiento. Visión. Velocidad.",

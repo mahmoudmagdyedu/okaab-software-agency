@@ -7,6 +7,7 @@ const dict: Dict = {
   label: "English",
   nav: {
     courses: "Courses",
+    dashboard: "Dashboard",
     services: "Services",
     projects: "Projects",
     why: "Why Okaab",
@@ -37,19 +38,22 @@ const dict: Dict = {
   testimonialsKicker: "what clients say",
   testimonials: [
     {
-      quote: "They handed over the platform a week early, and any note gets answered within minutes.",
+      quote:
+        "They handed over the platform a week early, and any note gets answered within minutes.",
       name: "Mohamed Shaaban",
       role: "Founder, learning platform — Cairo",
       tag: "Learning platform",
     },
     {
-      quote: "Professional throughout, delivery right on schedule, and the store is far faster than before.",
+      quote:
+        "Professional throughout, delivery right on schedule, and the store is far faster than before.",
       name: "Noura Al-Otaibi",
       role: "Marketing Director — Riyadh",
       tag: "E-commerce",
     },
     {
-      quote: "Organised team, clear communication — the app shipped to both stores in under two months.",
+      quote:
+        "Organised team, clear communication — the app shipped to both stores in under two months.",
       name: "Lukas Berger",
       role: "CTO — Berlin",
       tag: "Mobile app",
@@ -115,8 +119,16 @@ const dict: Dict = {
       { title: "SaaS platform or dashboard", stack: "React / Node.js", time: "6–10 weeks" },
       { title: "Android & iOS application", stack: "Flutter / React Native", time: "4–8 weeks" },
       { title: "APIs and mobile admin panel", stack: "Node.js / Laravel", time: "1–3 weeks" },
-      { title: "Cloud server setup & monitoring", stack: "AWS / VPS / Cloudflare", time: "live in 48 hours" },
-      { title: "Ongoing maintenance & security updates", stack: "Remote", time: "monthly retainer" },
+      {
+        title: "Cloud server setup & monitoring",
+        stack: "AWS / VPS / Cloudflare",
+        time: "live in 48 hours",
+      },
+      {
+        title: "Ongoing maintenance & security updates",
+        stack: "Remote",
+        time: "monthly retainer",
+      },
       { title: "Technical SEO & speed tuning", stack: "Core Web Vitals", time: "1–2 weeks" },
     ],
   },
@@ -126,10 +138,22 @@ const dict: Dict = {
     paragraph:
       "Okaab is a small team of developers and designers based in Egypt, working with companies and founders across Egypt, the Gulf and Europe. We listen first, learn how your business runs, then build something that keeps working and grows with you.",
     steps: [
-      { title: "Discovery", copy: "A short call to understand your goal, audience and budget — you leave with a written plan and scope." },
-      { title: "Design", copy: "Clear, fast interfaces reviewed with you step by step before a single line of code is written." },
-      { title: "Build & test", copy: "Clean, scalable code, tested across devices and browsers before anything is handed over." },
-      { title: "Launch & support", copy: "We deploy, tune the server and SEO, and stay with you afterwards with 24/7 support." },
+      {
+        title: "Discovery",
+        copy: "A short call to understand your goal, audience and budget — you leave with a written plan and scope.",
+      },
+      {
+        title: "Design",
+        copy: "Clear, fast interfaces reviewed with you step by step before a single line of code is written.",
+      },
+      {
+        title: "Build & test",
+        copy: "Clean, scalable code, tested across devices and browsers before anything is handed over.",
+      },
+      {
+        title: "Launch & support",
+        copy: "We deploy, tune the server and SEO, and stay with you afterwards with 24/7 support.",
+      },
     ],
   },
   quote: {
@@ -145,12 +169,20 @@ const dict: Dict = {
       details: "Project details",
     },
     servicePlaceholder: "Choose a service type",
-    serviceOptions: ["Website", "E-commerce store", "Platform or dashboard", "Mobile app", "Servers & support", "Technical SEO"],
+    serviceOptions: [
+      "Website",
+      "E-commerce store",
+      "Platform or dashboard",
+      "Mobile app",
+      "Servers & support",
+      "Technical SEO",
+    ],
     submit: "Get a free quote",
     whatsapp: "Chat on WhatsApp",
     sending: "Sending…",
     sent: "Request received ✅ — our team will review it and reply within minutes by email or WhatsApp.",
-    failed: "Sending failed — we opened WhatsApp and your email with the details, send it and we'll reply right away.",
+    failed:
+      "Sending failed — we opened WhatsApp and your email with the details, send it and we'll reply right away.",
   },
   footer: {
     links: ["Services in detail", "How we work", "Projects", "Get a quote"],
@@ -170,11 +202,26 @@ const dict: Dict = {
     kicker: "FAQ",
     title: "Questions we get a lot",
     items: [
-      { q: "Do you work with clients outside Egypt?", a: "Yes. We work with companies in Egypt, the Gulf (Saudi Arabia, UAE, Kuwait, Qatar) and Europe, remotely, in Arabic or English, with meetings scheduled in your timezone." },
-      { q: "How long does a web development project take?", a: "A company or portfolio site takes 1–2 weeks, an e-commerce store 3–5 weeks, and a SaaS platform or dashboard 6–10 weeks — confirmed after a short discovery call." },
-      { q: "Do you build Android and iOS apps?", a: "Yes, with Flutter or React Native, including backend, APIs and an admin panel, published to Google Play and the App Store with post-launch monitoring." },
-      { q: "Do you handle hosting and servers?", a: "We deploy on AWS, VPS or Cloudflare and set up backups, SSL certificates, monitoring and scaling when traffic spikes." },
-      { q: "When is support available?", a: "Support runs 24/7 with a first reply in under 15 minutes, and we act on any incident immediately." },
+      {
+        q: "Do you work with clients outside Egypt?",
+        a: "Yes. We work with companies in Egypt, the Gulf (Saudi Arabia, UAE, Kuwait, Qatar) and Europe, remotely, in Arabic or English, with meetings scheduled in your timezone.",
+      },
+      {
+        q: "How long does a web development project take?",
+        a: "A company or portfolio site takes 1–2 weeks, an e-commerce store 3–5 weeks, and a SaaS platform or dashboard 6–10 weeks — confirmed after a short discovery call.",
+      },
+      {
+        q: "Do you build Android and iOS apps?",
+        a: "Yes, with Flutter or React Native, including backend, APIs and an admin panel, published to Google Play and the App Store with post-launch monitoring.",
+      },
+      {
+        q: "Do you handle hosting and servers?",
+        a: "We deploy on AWS, VPS or Cloudflare and set up backups, SSL certificates, monitoring and scaling when traffic spikes.",
+      },
+      {
+        q: "When is support available?",
+        a: "Support runs 24/7 with a first reply in under 15 minutes, and we act on any incident immediately.",
+      },
     ],
   },
   tagline: "Performance. Vision. Speed.",

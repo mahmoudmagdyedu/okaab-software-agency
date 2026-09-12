@@ -268,6 +268,9 @@ export default function OkaabLanding() {
             <Link to="/courses" className="accent-link transition-colors whitespace-nowrap">
               {t.nav.courses}
             </Link>
+            <Link to="/dashboard" className="accent-link transition-colors whitespace-nowrap">
+              {t.nav.dashboard}
+            </Link>
             <a href="#catalog" className="accent-link transition-colors whitespace-nowrap">
               {t.nav.services}
             </a>
@@ -341,6 +344,13 @@ export default function OkaabLanding() {
               className="accent-link transition-colors py-1"
             >
               {t.nav.courses}
+            </Link>
+            <Link
+              to="/dashboard"
+              onClick={() => setMenuOpen(false)}
+              className="accent-link transition-colors py-1"
+            >
+              {t.nav.dashboard}
             </Link>
             <a
               href="#catalog"

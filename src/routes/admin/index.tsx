@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { AdminLayout, useAdminAuth } from "@/components/admin/AdminShell";
 import { okaab as supabase } from "@/integrations/okaab/client";
+import { hasMinimumRole } from "@/lib/roles";
 
 export const Route = createFileRoute("/admin/")({
   head: () => ({
@@ -18,34 +19,53 @@ function DashboardContent() {
   const { profile } = useAdminAuth();
   const [stats, setStats] = useState<Stats>({ tasks: 0, people: 0, courses: 0, incidents: 0 });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
+    if (!profile) return;
     const start = new Date();
     start.setHours(0, 0, 0, 0);
     const end = new Date(start);
     end.setDate(end.getDate() + 1);
+    const canSeePeople = profile.role !== "employee";
+    const canManageContent = hasMinimumRole(profile.role, "admin");
+    setLoading(true);
+    setError(false);
     void Promise.all([
       supabase
         .from("tasks")
         .select("id", { count: "exact", head: true })
         .gte("starts_at", start.toISOString())
         .lt("starts_at", end.toISOString()),
-      supabase.from("profiles").select("id", { count: "exact", head: true }).eq("is_active", true),
-      supabase.from("courses").select("id", { count: "exact", head: true }),
-      supabase
-        .from("health_incidents")
-        .select("id", { count: "exact", head: true })
-        .is("resolved_at", null),
-    ]).then(([tasks, people, courses, incidents]) => {
-      setStats({
-        tasks: tasks.count ?? 0,
-        people: people.count ?? 0,
-        courses: courses.count ?? 0,
-        incidents: incidents.count ?? 0,
-      });
-      setLoading(false);
-    });
-  }, []);
+      canSeePeople
+        ? supabase
+            .from("profiles")
+            .select("id", { count: "exact", head: true })
+            .eq("is_active", true)
+        : Promise.resolve({ count: 0, error: null }),
+      canManageContent
+        ? supabase.from("courses").select("id", { count: "exact", head: true })
+        : Promise.resolve({ count: 0, error: null }),
+      canManageContent
+        ? supabase
+            .from("health_incidents")
+            .select("id", { count: "exact", head: true })
+            .is("resolved_at", null)
+        : Promise.resolve({ count: 0, error: null }),
+    ])
+      .then(([tasks, people, courses, incidents]) => {
+        if ([tasks, people, courses, incidents].some((result) => result.error))
+          throw new Error("stats");
+        setStats({
+          tasks: tasks.count ?? 0,
+          people: people.count ?? 0,
+          courses: courses.count ?? 0,
+          incidents: incidents.count ?? 0,
+        });
+      })
+      .catch(() => setError(true))
+      .finally(() => setLoading(false));
+  }, [profile]);
 
   const cards = [
     {
@@ -76,7 +96,12 @@ function DashboardContent() {
       to: "/admin/health",
       color: stats.incidents ? "#D65D4A" : "#68A56B",
     },
-  ] as const;
+  ].filter((card) => {
+    if (card.to === "/admin/team") return profile?.role !== "employee";
+    if (card.to === "/admin/courses" || card.to === "/admin/health")
+      return Boolean(profile && hasMinimumRole(profile.role, "admin"));
+    return true;
+  });
 
   return (
     <div className="space-y-8">
@@ -91,6 +116,15 @@ function DashboardContent() {
           تابع التنفيذ، وزّع العمل، وانظر إلى حالة الموقع والمحتوى بدون مصطلحات معقدة.
         </p>
       </section>
+
+      {error && (
+        <div
+          role="alert"
+          className="rounded-2xl border-2 border-red-600 bg-[var(--ok-card)] p-4 text-sm font-bold text-[var(--ok-error-text)]"
+        >
+          تعذّر تحميل إحصاءات اللوحة. حدّث الصفحة للمحاولة مرة أخرى.
+        </div>
+      )}
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {cards.map(({ label, value, icon: Icon, to, color }) => (
