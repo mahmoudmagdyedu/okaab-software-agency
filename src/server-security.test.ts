@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { errorResponse, secureResponse } from "./lib/secure-response.ts";
+import { validateWebSubSignature } from "./lib/youtube-security.ts";
 
 function nonceFrom(response: Response): string {
   const csp = response.headers.get("content-security-policy") ?? "";
@@ -86,4 +87,13 @@ test("uploaded slide HTML keeps its own policy and frame behavior", async () => 
   );
   assert.equal(secured.headers.get("x-frame-options"), "SAMEORIGIN");
   assert.equal(await secured.text(), "<script>bridge()</script>");
+});
+
+test("validateWebSubSignature handles multi-byte UTF-8 string inputs safely without throwing timingSafeEqual error", () => {
+  // 40 characters in JS string length, but > 40 bytes in UTF-8 buffer due to multi-byte characters
+  const multiByteSig = "sha1=" + "a".repeat(38) + "عُ";
+  assert.doesNotThrow(() => {
+    const result = validateWebSubSignature("payload", multiByteSig, "test-secret");
+    assert.equal(result, false);
+  });
 });
