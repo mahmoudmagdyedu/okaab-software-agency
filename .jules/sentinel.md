@@ -1,0 +1,4 @@
+## 2024-11-20 - crypto.timingSafeEqual DoS Vulnerability
+**Vulnerability:** Use of `crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b))` while validating string length (`a.length === b.length`) instead of buffer lengths.
+**Learning:** Checking string length `expected.length === supplied.length` before converting to `Buffer` is insufficient because multi-byte characters could result in matching string lengths but different buffer byte lengths. `crypto.timingSafeEqual` will throw an unhandled `TypeError` if provided buffers of unequal length, which can lead to a Denial of Service (DoS) crash in a Node application.
+**Prevention:** Always convert the strings to `Buffer` instances first using `Buffer.from()`, and then compare their buffer lengths (`expectedBuffer.length === suppliedBuffer.length`) before calling `crypto.timingSafeEqual`.
