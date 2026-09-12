@@ -685,7 +685,7 @@ function SlideViewer({
   locale,
 }: {
   deck: SlideDeck;
-  onEvent: (event: LearningEvent) => void;
+  onEvent: (event: LearningEvent, deck: SlideDeck) => void;
   locale: string;
 }) {
   const copy = LEARNING_COPY[learningLanguage(locale)].lesson;
@@ -701,11 +701,11 @@ function SlideViewer({
       )
         return;
       const payload = message.data as { source?: string; event?: LearningEvent };
-      if (payload?.source === "okaab-lesson" && payload.event) onEvent(payload.event);
+      if (payload?.source === "okaab-lesson" && payload.event) onEvent(payload.event, deck);
     };
     window.addEventListener("message", receive);
     return () => window.removeEventListener("message", receive);
-  }, [onEvent]);
+  }, [deck, onEvent]);
 
   async function openFullscreen() {
     try {
@@ -778,6 +778,7 @@ export function LessonExperience({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [progressMessage, setProgressMessage] = useState("");
+  const [lessonCompleted, setLessonCompleted] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -857,14 +858,56 @@ export function LessonExperience({
     const payload = await response.json().catch(() => null);
     if (response.status === 401) {
       setProgressMessage(copy.signInToSave);
-      return false;
+      return null;
     }
     if (!response.ok) {
-      setProgressMessage(payload?.error?.message || copy.saveFailed);
-      return false;
+      setProgressMessage(
+        learningLanguage(locale) === "ar"
+          ? payload?.error?.message || copy.saveFailed
+          : copy.saveFailed,
+      );
+      return null;
     }
     setProgressMessage(endpoint === "complete" ? copy.completed : copy.saved);
-    return true;
+    if (endpoint === "complete") setLessonCompleted(true);
+    return payload?.data ?? {};
+  }
+
+  async function handleSlideEvent(event: LearningEvent, deck: SlideDeck) {
+    if (event.type !== "quiz_finished") {
+      await sendLearningEvent(event);
+      return;
+    }
+    const correctAnswers = Number(event.correctAnswers);
+    const totalQuestions = Number(event.totalQuestions);
+    const scorePercent = Number(event.scorePercent);
+    if (
+      !Number.isInteger(correctAnswers) ||
+      !Number.isInteger(totalQuestions) ||
+      totalQuestions < 1 ||
+      correctAnswers < 0 ||
+      correctAnswers > totalQuestions ||
+      scorePercent !== Math.round((correctAnswers / totalQuestions) * 100)
+    ) {
+      await sendLearningEvent(event);
+      return;
+    }
+    const attemptId = crypto.randomUUID();
+    const saved = await sendLearningEvent({
+      type: "quiz_completed",
+      attemptId,
+      deckId: deck.id,
+      courseSlug,
+      lessonSlug,
+      lessonNumber: Number(lesson?.sort_order ?? 0) + 1,
+      questionSetVersion: `deck:${deck.id}:v1`,
+      correctAnswers,
+      totalQuestions,
+      scorePercent,
+      completedAt: new Date().toISOString(),
+      idempotencyKey: `quiz:${attemptId}`,
+    });
+    if (saved) await sendLearningEvent({ type: "lesson_finished" }, "complete");
   }
 
   return (
@@ -909,7 +952,7 @@ export function LessonExperience({
               key={deck.id}
               deck={deck}
               locale={locale}
-              onEvent={(event) => void sendLearningEvent(event)}
+              onEvent={(event, activeDeck) => void handleSlideEvent(event, activeDeck)}
             />
           ))}
           {firstVideo && (
@@ -933,7 +976,8 @@ export function LessonExperience({
         <button
           type="button"
           onClick={() => void sendLearningEvent({ type: "lesson_finished" }, "complete")}
-          className="min-h-11 rounded-full border-2 border-[var(--ok-ink)] bg-[var(--ok-ink)] px-5 py-2.5 font-bold text-[var(--ok-paper)]"
+          disabled={lessonCompleted}
+          className="min-h-11 rounded-full border-2 border-[var(--ok-ink)] bg-[var(--ok-ink)] px-5 py-2.5 font-bold text-[var(--ok-paper)] disabled:cursor-not-allowed disabled:opacity-55"
         >
           {copy.finish}
         </button>

@@ -43,10 +43,33 @@ function runtime() {
   window.addEventListener("okaab:quiz-finished", (event) =>
     send("quiz_finished", event.detail || {}),
   );
-  window.addEventListener("okaab:task-result", (event) =>
-    send("task_result", event.detail || {}),
-  );
+  window.addEventListener("okaab:task-result", (event) => send("task_result", event.detail || {}));
   window.addEventListener("okaab:lesson-finished", () => send("lesson_finished"));
+
+  // Older Okaab Reveal decks expose their quiz through UQ_TEST but predate the
+  // bridge event. Observe that public API so already-published decks work too.
+  let reportedQuiz = "";
+  const quizTimer = window.setInterval(() => {
+    try {
+      const quiz = window.UQ_TEST;
+      if (!quiz?.getState) return;
+      const state = quiz.getState();
+      const totalQuestions = Array.isArray(quiz.questions) ? quiz.questions.length : 0;
+      const correctAnswers = Number(state?.score);
+      if (!state?.done || !totalQuestions || !Number.isInteger(correctAnswers)) return;
+      const fingerprint = `${correctAnswers}:${totalQuestions}`;
+      if (fingerprint === reportedQuiz) return;
+      reportedQuiz = fingerprint;
+      send("quiz_finished", {
+        correctAnswers,
+        totalQuestions,
+        scorePercent: Math.round((correctAnswers / totalQuestions) * 100),
+      });
+    } catch {
+      // A malformed optional quiz API must not prevent the lesson from loading.
+    }
+  }, 400);
+  window.addEventListener("pagehide", () => window.clearInterval(quizTimer), { once: true });
 }
 
 export function createBridgeScript() {
@@ -58,9 +81,10 @@ export function createYouTubePlayerHtml(videoId, options = {}) {
   const safeOrigin = /^https:\/\/[a-z0-9.-]+(?::\d+)?$/i.test(String(options.origin || ""))
     ? String(options.origin)
     : "https://okaab.org";
-  const safeHost = options.privacyEnhanced === false
-    ? "https://www.youtube.com"
-    : "https://www.youtube-nocookie.com";
+  const safeHost =
+    options.privacyEnhanced === false
+      ? "https://www.youtube.com"
+      : "https://www.youtube-nocookie.com";
   const playerUrl = `${safeHost}/embed/${safeId}?enablejsapi=1&playsinline=1&controls=1&rel=0&fs=1&iv_load_policy=3&origin=${encodeURIComponent(safeOrigin)}&widget_referrer=${encodeURIComponent(safeOrigin)}`;
   return `<!doctype html><html dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><meta name="referrer" content="strict-origin-when-cross-origin"><style>html,body,#player{width:100%;height:100%;margin:0;background:#0d0d0d;overflow:hidden}body{position:fixed;inset:0}iframe{display:block;width:100%!important;height:100%!important;border:0}</style></head><body><iframe id="player" title="فيديو الدرس" src="${playerUrl}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe><script>
 var player,last=0,timer=null,ready=false,iframe=document.getElementById('player');
