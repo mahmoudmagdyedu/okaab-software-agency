@@ -42,6 +42,7 @@ const ROLE_LABELS: Record<AppRole, string> = {
 
 type AdminAuthValue = {
   loading: boolean;
+  signedIn: boolean;
   error: string | null;
   profile: Profile | null;
   reload: () => Promise<void>;
@@ -85,8 +86,8 @@ function AdminAuthProvider({ children }: { children: ReactNode }) {
   }, [reload, user?.id]);
 
   const value = useMemo(
-    () => ({ loading, error, profile, reload }),
-    [loading, error, profile, reload],
+    () => ({ loading, signedIn: Boolean(isSignedIn), error, profile, reload }),
+    [loading, isSignedIn, error, profile, reload],
   );
   return <AdminAuthContext.Provider value={value}>{children}</AdminAuthContext.Provider>;
 }
@@ -108,7 +109,7 @@ const navItems = [
 ] as const;
 
 function AdminGate({ children }: { children: ReactNode }) {
-  const { loading, error, profile, reload } = useAdminAuth();
+  const { loading, signedIn, error, profile, reload } = useAdminAuth();
   if (loading) {
     return (
       <div className="grid min-h-screen place-items-center bg-[var(--ok-paper)] text-[var(--ok-ink)]">
@@ -145,19 +146,25 @@ function AdminGate({ children }: { children: ReactNode }) {
       <div className="grid min-h-screen place-items-center bg-[var(--ok-paper)] px-4 text-[var(--ok-ink)]">
         <div className="max-w-md rounded-3xl border-2 border-[var(--ok-ink)] bg-[var(--ok-card)] p-8 text-center shadow-[8px_8px_0_var(--ok-ink)]">
           <img src="/logo-96.webp" alt="عُقاب" className="mx-auto size-16 object-contain" />
-          <h1 className="mt-5 font-display text-3xl font-bold">دخول الإدارة مطلوب</h1>
+          <h1 className="mt-5 font-display text-3xl font-bold">
+            {signedIn ? "الحساب الحالي ليس إداريًا" : "دخول الإدارة مطلوب"}
+          </h1>
           <p className="mt-3 leading-7 opacity-70">
-            سجّل الدخول بالبريد المدعو للوصول إلى لوحة عُقاب.
+            {signedIn
+              ? "أنت مسجّل كمتعلم، ولا يملك هذا الحساب صلاحية فتح لوحة الإدارة."
+              : "سجّل الدخول بالبريد المدعو للوصول إلى لوحة عُقاب."}
           </p>
-          <Link
-            to="/admin/login"
-            className="mt-6 inline-flex rounded-full border-2 border-[var(--ok-ink)] bg-[var(--ok-ink)] px-6 py-3 font-bold text-[var(--ok-paper)]"
-          >
-            فتح صفحة الدخول
-          </Link>
+          {!signedIn && (
+            <Link
+              to="/admin/login"
+              className="mt-6 inline-flex rounded-full border-2 border-[var(--ok-ink)] bg-[var(--ok-ink)] px-6 py-3 font-bold text-[var(--ok-paper)]"
+            >
+              فتح صفحة الدخول
+            </Link>
+          )}
           <Link
             to="/dashboard"
-            className="mt-3 block font-bold text-[var(--ok-accent-text)] underline"
+            className={`${signedIn ? "mt-6" : "mt-3"} block font-bold text-[var(--ok-accent-text)] underline`}
           >
             الذهاب إلى لوحة الطالب
           </Link>
