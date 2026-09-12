@@ -44,3 +44,11 @@ export function canManageRole(actor: AppRole, target: AppRole) {
   if (!hasMinimumRole(actor, "admin") || target === "super_admin") return false;
   return actor === "super_admin" || ROLE_LEVEL[target] < ROLE_LEVEL[actor];
 }
+
+export function canInviteRole(actor: AppRole, invited: AppRole) {
+  return invited !== "super_admin" && canManageRole(actor, invited);
+}
+
+export function canChangeMemberStatus(actor: AppRole, target: AppRole, sameAccount: boolean) {
+  return !sameAccount && canManageRole(actor, target);
+}

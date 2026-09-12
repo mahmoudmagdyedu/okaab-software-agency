@@ -1,7 +1,7 @@
 import { getAdminProfile } from "@/lib/admin-auth.server";
 import { getDb, sql } from "@/lib/db.server";
 import type { AppRole, Profile } from "@/integrations/supabase/types";
-import { hasMinimumRole } from "@/lib/roles";
+import { canChangeMemberStatus, hasMinimumRole } from "@/lib/roles";
 
 type Filter = { operator: "eq" | "is" | "in" | "gte" | "lt"; column: string; value: unknown };
 type Order = { column: string; ascending?: boolean };
@@ -445,6 +445,11 @@ async function mutate(table: TableName, input: DataRequest, profile: Profile) {
     if (!target) throw new Error("User not found");
     const requestedRole = rows[0]?.["role"] as AppRole | undefined;
     if (
+      typeof rows[0]?.["is_active"] === "boolean" &&
+      !canChangeMemberStatus(profile.role, target.role, targetId === profile.id)
+    )
+      throw new Response("لا تملك صلاحية تغيير حالة هذا الحساب", { status: 403 });
+    if (
       target.role === "super_admin" ||
       target.email.toLowerCase() ===
         (process.env["SUPER_ADMIN_EMAIL"] || "okaab@okaab.org").toLowerCase()
@@ -501,7 +506,7 @@ async function mutate(table: TableName, input: DataRequest, profile: Profile) {
     `update okaab.${identifier(table)} set ${assignments.join(",")} output inserted.* where ${where.join(" and ")}`,
   );
   if (table === "profiles" && input.operation === "update" && result.recordset[0]) {
-    const updated = result.recordset[0] as { id?: string; role?: AppRole };
+    const updated = result.recordset[0] as { id?: string; role?: AppRole; is_active?: boolean };
     if (updated.id && updated.role) {
       await pool
         .request()
@@ -513,6 +518,15 @@ async function mutate(table: TableName, input: DataRequest, profile: Profile) {
           when matched then update set role_key=@role,assigned_by=@actor,updated_at=sysutcdatetime()
           when not matched then insert (user_id,role_key,assigned_by) values (@user_id,@role,@actor);
         `);
+    }
+    if (updated.id && typeof updated.is_active === "boolean") {
+      await pool
+        .request()
+        .input("user_id", sql.NVarChar(64), updated.id)
+        .input("status", sql.NVarChar(20), updated.is_active ? "active" : "banned")
+        .query(
+          "update okaab.learner_profiles set status=case when status='deleted' then status else @status end,updated_at=sysutcdatetime() where id=@user_id",
+        );
     }
   }
   return {

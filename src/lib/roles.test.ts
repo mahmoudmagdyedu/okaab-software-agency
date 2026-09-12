@@ -3,6 +3,8 @@ import test from "node:test";
 
 import {
   APP_ROLES,
+  canChangeMemberStatus,
+  canInviteRole,
   canManageRole,
   hasMinimumRole,
   isAdminDashboardRole,
@@ -34,6 +36,17 @@ test("administrators can only manage roles below their own", () => {
   assert.equal(canManageRole("admin", "admin"), false);
   assert.equal(canManageRole("super_admin", "admin"), true);
   assert.equal(canManageRole("team_leader", "student"), false);
+});
+
+test("member invitations and deactivation follow the same role boundary", () => {
+  assert.equal(canInviteRole("admin", "student"), true);
+  assert.equal(canInviteRole("admin", "admin"), false);
+  assert.equal(canInviteRole("super_admin", "admin"), true);
+  assert.equal(canInviteRole("super_admin", "super_admin"), false);
+  assert.equal(canChangeMemberStatus("admin", "employee", false), true);
+  assert.equal(canChangeMemberStatus("admin", "admin", false), false);
+  assert.equal(canChangeMemberStatus("super_admin", "admin", false), true);
+  assert.equal(canChangeMemberStatus("super_admin", "admin", true), false);
 });
 
 test("permissions are cumulative while Android always receives student capability", () => {
