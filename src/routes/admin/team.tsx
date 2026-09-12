@@ -160,7 +160,7 @@ function TeamContent() {
   async function updatePerson(person: Profile, role: AppRole, teamId: string | null) {
     const result = await supabase
       .from("profiles")
-      .update({ role, team_id: role === "admin" ? null : teamId })
+      .update({ role, team_id: ["student", "admin", "super_admin"].includes(role) ? null : teamId })
       .eq("id", person.id);
     if (result.error) toast.error("تعذّر تعديل الصلاحية", { description: result.error.message });
     else {
@@ -258,11 +258,12 @@ function TeamContent() {
                 {profile?.role === "super_admin" && <option value="admin">أدمن</option>}
                 <option value="team_leader">تيم ليدر</option>
                 <option value="employee">موظف</option>
+                <option value="student">طالب</option>
               </select>
               <select
                 name="teamId"
-                required={inviteRole !== "admin"}
-                disabled={inviteRole === "admin"}
+                required={!["student", "admin"].includes(inviteRole)}
+                disabled={["student", "admin"].includes(inviteRole)}
                 className="h-11 rounded-xl border-2 border-[var(--ok-ink)] bg-[var(--ok-paper)] px-3"
               >
                 <option value="">بدون فريق (للأدمن)</option>
@@ -421,10 +422,11 @@ function TeamContent() {
                   {profile?.role === "super_admin" && <option value="admin">أدمن</option>}
                   <option value="team_leader">تيم ليدر</option>
                   <option value="employee">موظف</option>
+                  <option value="student">طالب</option>
                   {immutable && <option value="super_admin">سوبر أدمن</option>}
                 </select>
                 <select
-                  disabled={!editable || person.role === "admin"}
+                  disabled={!editable || ["student", "admin", "super_admin"].includes(person.role)}
                   value={person.team_id ?? ""}
                   onChange={(event) =>
                     void updatePerson(person, person.role, event.target.value || null)

@@ -1,4 +1,4 @@
-import { useAuth, useClerk, useSignIn } from "@clerk/tanstack-react-start";
+import { useAuth, useClerk } from "@clerk/tanstack-react-start";
 import { createFileRoute } from "@tanstack/react-router";
 import { ArrowRight, CheckCircle2, KeyRound, LoaderCircle, Mail, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -109,6 +109,15 @@ function getErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
+function getClerkFlowErrorMessage(error: unknown, fallback: string) {
+  if (!error || typeof error !== "object") return fallback;
+
+  type ClerkFlowError = { code?: string; longMessage?: string; message?: string };
+  const errorContainer = error as ClerkFlowError & { errors?: ClerkFlowError[] };
+  const clerkError = errorContainer.errors?.[0] ?? errorContainer;
+  return clerkError.longMessage || clerkError.message || fallback;
+}
+
 function GoogleMark() {
   return (
     <svg aria-hidden viewBox="0 0 24 24" className="size-5 shrink-0">
@@ -139,21 +148,27 @@ function AdminLoginPage() {
   const dir = language === "ar" ? "rtl" : "ltr";
   const { isLoaded, isSignedIn } = useAuth();
   const clerk = useClerk();
-  const { signIn, fetchStatus } = useSignIn();
   const [step, setStep] = useState<"email" | "code">("email");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
-  const isBusy = fetchStatus === "fetching";
+  const [isBusy, setIsBusy] = useState(false);
 
   useEffect(() => {
-    if (isLoaded && isSignedIn) window.location.replace("/admin");
-  }, [isLoaded, isSignedIn]);
+    if (!isLoaded || !isSignedIn) return;
+    void fetch("/api/account/me", { credentials: "same-origin", cache: "no-store" })
+      .then(async (response) => {
+        const result = (await response.json()) as { dashboard?: "admin" | "student" };
+        window.location.replace(result.dashboard === "admin" ? "/admin" : "/dashboard");
+      })
+      .catch(() => setErrorMessage(t.error));
+  }, [isLoaded, isSignedIn, t.error]);
 
-  const continueToAdmin = async () => {
-    await signIn.finalize({
+  const continueToAdmin = async (sessionId: string) => {
+    await clerk.setActive({
+      session: sessionId,
       navigate: ({ decorateUrl }) => {
-        window.location.href = decorateUrl("/admin");
+        window.location.href = decorateUrl("/admin/login");
       },
     });
   };
@@ -164,7 +179,7 @@ function AdminLoginPage() {
       await clerk.client.signIn.authenticateWithRedirect({
         strategy: "oauth_google",
         redirectUrl: "/sso-callback",
-        redirectUrlComplete: "/admin",
+        redirectUrlComplete: "/admin/login",
         continueSignIn: false,
         continueSignUp: false,
       });
@@ -176,31 +191,46 @@ function AdminLoginPage() {
   const handleEmailCode = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setErrorMessage("");
+    setIsBusy(true);
     try {
-      signIn.reset();
-      const { error } = await signIn.emailCode.sendCode({ emailAddress: email.trim() });
-      if (error) {
+      const signInAttempt = await clerk.client.signIn.create({ identifier: email.trim() });
+      const emailCodeFactor = signInAttempt.supportedFirstFactors?.find(
+        (factor) => factor.strategy === "email_code",
+      );
+      if (!emailCodeFactor || !("emailAddressId" in emailCodeFactor)) {
         setErrorMessage(t.unauthorized);
         return;
       }
+      await signInAttempt.prepareFirstFactor({
+        strategy: "email_code",
+        emailAddressId: emailCodeFactor.emailAddressId,
+      });
       setStep("code");
     } catch (error) {
-      setErrorMessage(getErrorMessage(error, t.error));
+      setErrorMessage(getClerkFlowErrorMessage(error, t.error));
+    } finally {
+      setIsBusy(false);
     }
   };
 
   const handleVerifyCode = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setErrorMessage("");
+    setIsBusy(true);
     try {
-      const { error } = await signIn.emailCode.verifyCode({ code: code.trim() });
-      if (error) {
+      const signInAttempt = await clerk.client.signIn.attemptFirstFactor({
+        strategy: "email_code",
+        code: code.trim(),
+      });
+      if (signInAttempt.status === "complete" && signInAttempt.createdSessionId) {
+        await continueToAdmin(signInAttempt.createdSessionId);
+      } else {
         setErrorMessage(t.invalidCode);
-        return;
       }
-      if (signIn.status === "complete") await continueToAdmin();
     } catch (error) {
-      setErrorMessage(getErrorMessage(error, t.error));
+      setErrorMessage(getClerkFlowErrorMessage(error, t.invalidCode));
+    } finally {
+      setIsBusy(false);
     }
   };
 
@@ -307,7 +337,6 @@ function AdminLoginPage() {
             <button
               type="button"
               onClick={() => {
-                signIn.reset();
                 setCode("");
                 setErrorMessage("");
                 setStep("email");

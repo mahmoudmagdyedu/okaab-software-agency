@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as ClerkBrowserDotjsRouteImport } from './routes/clerk-browser[.]js'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as EcommerceDevelopmentEgyptRouteImport } from './routes/ecommerce-development-egypt'
 import { Route as LeaderboardRouteImport } from './routes/leaderboard'
 import { Route as McpRouteImport } from './routes/mcp'
@@ -23,6 +24,7 @@ import { Route as SsoCallbackRouteImport } from './routes/sso-callback'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
+import { Route as _clerkSplatRouteImport } from './routes/__clerk/$'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminCoursesRouteImport } from './routes/admin/courses'
 import { Route as AdminHealthRouteImport } from './routes/admin/health'
@@ -47,6 +49,7 @@ import { Route as FrSoftwareDevelopmentEgyptRouteImport } from './routes/fr.soft
 import { Route as SignInSplatRouteImport } from './routes/sign-in.$'
 import { Route as SignUpSplatRouteImport } from './routes/sign-up.$'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
+import { Route as ApiAccountMeRouteImport } from './routes/api/account/me'
 import { Route as ApiAdminInviteRouteImport } from './routes/api/admin/invite'
 import { Route as ApiAdminMeRouteImport } from './routes/api/admin/me'
 import { Route as ApiAdminTasksRouteImport } from './routes/api/admin/tasks'
@@ -100,6 +103,11 @@ const AboutRoute = AboutRouteImport.update({
 const ClerkBrowserDotjsRoute = ClerkBrowserDotjsRouteImport.update({
   id: '/clerk-browser.js',
   path: '/clerk-browser.js',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EcommerceDevelopmentEgyptRoute =
@@ -161,6 +169,11 @@ const Char91DotwellKnownChar93OauthProtectedResourceRoute =
     path: '/.well-known/oauth-protected-resource',
     getParentRoute: () => rootRouteImport,
   } as any)
+const _clerkSplatRoute = _clerkSplatRouteImport.update({
+  id: '/__clerk/$',
+  path: '/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/admin/',
   path: '/admin/',
@@ -288,6 +301,11 @@ const Char91DotmcpChar93InvokeToolToolRoute =
     path: '/.mcp/invoke-tool/$tool',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiAccountMeRoute = ApiAccountMeRouteImport.update({
+  id: '/api/account/me',
+  path: '/api/account/me',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminInviteRoute = ApiAdminInviteRouteImport.update({
   id: '/api/admin/invite',
   path: '/api/admin/invite',
@@ -494,6 +512,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/clerk-browser.js': typeof ClerkBrowserDotjsRoute
+  '/dashboard': typeof DashboardRoute
   '/ecommerce-development-egypt': typeof EcommerceDevelopmentEgyptRoute
   '/leaderboard': typeof LeaderboardRoute
   '/mcp': typeof McpRoute
@@ -505,6 +524,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  '/$': typeof _clerkSplatRoute
   '/admin/courses': typeof AdminCoursesRoute
   '/admin/health': typeof AdminHealthRoute
   '/admin/learning': typeof AdminLearningRoute
@@ -529,6 +549,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/courses/': typeof CoursesIndexRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/api/account/me': typeof ApiAccountMeRoute
   '/api/admin/invite': typeof ApiAdminInviteRoute
   '/api/admin/me': typeof ApiAdminMeRoute
   '/api/admin/tasks': typeof ApiAdminTasksRoute
@@ -573,6 +594,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/clerk-browser.js': typeof ClerkBrowserDotjsRoute
+  '/dashboard': typeof DashboardRoute
   '/ecommerce-development-egypt': typeof EcommerceDevelopmentEgyptRoute
   '/leaderboard': typeof LeaderboardRoute
   '/mcp': typeof McpRoute
@@ -584,6 +606,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  '/$': typeof _clerkSplatRoute
   '/admin/courses': typeof AdminCoursesRoute
   '/admin/health': typeof AdminHealthRoute
   '/admin/learning': typeof AdminLearningRoute
@@ -608,6 +631,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/courses': typeof CoursesIndexRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/api/account/me': typeof ApiAccountMeRoute
   '/api/admin/invite': typeof ApiAdminInviteRoute
   '/api/admin/me': typeof ApiAdminMeRoute
   '/api/admin/tasks': typeof ApiAdminTasksRoute
@@ -653,6 +677,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/clerk-browser.js': typeof ClerkBrowserDotjsRoute
+  '/dashboard': typeof DashboardRoute
   '/ecommerce-development-egypt': typeof EcommerceDevelopmentEgyptRoute
   '/leaderboard': typeof LeaderboardRoute
   '/mcp': typeof McpRoute
@@ -664,6 +689,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  '/__clerk/$': typeof _clerkSplatRoute
   '/admin/courses': typeof AdminCoursesRoute
   '/admin/health': typeof AdminHealthRoute
   '/admin/learning': typeof AdminLearningRoute
@@ -688,6 +714,7 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/courses/': typeof CoursesIndexRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/api/account/me': typeof ApiAccountMeRoute
   '/api/admin/invite': typeof ApiAdminInviteRoute
   '/api/admin/me': typeof ApiAdminMeRoute
   '/api/admin/tasks': typeof ApiAdminTasksRoute
@@ -734,6 +761,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/clerk-browser.js'
+    | '/dashboard'
     | '/ecommerce-development-egypt'
     | '/leaderboard'
     | '/mcp'
@@ -745,6 +773,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
+    | '/$'
     | '/admin/courses'
     | '/admin/health'
     | '/admin/learning'
@@ -769,6 +798,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/courses/'
     | '/.mcp/invoke-tool/$tool'
+    | '/api/account/me'
     | '/api/admin/invite'
     | '/api/admin/me'
     | '/api/admin/tasks'
@@ -813,6 +843,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/clerk-browser.js'
+    | '/dashboard'
     | '/ecommerce-development-egypt'
     | '/leaderboard'
     | '/mcp'
@@ -824,6 +855,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
+    | '/$'
     | '/admin/courses'
     | '/admin/health'
     | '/admin/learning'
@@ -848,6 +880,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/courses'
     | '/.mcp/invoke-tool/$tool'
+    | '/api/account/me'
     | '/api/admin/invite'
     | '/api/admin/me'
     | '/api/admin/tasks'
@@ -892,6 +925,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/clerk-browser.js'
+    | '/dashboard'
     | '/ecommerce-development-egypt'
     | '/leaderboard'
     | '/mcp'
@@ -903,6 +937,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
+    | '/__clerk/$'
     | '/admin/courses'
     | '/admin/health'
     | '/admin/learning'
@@ -927,6 +962,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/courses/'
     | '/.mcp/invoke-tool/$tool'
+    | '/api/account/me'
     | '/api/admin/invite'
     | '/api/admin/me'
     | '/api/admin/tasks'
@@ -972,6 +1008,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   ClerkBrowserDotjsRoute: typeof ClerkBrowserDotjsRoute
+  DashboardRoute: typeof DashboardRoute
   EcommerceDevelopmentEgyptRoute: typeof EcommerceDevelopmentEgyptRoute
   LeaderboardRoute: typeof LeaderboardRoute
   McpRoute: typeof McpRoute
@@ -983,6 +1020,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  _clerkSplatRoute: typeof _clerkSplatRoute
   AdminCoursesRoute: typeof AdminCoursesRoute
   AdminHealthRoute: typeof AdminHealthRoute
   AdminLearningRoute: typeof AdminLearningRoute
@@ -1007,6 +1045,7 @@ export interface RootRouteChildren {
   AdminIndexRoute: typeof AdminIndexRoute
   CoursesIndexRoute: typeof CoursesIndexRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
+  ApiAccountMeRoute: typeof ApiAccountMeRoute
   ApiAdminInviteRoute: typeof ApiAdminInviteRoute
   ApiAdminMeRoute: typeof ApiAdminMeRoute
   ApiAdminTasksRoute: typeof ApiAdminTasksRoute
@@ -1065,6 +1104,13 @@ declare module '@tanstack/react-router' {
       path: '/clerk-browser.js'
       fullPath: '/clerk-browser.js'
       preLoaderRoute: typeof ClerkBrowserDotjsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ecommerce-development-egypt': {
@@ -1142,6 +1188,13 @@ declare module '@tanstack/react-router' {
       path: '/.well-known/oauth-protected-resource'
       fullPath: '/.well-known/oauth-protected-resource'
       preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/__clerk/$': {
+      id: '/__clerk/$'
+      path: '/$'
+      fullPath: '/$'
+      preLoaderRoute: typeof _clerkSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/': {
@@ -1310,6 +1363,13 @@ declare module '@tanstack/react-router' {
       path: '/.mcp/invoke-tool/$tool'
       fullPath: '/.mcp/invoke-tool/$tool'
       preLoaderRoute: typeof Char91DotmcpChar93InvokeToolToolRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/account/me': {
+      id: '/api/account/me'
+      path: '/api/account/me'
+      fullPath: '/api/account/me'
+      preLoaderRoute: typeof ApiAccountMeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/admin/invite': {
@@ -1609,6 +1669,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   ClerkBrowserDotjsRoute: ClerkBrowserDotjsRoute,
+  DashboardRoute: DashboardRoute,
   EcommerceDevelopmentEgyptRoute: EcommerceDevelopmentEgyptRoute,
   LeaderboardRoute: LeaderboardRoute,
   McpRoute: McpRoute,
@@ -1621,6 +1682,7 @@ const rootRouteChildren: RootRouteChildren = {
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
+  _clerkSplatRoute: _clerkSplatRoute,
   AdminCoursesRoute: AdminCoursesRoute,
   AdminHealthRoute: AdminHealthRoute,
   AdminLearningRoute: AdminLearningRoute,
@@ -1645,6 +1707,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminIndexRoute: AdminIndexRoute,
   CoursesIndexRoute: CoursesIndexRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
+  ApiAccountMeRoute: ApiAccountMeRoute,
   ApiAdminInviteRoute: ApiAdminInviteRoute,
   ApiAdminMeRoute: ApiAdminMeRoute,
   ApiAdminTasksRoute: ApiAdminTasksRoute,

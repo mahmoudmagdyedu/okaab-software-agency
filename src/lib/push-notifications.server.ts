@@ -93,7 +93,8 @@ export async function sendLearningPush(input: {
         item.error?.code === "messaging/registration-token-not-registered" ||
         item.error?.code === "messaging/invalid-registration-token"
       ) {
-        invalidTokens.push(batch[responseIndex]);
+        const invalidToken = batch[responseIndex];
+        if (invalidToken) invalidTokens.push(invalidToken);
       }
     });
   }

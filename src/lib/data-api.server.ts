@@ -1,6 +1,7 @@
 import { getAdminProfile } from "@/lib/admin-auth.server";
 import { getDb, sql } from "@/lib/db.server";
 import type { AppRole, Profile } from "@/integrations/supabase/types";
+import { hasMinimumRole } from "@/lib/roles";
 
 type Filter = { operator: "eq" | "is" | "in" | "gte" | "lt"; column: string; value: unknown };
 type Order = { column: string; ascending?: boolean };
@@ -16,7 +17,13 @@ export type DataRequest = {
   single?: "single" | "maybe";
 };
 
-const roleRank: Record<AppRole, number> = { super_admin: 1, admin: 2, team_leader: 3, employee: 4 };
+const roleRank: Record<AppRole, number> = {
+  super_admin: 1,
+  admin: 2,
+  team_leader: 3,
+  employee: 4,
+  student: 5,
+};
 
 const tables = {
   teams: [
@@ -258,16 +265,16 @@ async function access(table: TableName, operation: DataRequest["operation"]) {
   const profile = await getAdminProfile();
   if (operation === "select" && publicTables.has(table)) return profile;
   if (!profile) throw new Response("Unauthorized", { status: 401 });
-  if (healthTables.has(table) && !["super_admin", "admin"].includes(profile.role))
+  if (healthTables.has(table) && !hasMinimumRole(profile.role, "admin"))
     throw new Response("Forbidden", { status: 403 });
   if (operation !== "select") {
-    if (contentTables.has(table) && !["super_admin", "admin"].includes(profile.role))
+    if (contentTables.has(table) && !hasMinimumRole(profile.role, "admin"))
       throw new Response("Forbidden", { status: 403 });
     if (table === "pending_invites" && profile.role !== "super_admin")
       throw new Response("Forbidden", { status: 403 });
-    if (table === "profiles" && !["super_admin", "admin"].includes(profile.role))
+    if (table === "profiles" && !hasMinimumRole(profile.role, "admin"))
       throw new Response("Forbidden", { status: 403 });
-    if (table === "teams" && !["super_admin", "admin"].includes(profile.role))
+    if (table === "teams" && !hasMinimumRole(profile.role, "admin"))
       throw new Response("Forbidden", { status: 403 });
     if (["tasks", "task_assignees"].includes(table) && profile.role !== "super_admin")
       throw new Response("Forbidden", { status: 403 });
@@ -493,6 +500,21 @@ async function mutate(table: TableName, input: DataRequest, profile: Profile) {
   const result = await request.query(
     `update okaab.${identifier(table)} set ${assignments.join(",")} output inserted.* where ${where.join(" and ")}`,
   );
+  if (table === "profiles" && input.operation === "update" && result.recordset[0]) {
+    const updated = result.recordset[0] as { id?: string; role?: AppRole };
+    if (updated.id && updated.role) {
+      await pool
+        .request()
+        .input("user_id", sql.NVarChar(64), updated.id)
+        .input("role", sql.NVarChar(32), updated.role)
+        .input("actor", sql.NVarChar(64), profile.id).query(`
+          merge okaab.account_roles as target using (select @user_id user_id) as source
+          on target.user_id=source.user_id
+          when matched then update set role_key=@role,assigned_by=@actor,updated_at=sysutcdatetime()
+          when not matched then insert (user_id,role_key,assigned_by) values (@user_id,@role,@actor);
+        `);
+    }
+  }
   return {
     data: input.single ? (result.recordset[0] ?? null) : result.recordset,
     count: result.rowsAffected[0] || 0,

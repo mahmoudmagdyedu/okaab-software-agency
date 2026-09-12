@@ -1,8 +1,10 @@
-import { auth, clerkClient } from "@clerk/tanstack-react-start/server";
+import { clerkClient } from "@clerk/tanstack-react-start/server";
 
 import { ApiProblem } from "@/lib/api-response.server";
 import { getDb, sql } from "@/lib/db.server";
 import { consumeQuoteRateLimits } from "@/lib/quote-rate-limit";
+import { slideQuizAward } from "@/lib/slide-quiz-score";
+import { getAccountProfile } from "@/lib/admin-auth.server";
 
 export type LearnerProfile = {
   id: string;
@@ -18,7 +20,7 @@ export type LearnerProfile = {
   updated_at: string;
 };
 
-export type LessonEvent = {
+type LegacyLessonEvent = {
   type: "slide_changed" | "video_progress" | "quiz_finished" | "task_result" | "lesson_finished";
   idempotencyKey: string;
   index?: number | undefined;
@@ -26,6 +28,23 @@ export type LessonEvent = {
   score?: number | undefined;
   passed?: boolean | undefined;
 };
+
+type CompletedSlideQuizEvent = {
+  type: "quiz_completed";
+  idempotencyKey: string;
+  attemptId: string;
+  deckId: string;
+  courseSlug: string;
+  lessonSlug: string;
+  lessonNumber: number;
+  questionSetVersion: string;
+  correctAnswers: number;
+  totalQuestions: number;
+  scorePercent: number;
+  completedAt: string;
+};
+
+export type LessonEvent = LegacyLessonEvent | CompletedSlideQuizEvent;
 
 const DEFAULT_POINTS = {
   quiz_first_correct: 10,
@@ -37,30 +56,19 @@ const DEFAULT_POINTS = {
   streak_30: 250,
 };
 
-function learnerName(
-  user: Awaited<ReturnType<ReturnType<typeof clerkClient>["users"]["getUser"]>>,
-) {
-  return (
-    [user.firstName, user.lastName].filter(Boolean).join(" ").trim() ||
-    user.username ||
-    user.primaryEmailAddress?.emailAddress ||
-    "متعلّم عُقاب"
-  );
-}
-
 export async function getLearnerProfile(): Promise<LearnerProfile | null> {
-  const { userId } = await auth();
-  if (!userId) return null;
+  const account = await getAccountProfile();
+  if (!account) return null;
 
   const pool = await getDb();
   const existing = await pool
     .request()
-    .input("id", sql.NVarChar(64), userId)
+    .input("id", sql.NVarChar(64), account.id)
     .query<LearnerProfile>("select top (1) * from okaab.learner_profiles where id=@id");
   const profile = existing.recordset[0];
   if (profile?.status === "banned") throw new ApiProblem("الحساب موقوف", 403);
   if (profile?.status === "deleted") {
-    const restored = await pool.request().input("id", sql.NVarChar(64), userId)
+    const restored = await pool.request().input("id", sql.NVarChar(64), account.id)
       .query<LearnerProfile>(`
         update okaab.learner_profiles
         set status='active',deleted_at=null,updated_at=sysutcdatetime()
@@ -70,22 +78,7 @@ export async function getLearnerProfile(): Promise<LearnerProfile | null> {
     if (restored.recordset[0]) return restored.recordset[0];
     throw new ApiProblem("انتهت مهلة استعادة الحساب", 403);
   }
-  if (profile) return profile;
-
-  const user = await clerkClient().users.getUser(userId);
-  const email = user.primaryEmailAddress?.emailAddress?.trim().toLowerCase();
-  if (!email) throw new ApiProblem("لا يوجد بريد موثّق للحساب", 400);
-  const created = await pool
-    .request()
-    .input("id", sql.NVarChar(64), userId)
-    .input("email", sql.NVarChar(320), email)
-    .input("display_name", sql.NVarChar(160), learnerName(user))
-    .input("avatar_url", sql.NVarChar(1000), user.imageUrl || null).query<LearnerProfile>(`
-      insert into okaab.learner_profiles (id,email,display_name,avatar_url)
-      output inserted.*
-      values (@id,@email,@display_name,@avatar_url)
-    `);
-  return created.recordset[0] ?? null;
+  return profile ?? null;
 }
 
 export async function requireLearnerProfile() {
@@ -455,14 +448,45 @@ export async function recordLessonEvent(slug: string, event: LessonEvent) {
   const lesson = await pool
     .request()
     .input("slug", sql.NVarChar(180), slug)
-    .query<{ id: string }>(
-      "select top (1) id from okaab.lessons where slug=@slug and is_published=1",
+    .query<{ id: string; course_slug: string; lesson_number: number }>(
+      `select top (1) l.id,c.slug course_slug,l.sort_order+1 lesson_number
+       from okaab.lessons l join okaab.courses c on c.id=l.course_id
+       where l.slug=@slug and l.is_published=1 and c.is_published=1`,
     );
-  const lessonId = lesson.recordset[0]?.id;
-  if (!lessonId) throw new ApiProblem("الدرس غير موجود", 404);
+  const lessonRow = lesson.recordset[0];
+  const lessonId = lessonRow?.id;
+  if (!lessonId || !lessonRow) throw new ApiProblem("الدرس غير موجود", 404);
   const transaction = new sql.Transaction(pool);
   await transaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
   try {
+    if (event.type === "quiz_completed") {
+      const priorAttempt = await new sql.Request(transaction)
+        .input("user_id", sql.NVarChar(64), learner.id)
+        .input("attempt_id", sql.NVarChar(64), event.attemptId).query<{
+        score_percent: number;
+        awarded_xp: number;
+      }>(`
+          select top (1) score_percent,awarded_xp
+          from okaab.slide_quiz_attempts
+          where user_id=@user_id and attempt_id=@attempt_id
+        `);
+      if (priorAttempt.recordset[0]) {
+        await transaction.commit();
+        return {
+          accepted: true,
+          duplicate: true,
+          scorePercent: priorAttempt.recordset[0].score_percent,
+          awardedXp: priorAttempt.recordset[0].awarded_xp,
+        };
+      }
+      const deck = await new sql.Request(transaction)
+        .input("deck_id", sql.NVarChar(64), event.deckId)
+        .input("lesson_id", sql.NVarChar(64), lessonId)
+        .query<{ id: string }>(
+          "select top (1) id from okaab.slide_decks where id=@deck_id and lesson_id=@lesson_id and is_published=1",
+        );
+      if (!deck.recordset[0]) throw new ApiProblem("الشرائح لا تتبع هذا الدرس", 422);
+    }
     const duplicate = await new sql.Request(transaction)
       .input("user_id", sql.NVarChar(64), learner.id)
       .input("key", sql.NVarChar(100), event.idempotencyKey)
@@ -489,6 +513,66 @@ export async function recordLessonEvent(slug: string, event: LessonEvent) {
         `if not exists (select 1 from okaab.lesson_progress where user_id=@user_id and lesson_id=@lesson_id) insert into okaab.lesson_progress (user_id,lesson_id,status,started_at) values (@user_id,@lesson_id,'in_progress',sysutcdatetime())`,
       );
     const rules = await pointsRules(transaction);
+    if (event.type === "quiz_completed") {
+      const previousBest = await new sql.Request(transaction)
+        .input("user_id", sql.NVarChar(64), learner.id)
+        .input("lesson_id", sql.NVarChar(64), lessonId)
+        .input("version", sql.NVarChar(128), event.questionSetVersion).query<{
+        best_correct: number;
+      }>(`
+          select coalesce(max(correct_answers),0) best_correct
+          from okaab.slide_quiz_attempts
+          where user_id=@user_id and lesson_id=@lesson_id and question_set_version=@version
+        `);
+      const { awardedXp } = slideQuizAward(
+        event.correctAnswers,
+        previousBest.recordset[0]?.best_correct ?? 0,
+        rules.quiz_first_correct,
+      );
+      await new sql.Request(transaction)
+        .input("user_id", sql.NVarChar(64), learner.id)
+        .input("attempt_id", sql.NVarChar(64), event.attemptId)
+        .input("lesson_id", sql.NVarChar(64), lessonId)
+        .input("deck_id", sql.NVarChar(64), event.deckId)
+        .input("course_slug", sql.NVarChar(180), lessonRow.course_slug)
+        .input("lesson_slug", sql.NVarChar(180), slug)
+        .input("lesson_number", sql.Int, lessonRow.lesson_number)
+        .input("version", sql.NVarChar(128), event.questionSetVersion)
+        .input("correct", sql.Int, event.correctAnswers)
+        .input("total", sql.Int, event.totalQuestions)
+        .input("percent", sql.Int, event.scorePercent)
+        .input("awarded_xp", sql.Int, awardedXp)
+        .input("completed_at", sql.DateTimeOffset, new Date(event.completedAt)).query(`
+          insert into okaab.slide_quiz_attempts
+            (user_id,attempt_id,lesson_id,deck_id,course_slug,lesson_slug,lesson_number,question_set_version,correct_answers,total_questions,score_percent,awarded_xp,completed_at)
+          values
+            (@user_id,@attempt_id,@lesson_id,@deck_id,@course_slug,@lesson_slug,@lesson_number,@version,@correct,@total,@percent,@awarded_xp,@completed_at)
+        `);
+      await new sql.Request(transaction)
+        .input("user_id", sql.NVarChar(64), learner.id)
+        .input("lesson_id", sql.NVarChar(64), lessonId)
+        .input("percent", sql.Int, event.scorePercent).query(`
+          update okaab.lesson_progress
+          set quiz_score=case when @percent>coalesce(quiz_score,0) then @percent else quiz_score end,
+              updated_at=sysutcdatetime()
+          where user_id=@user_id and lesson_id=@lesson_id
+        `);
+      if (awardedXp > 0) {
+        await awardPoints(transaction, {
+          userId: learner.id,
+          amount: awardedXp,
+          reason: "deck_quiz_improvement",
+          lessonId,
+          idempotencyKey: `deck-quiz:${learner.id}:${event.attemptId}`,
+        });
+      }
+      if (event.scorePercent === 100) {
+        await unlockBadge(transaction, learner.id, "perfect_quiz", `deck-quiz:${lessonId}`);
+      }
+      await touchDailyStreak(transaction, learner.id);
+      await transaction.commit();
+      return { accepted: true, duplicate: false, scorePercent: event.scorePercent, awardedXp };
+    }
     if (event.type === "slide_changed") {
       await new sql.Request(transaction)
         .input("user_id", sql.NVarChar(64), learner.id)
@@ -776,12 +860,12 @@ export async function getLeaderboard(period: "weekly" | "monthly" | "all") {
         .map((part) => [part.type, Number(part.value)]),
     ) as Record<string, number>;
     const observed = Date.UTC(
-      local.year ?? boundary.year,
-      (local.month ?? boundary.month) - 1,
-      local.day ?? boundary.day,
-      local.hour ?? 0,
-      local.minute ?? 0,
-      local.second ?? 0,
+      local["year"] ?? boundary.year,
+      (local["month"] ?? boundary.month) - 1,
+      local["day"] ?? boundary.day,
+      local["hour"] ?? 0,
+      local["minute"] ?? 0,
+      local["second"] ?? 0,
     );
     sinceMs -= observed - target;
   }
@@ -873,9 +957,8 @@ export async function updateLearner(input: {
   leaderboardVisible?: boolean | undefined;
 }) {
   const learner = await requireLearnerProfile();
-  const result = await (
-    await getDb()
-  )
+  const pool = await getDb();
+  const result = await pool
     .request()
     .input("id", sql.NVarChar(64), learner.id)
     .input("name", sql.NVarChar(160), input.displayName ?? learner.display_name)
@@ -884,6 +967,15 @@ export async function updateLearner(input: {
     .query<LearnerProfile>(
       "update okaab.learner_profiles set display_name=@name,birthdate=@birthdate,leaderboard_visible=@visible,updated_at=sysutcdatetime() output inserted.* where id=@id",
     );
+  if (input.displayName) {
+    await pool
+      .request()
+      .input("id", sql.NVarChar(64), learner.id)
+      .input("name", sql.NVarChar(160), input.displayName)
+      .query(
+        "update okaab.profiles set display_name=@name,updated_at=sysutcdatetime() where id=@id",
+      );
+  }
   return result.recordset[0];
 }
 
@@ -891,14 +983,20 @@ export async function syncLearnerAvatar() {
   const learner = await requireLearnerProfile();
   const user = await clerkClient().users.getUser(learner.id);
   const avatarUrl = user.imageUrl || null;
-  const result = await (
-    await getDb()
-  )
+  const pool = await getDb();
+  const result = await pool
     .request()
     .input("id", sql.NVarChar(64), learner.id)
     .input("avatar_url", sql.NVarChar(1000), avatarUrl)
     .query<LearnerProfile>(
       "update okaab.learner_profiles set avatar_url=@avatar_url,updated_at=sysutcdatetime() output inserted.* where id=@id",
+    );
+  await pool
+    .request()
+    .input("id", sql.NVarChar(64), learner.id)
+    .input("avatar_url", sql.NVarChar(1000), avatarUrl)
+    .query(
+      "update okaab.profiles set avatar_url=@avatar_url,updated_at=sysutcdatetime() where id=@id",
     );
   return result.recordset[0];
 }
@@ -946,5 +1044,5 @@ export async function unregisterDevice(token: string) {
     .input("user_id", sql.NVarChar(64), learner.id)
     .input("token", sql.NVarChar(500), token)
     .query("delete from okaab.learning_devices where user_id=@user_id and fcm_token=@token");
-  return { unregistered: result.rowsAffected[0] > 0 };
+  return { unregistered: (result.rowsAffected[0] ?? 0) > 0 };
 }

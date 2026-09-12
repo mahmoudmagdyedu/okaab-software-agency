@@ -32,13 +32,5 @@ const csrfMiddleware = createCsrfMiddleware({
 });
 
 export const startInstance = createStart(() => ({
-  requestMiddleware: [
-    clerkMiddleware(
-      process.env["NODE_ENV"] === "production"
-        ? { isSatellite: false, proxyUrl: "https://okaab.org/clerk-proxy" }
-        : {},
-    ),
-    errorMiddleware,
-    csrfMiddleware,
-  ],
+  requestMiddleware: [clerkMiddleware(), errorMiddleware, csrfMiddleware],
 }));
