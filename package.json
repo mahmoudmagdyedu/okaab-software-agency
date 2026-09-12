@@ -15,6 +15,7 @@
     "build:bun-pos": "npm run build --workspace=okaab-bun-al-deerah-pos",
     "build:mobile": "npm --prefix apps/okaab-learning-mobile run typecheck",
     "build:dev": "vite build --mode development",
+    "test:security": "node --experimental-strip-types --test src/lib/security-headers.test.ts src/lib/quote-security.test.ts src/server-security.test.ts",
     "start": "node scripts/start-production.mjs",
     "preview": "vite preview",
     "lint": "eslint .",
@@ -70,7 +71,7 @@
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
     "embla-carousel-react": "^8.6.0",
-    "fflate": "0.8.2",
+    "fflate": "0.8.3",
     "firebase-admin": "^13.10.0",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.575.0",
@@ -118,6 +119,8 @@
   "overrides": {
     "@lovable.dev/mcp-js": {
       "esbuild": "0.28.2"
-    }
+    },
+    "fast-uri": "3.1.7",
+    "qs": "6.16.0"
   }
 }

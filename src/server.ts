@@ -3,6 +3,8 @@ import serverEntry from "@tanstack/react-start/server-entry";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import { secureResponse } from "./lib/secure-response";
+import { generateNonce } from "./lib/security-headers";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -15,22 +17,7 @@ const BUN_POS_ORIGIN =
   process.env["BUN_POS_ORIGIN"] ??
   `http://127.0.0.1:${process.env["BUN_POS_INTERNAL_PORT"] ?? "3002"}`;
 const CANONICAL_HOST = "okaab.org";
-const SECURITY_POLICY = [
-  "default-src 'self'",
-  "base-uri 'self'",
-  "object-src 'none'",
-  "frame-ancestors 'none'",
-  "form-action 'self'",
-  "script-src 'self' 'unsafe-inline' https://*.clerk.accounts.dev https://*.clerk.com https://www.youtube.com https://www.youtube-nocookie.com",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "img-src 'self' data: blob: https://i.ytimg.com https://*.supabase.co https://img.clerk.com",
-  "font-src 'self' data: https://fonts.gstatic.com",
-  "connect-src 'self' https://cqxloxfxxwuhdkppjcpr.supabase.co https://fuzkonswngdogylzvivw.supabase.co wss://cqxloxfxxwuhdkppjcpr.supabase.co wss://fuzkonswngdogylzvivw.supabase.co https://*.clerk.accounts.dev https://*.clerk.com https://www.youtube.com https://www.youtube-nocookie.com",
-  "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://*.supabase.co https://*.clerk.accounts.dev https://*.clerk.com",
-  "worker-src 'self' blob:",
-  "manifest-src 'self'",
-  "upgrade-insecure-requests",
-].join("; ");
+const DEV = process.env["NODE_ENV"] !== "production";
 
 function getForwardedProtocol(request: Request) {
   return (
@@ -187,19 +174,18 @@ function appendVary(headers: Headers, value: string) {
   }
 }
 
-function withPerformanceHeaders(request: Request, response: Response): Response {
-  const headers = new Headers(response.headers);
+function withPerformanceHeaders(request: Request, response: Response, nonce: string): Response {
   const pathname = new URL(request.url).pathname;
-  const isSlideAsset = /^\/slides\/[^/]+\/.+/.test(pathname);
+  const isSlideAsset = /^\/slides\/[^/]+(?:\/.*)?$/.test(pathname);
   const secureRequest = getForwardedProtocol(request) === "https";
-
-  if (secureRequest) {
-    headers.set("strict-transport-security", "max-age=31536000; includeSubDomains");
-  }
-  headers.set("x-content-type-options", "nosniff");
-  headers.set("x-frame-options", isSlideAsset ? "SAMEORIGIN" : "DENY");
-  headers.set("referrer-policy", "strict-origin-when-cross-origin");
-  headers.set("permissions-policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()");
+  const secured = secureResponse(response, nonce, {
+    dev: DEV,
+    secureRequest,
+    frameOption: isSlideAsset ? "SAMEORIGIN" : "DENY",
+    htmlPolicy: !isSlideAsset,
+  });
+  const headers = new Headers(secured.headers);
+  let body = secured.body;
 
   if (/^\/(?:assets|fonts)\//.test(pathname) || /^\/bun-al-deerah\/assets\//.test(pathname)) {
     headers.set("cache-control", "public, max-age=31536000, immutable");
@@ -209,7 +195,6 @@ function withPerformanceHeaders(request: Request, response: Response): Response 
 
   const contentType = headers.get("content-type")?.toLowerCase() ?? "";
   if (contentType.includes("text/html") && !isSlideAsset) {
-    headers.set("content-security-policy", SECURITY_POLICY);
     headers.set("cache-control", "no-cache, max-age=0, must-revalidate");
   }
   const acceptsGzip = /(?:^|,)\s*gzip\s*(?:;|,|$)/i.test(
@@ -217,9 +202,9 @@ function withPerformanceHeaders(request: Request, response: Response): Response 
   );
   const canCompress =
     request.method !== "HEAD" &&
-    response.body != null &&
-    response.status !== 204 &&
-    response.status !== 304 &&
+    body != null &&
+    secured.status !== 204 &&
+    secured.status !== 304 &&
     !headers.has("content-encoding") &&
     !headers.has("content-range") &&
     acceptsGzip &&
@@ -229,32 +214,33 @@ function withPerformanceHeaders(request: Request, response: Response): Response 
     headers.set("content-encoding", "gzip");
     headers.delete("content-length");
     appendVary(headers, "Accept-Encoding");
-    return new Response(response.body.pipeThrough(new CompressionStream("gzip")), {
-      status: response.status,
-      statusText: response.statusText,
+    return new Response(body.pipeThrough(new CompressionStream("gzip")), {
+      status: secured.status,
+      statusText: secured.statusText,
       headers,
     });
   }
 
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
+  return new Response(body, {
+    status: secured.status,
+    statusText: secured.statusText,
     headers,
   });
 }
 
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
+    const nonce = generateNonce();
     try {
       const redirect = canonicalRedirect(request);
-      if (redirect) return withPerformanceHeaders(request, redirect);
+      if (redirect) return withPerformanceHeaders(request, redirect, nonce);
       const mawIdResponse = await proxyMawid(request);
-      if (mawIdResponse) return withPerformanceHeaders(request, mawIdResponse);
+      if (mawIdResponse) return withPerformanceHeaders(request, mawIdResponse, nonce);
       const bunPosResponse = await proxyBunPos(request);
-      if (bunPosResponse) return withPerformanceHeaders(request, bunPosResponse);
+      if (bunPosResponse) return withPerformanceHeaders(request, bunPosResponse, nonce);
       const response = await handler.fetch(request, env, ctx);
       const normalized = await normalizeCatastrophicSsrResponse(response);
-      return withPerformanceHeaders(request, normalized);
+      return withPerformanceHeaders(request, normalized, nonce);
     } catch (error) {
       console.error(error);
       return withPerformanceHeaders(
@@ -263,6 +249,7 @@ export default {
           status: 500,
           headers: { "content-type": "text/html; charset=utf-8" },
         }),
+        nonce,
       );
     }
   },

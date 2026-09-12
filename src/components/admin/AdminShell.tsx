@@ -26,6 +26,7 @@ import {
 import { Toaster } from "sonner";
 
 import { OkaabStyles } from "@/components/okaab/SiteChrome";
+import { getDocumentNonce } from "@/lib/csp-client";
 import { ClerkBoundary } from "@/components/auth/ClerkBoundary";
 import type { AppRole, Profile } from "@/integrations/supabase/types";
 import { ThemeProvider, useTheme } from "@/lib/theme";
@@ -215,7 +216,7 @@ function AdminFrame({ title, children }: { title: string; children: ReactNode })
   return (
     <div dir="rtl" lang="ar" className="min-h-screen bg-[var(--ok-paper)] text-[var(--ok-ink)]">
       <OkaabStyles />
-      <style>{`
+      <style nonce={getDocumentNonce()}>{`
         @media (min-width: 1024px) {
           .okaab-admin-grid {
             display: grid;

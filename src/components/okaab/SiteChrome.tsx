@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowUpRight, Menu, X, Sun, Moon, Globe } from "lucide-react";
 import { useTheme } from "@/lib/theme";
+import { getDocumentNonce } from "@/lib/csp-client";
 
 export const ACCENT = "#E8A33D";
 export const ACCENT_HOVER = "#F2B95C";
@@ -126,6 +127,7 @@ export const CHROME: Record<ChromeLang, ChromeCopy> = {
 export function OkaabStyles() {
   return (
     <style
+      nonce={getDocumentNonce()}
       dangerouslySetInnerHTML={{
         __html: `
         ::selection { background: ${ACCENT}; color: var(--ok-paper-2); }

@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useI18n, LOCALE_LABELS, LOCALE_ORDER } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
+import { getDocumentNonce } from "@/lib/csp-client";
 import { submitQuoteRequest } from "@/lib/quote.functions";
 import { WhatsAppIcon } from "@/components/okaab/WhatsAppIcon";
 
@@ -182,6 +183,7 @@ export default function OkaabLanding() {
       }}
     >
       <style
+        nonce={getDocumentNonce()}
         dangerouslySetInnerHTML={{
           __html: `
         ::selection { background: ${ACCENT}; color: var(--ok-paper-2); }

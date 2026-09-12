@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight, Mail } from "lucide-react";
 import { WhatsAppIcon } from "@/components/okaab/WhatsAppIcon";
 import { ThemeProvider } from "@/lib/theme";
+import { getDocumentNonce } from "@/lib/csp-client";
 import {
   OkaabStyles,
   SiteHeader,
@@ -72,6 +73,7 @@ export function buildServiceHead(c: ServicePageContent) {
     scripts: [
       {
         type: "application/ld+json",
+        nonce: getDocumentNonce(),
         children: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "Service",
@@ -92,6 +94,7 @@ export function buildServiceHead(c: ServicePageContent) {
       },
       {
         type: "application/ld+json",
+        nonce: getDocumentNonce(),
         children: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "FAQPage",
@@ -105,6 +108,7 @@ export function buildServiceHead(c: ServicePageContent) {
       },
       {
         type: "application/ld+json",
+        nonce: getDocumentNonce(),
         children: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "BreadcrumbList",
