@@ -4,6 +4,35 @@ export function learningLanguage(locale: string): LearningLanguage {
   return locale.startsWith("ar") ? "ar" : locale === "fr" || locale === "es" ? locale : "en";
 }
 
+const LEVEL_NAMES: Record<LearningLanguage, Record<string, string>> = {
+  ar: {},
+  en: {
+    هيثم: "Hatchling",
+    ناهض: "Rising Eagle",
+    مُحلّق: "Soaring Eagle",
+    كاسر: "Hunter",
+    "عُقاب ذهبي": "Golden Eagle",
+  },
+  fr: {
+    هيثم: "Aiglon",
+    ناهض: "Aigle montant",
+    مُحلّق: "Aigle en vol",
+    كاسر: "Chasseur",
+    "عُقاب ذهبي": "Aigle d’or",
+  },
+  es: {
+    هيثم: "Aguilucho",
+    ناهض: "Águila ascendente",
+    مُحلّق: "Águila en vuelo",
+    كاسر: "Cazador",
+    "عُقاب ذهبي": "Águila dorada",
+  },
+};
+
+export function localizedLearningLevel(name: string, language: LearningLanguage) {
+  return LEVEL_NAMES[language][name] || name;
+}
+
 const ar = {
   catalog: {
     eyebrow: "تعلّم مع فريق عُقاب",

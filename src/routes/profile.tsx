@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { ClerkBoundary } from "@/components/auth/ClerkBoundary";
 import { OkaabStyles, SiteFooter, SiteHeader } from "@/components/okaab/SiteChrome";
 import { I18nProvider, useI18n } from "@/lib/i18n";
-import { LEARNING_COPY, learningLanguage } from "@/lib/learning-copy";
+import { LEARNING_COPY, learningLanguage, localizedLearningLevel } from "@/lib/learning-copy";
 import { ThemeProvider } from "@/lib/theme";
 
 type Profile = {
@@ -147,7 +147,7 @@ function ProfileContent() {
             <div className="mt-8 grid gap-3 sm:grid-cols-3">
               <Stat
                 value={overview.points}
-                label={`${copy.points} · ${copy.rank} ${overview.level.name}`}
+                label={`${copy.points} · ${copy.rank} ${localizedLearningLevel(overview.level.name, language)}`}
               />
               <Stat value={overview.streak.current_days} label={copy.streak} />
               <Stat value={overview.rank ?? "—"} label={copy.leaderboardRank} />

@@ -16,7 +16,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { ClerkBoundary } from "@/components/auth/ClerkBoundary";
 import { OkaabStyles, SiteFooter, SiteHeader } from "@/components/okaab/SiteChrome";
 import { I18nProvider, useI18n } from "@/lib/i18n";
-import { LEARNING_COPY, learningLanguage } from "@/lib/learning-copy";
+import { LEARNING_COPY, learningLanguage, localizedLearningLevel } from "@/lib/learning-copy";
 import { ThemeProvider } from "@/lib/theme";
 
 type Overview = {
@@ -166,14 +166,14 @@ function DashboardContent() {
               <Stat
                 icon={Award}
                 value={data.points}
-                label={`${copy.points} · ${data.level.name}`}
+                label={`${copy.points} · ${localizedLearningLevel(data.level.name, language)}`}
               />
               <Stat icon={Flame} value={data.streak.current_days} label={copy.streak} />
               <Stat icon={Medal} value={data.rank ?? "—"} label={copy.rank} />
             </section>
             <section className="mt-4 rounded-3xl border-2 border-[var(--ok-ink)] bg-[var(--ok-card)] p-5 sm:p-6">
               <div className="flex items-center justify-between gap-4 text-sm font-bold">
-                <span>{data.level.name}</span>
+                <span>{localizedLearningLevel(data.level.name, language)}</span>
                 <span className="opacity-60">
                   {data.level.next === null
                     ? copy.topLevel
