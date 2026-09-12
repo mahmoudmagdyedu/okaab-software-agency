@@ -48,7 +48,7 @@ export function ClerkBoundary({ children }: { children: ReactNode }) {
     <ClerkProvider
       {...(nonce ? { nonce } : {})}
       localization={CLERK_LOCALIZATIONS[locale]}
-      {...(import.meta.env.PROD ? { proxyUrl: "/clerk-proxy" } : {})}
+      {...(import.meta.env.PROD ? { proxyUrl: "/__clerk" } : {})}
     >
       {children}
     </ClerkProvider>
