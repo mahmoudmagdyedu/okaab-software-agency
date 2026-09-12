@@ -1,4 +1,12 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import arEG from "@/locales/ar-EG";
 import type { Dict } from "@/locales/ar-EG";
 
@@ -20,6 +28,9 @@ const LOCALE_LOADERS: Record<string, () => Promise<Dict>> = {
   es: async () => (await import("@/locales/es")).default,
 };
 
+// Bolt Optimization: Cache loaded locale promises to avoid redundant dynamic imports and re-parsing.
+const localeCache = new Map<string, Promise<Dict>>([["ar-EG", Promise.resolve(arEG)]]);
+
 type Ctx = { locale: string; setLocale: (l: string) => void; t: Dict };
 const I18nContext = createContext<Ctx | null>(null);
 
@@ -30,9 +41,14 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   const [t, setTranslations] = useState<Dict>(arEG);
 
   const loadLocale = useCallback(async (nextLocale: string) => {
-    const loader = LOCALE_LOADERS[nextLocale];
-    if (!loader) return;
-    const translations = await loader();
+    let promise = localeCache.get(nextLocale);
+    if (!promise) {
+      const loader = LOCALE_LOADERS[nextLocale];
+      if (!loader) return;
+      promise = loader();
+      localeCache.set(nextLocale, promise);
+    }
+    const translations = await promise;
     setTranslations(translations);
     setLocale(nextLocale);
   }, []);
