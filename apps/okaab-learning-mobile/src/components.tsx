@@ -14,18 +14,22 @@ import Animated, {
 
 import { FlyingEagleLogo } from "./eagle-logo";
 import { type AppTheme, useAppTheme, useThemedStyles } from "./theme";
+import { useAppLanguage } from "./i18n";
 
 export function Screen({ children }: PropsWithChildren) {
   const styles = useThemedStyles(createStyles);
-  return <SafeAreaView edges={["top", "left", "right"]} style={styles.screen}>{children}</SafeAreaView>;
+  const { isRtl } = useAppLanguage();
+  return <SafeAreaView edges={["top", "left", "right"]} style={[styles.screen, { direction: isRtl ? "rtl" : "ltr" }]}>{children}</SafeAreaView>;
 }
 export function Title({ children }: PropsWithChildren) {
   const styles = useThemedStyles(createStyles);
-  return <Text style={styles.title}>{children}</Text>;
+  const { isRtl } = useAppLanguage();
+  return <Text style={[styles.title, { textAlign: isRtl ? "right" : "left", writingDirection: isRtl ? "rtl" : "ltr" }]}>{children}</Text>;
 }
 export function Muted({ children }: PropsWithChildren) {
   const styles = useThemedStyles(createStyles);
-  return <Text style={styles.muted}>{children}</Text>;
+  const { isRtl } = useAppLanguage();
+  return <Text style={[styles.muted, { textAlign: isRtl ? "right" : "left", writingDirection: isRtl ? "rtl" : "ltr" }]}>{children}</Text>;
 }
 export function Card({ children }: PropsWithChildren) {
   const styles = useThemedStyles(createStyles);
@@ -44,6 +48,7 @@ export function Action({
 }) {
   const theme = useAppTheme();
   const styles = useThemedStyles(createStyles);
+  const { tr } = useAppLanguage();
   const inactive = disabled || loading;
   return (
     <Pressable
@@ -60,7 +65,7 @@ export function Action({
       {loading ? (
         <View style={styles.actionLoading}>
           <ActivityIndicator color={theme.colors.ink} size="small" />
-          <Text style={styles.actionText}>جارٍ التنفيذ…</Text>
+          <Text style={styles.actionText}>{tr("جارٍ التنفيذ…", "Working…")}</Text>
         </View>
       ) : (
         <Text style={styles.actionText}>{title}</Text>
@@ -141,14 +146,15 @@ export function EagleLoader({
 }
 export function ErrorState({ message, retry }: { message: string; retry: () => void }) {
   const styles = useThemedStyles(createStyles);
+  const { tr } = useAppLanguage();
   return (
     <View style={styles.errorWrap}>
       <Card>
         <View style={styles.errorMark}><Text style={styles.errorMarkText}>!</Text></View>
-        <Title>تعذّر تحميل المحتوى</Title>
+        <Title>{tr("تعذّر تحميل المحتوى", "Couldn't load the content")}</Title>
         <Muted>{message}</Muted>
-        <Text style={styles.errorHint}>تأكد من اتصال الإنترنت ثم حاول مرة أخرى.</Text>
-        <Action title="إعادة المحاولة" onPress={retry} />
+        <Text style={styles.errorHint}>{tr("تأكد من اتصال الإنت ثم حاول مرة أخرى.", "Check your internet connection and try again.")}</Text>
+        <Action title={tr("إعادة المحاولة", "Try again")} onPress={retry} />
       </Card>
     </View>
   );

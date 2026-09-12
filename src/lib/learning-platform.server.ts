@@ -552,10 +552,13 @@ export async function recordLessonEvent(slug: string, event: LessonEvent) {
         .input("user_id", sql.NVarChar(64), learner.id)
         .input("lesson_id", sql.NVarChar(64), lessonId)
         .input("percent", sql.Int, event.scorePercent).query(`
-          update okaab.lesson_progress
+          update p
           set quiz_score=case when @percent>coalesce(quiz_score,0) then @percent else quiz_score end,
+              last_slide=case when coalesce(l.required_slide_index,1)>coalesce(p.last_slide,0)
+                then coalesce(l.required_slide_index,1) else p.last_slide end,
               updated_at=sysutcdatetime()
-          where user_id=@user_id and lesson_id=@lesson_id
+          from okaab.lesson_progress p join okaab.lessons l on l.id=p.lesson_id
+          where p.user_id=@user_id and p.lesson_id=@lesson_id
         `);
       if (awardedXp > 0) {
         await awardPoints(transaction, {
@@ -600,6 +603,19 @@ export async function recordLessonEvent(slug: string, event: LessonEvent) {
           idempotencyKey: `video:${learner.id}:${lessonId}`,
         });
     }
+    if (event.type === "quiz_finished") {
+      const percent = Math.round(Math.min(100, Math.max(0, event.score ?? 0)));
+      await new sql.Request(transaction)
+        .input("user_id", sql.NVarChar(64), learner.id)
+        .input("lesson_id", sql.NVarChar(64), lessonId)
+        .input("percent", sql.Int, percent)
+        .query(`
+          update okaab.lesson_progress
+          set quiz_score=case when @percent>coalesce(quiz_score,0) then @percent else quiz_score end,
+              updated_at=sysutcdatetime()
+          where user_id=@user_id and lesson_id=@lesson_id
+        `);
+    }
     if (event.type === "task_result" && event.passed) {
       await new sql.Request(transaction)
         .input("user_id", sql.NVarChar(64), learner.id)
@@ -616,6 +632,7 @@ export async function recordLessonEvent(slug: string, event: LessonEvent) {
       });
       await unlockBadge(transaction, learner.id, "first_task", `task:${lessonId}`);
     }
+    let lessonCompleted: boolean | undefined;
     if (event.type === "lesson_finished") {
       await new sql.Request(transaction)
         .input("user_id", sql.NVarChar(64), learner.id)
@@ -635,7 +652,8 @@ export async function recordLessonEvent(slug: string, event: LessonEvent) {
         .query(
           "select status from okaab.lesson_progress where user_id=@user_id and lesson_id=@lesson_id",
         );
-      if (completed.recordset[0]?.status === "completed") {
+      lessonCompleted = completed.recordset[0]?.status === "completed";
+      if (lessonCompleted) {
         await awardPoints(transaction, {
           userId: learner.id,
           amount: rules.interactive_complete,
@@ -648,7 +666,7 @@ export async function recordLessonEvent(slug: string, event: LessonEvent) {
     }
     await touchDailyStreak(transaction, learner.id);
     await transaction.commit();
-    return { duplicate: false };
+    return { duplicate: false, ...(lessonCompleted === undefined ? {} : { completed: lessonCompleted }) };
   } catch (error) {
     await transaction.rollback();
     throw error;

@@ -1,6 +1,6 @@
 import { useAuth } from "@clerk/expo";
-import { Redirect, router, useLocalSearchParams } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Redirect, router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useCallback, useMemo, useState } from "react";
 import {
   Pressable,
   RefreshControl,
@@ -14,6 +14,7 @@ import { apiRequest } from "@/api";
 import { ErrorState, Loading, Muted, Screen } from "@/components";
 import { type AppTheme, useAppTheme, useThemedStyles } from "@/theme";
 import Animated, { FadeIn } from "react-native-reanimated";
+import { useAppLanguage } from "@/i18n";
 
 type Lesson = {
   id: string;
@@ -28,6 +29,7 @@ type Result = { course: { title: string; description: string }; lessons: Lesson[
 export default function CourseMapScreen() {
   const theme = useAppTheme();
   const styles = useThemedStyles(createStyles);
+  const { tr } = useAppLanguage();
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const { isLoaded, isSignedIn, getToken } = useAuth();
   const [data, setData] = useState<Result | null>(null);
@@ -45,9 +47,9 @@ export default function CourseMapScreen() {
     }
   }, [getToken, slug]);
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     if (isSignedIn) void load();
-  }, [isSignedIn, load]);
+  }, [isSignedIn, load]));
 
   const ordered = useMemo(
     () => [...(data?.lessons ?? [])].sort((a, b) => a.sort_order - b.sort_order),
@@ -81,16 +83,21 @@ export default function CourseMapScreen() {
         }
         contentContainerStyle={styles.content}
       >
+        {error ? (
+          <Pressable onPress={() => void load()} style={styles.reloadBanner}>
+            <Text style={styles.reloadBannerText}>{error} — {tr("اضغط لإعادة التحميل", "tap to reload")}</Text>
+          </Pressable>
+        ) : null}
         <View style={styles.hero}>
-          <Text style={styles.eyebrow}>مسار تعلّم تفاعلي</Text>
+          <Text style={styles.eyebrow}>{tr("مسار تعلّم تفاعلي", "Interactive learning path")}</Text>
           <Text style={styles.courseTitle}>{data!.course.title}</Text>
           <Text style={styles.description}>
-            {data!.course.description || "أنهِ كل مرحلة لفتح المرحلة التالية وجمع نقاط عُقاب."}
+            {data!.course.description || tr("أنهِ كل مرحلة لفتح المرحلة التالية وجمع نقاط عُقاب.", "Complete each stage to unlock the next one and earn Okaab points.")}
           </Text>
           <View style={styles.progressRow}>
             <Text style={styles.progressText}>{progress}%</Text>
             <Text style={styles.progressLabel}>
-              {completed} من {ordered.length} {ordered.length === 1 ? "مرحلة مكتملة" : "مراحل مكتملة"}
+              {completed} {tr("من", "of")} {ordered.length} {tr(ordered.length === 1 ? "مرحلة مكتملة" : "مراحل مكتملة", ordered.length === 1 ? "stage completed" : "stages completed")}
             </Text>
           </View>
           <View style={styles.track}>
@@ -138,15 +145,15 @@ export default function CourseMapScreen() {
                   </Text>
                 </Pressable>
                 <View style={[styles.stageCard, isCurrent && styles.stageCardCurrent]}>
-                  <Text style={styles.stageNumber}>المرحلة {String(index + 1).padStart(2, "0")}</Text>
+                  <Text style={styles.stageNumber}>{tr("المرحلة", "Stage")} {String(index + 1).padStart(2, "0")}</Text>
                   <Text style={styles.stageTitle}>{lesson.title}</Text>
                   <Text numberOfLines={2} style={styles.stageDescription}>
                     {isLocked
-                      ? "أكمل المرحلة السابقة لفتح هذا الدرس."
-                      : lesson.description || "فيديو، محتوى تفاعلي ثم اختبار قصير."}
+                      ? tr("أكمل المرحلة السابقة لفتح هذا الدرس.", "Complete the previous stage to unlock this lesson.")
+                      : lesson.description || tr("فيديو، محتوى تفاعلي ثم اختبار قصير.", "Video, interactive content, then a short quiz.")}
                   </Text>
                   <Text style={[styles.state, isCompleted && styles.stateCompleted]}>
-                    {isCompleted ? "مكتمل + النقاط محفوظة" : isLocked ? "مرحلة مغلقة" : "ابدأ الآن"}
+                    {isCompleted ? tr("مكتمل + النقاط محفوظة", "Completed + points saved") : isLocked ? tr("مرحلة مغلقة", "Locked stage") : tr("ابدأ الآن", "Start now")}
                   </Text>
                 </View>
               </Animated.View>
@@ -156,7 +163,7 @@ export default function CourseMapScreen() {
 
         {!ordered.length && (
           <View style={styles.empty}>
-            <Muted>لا توجد دروس منشورة في هذا الكورس بعد.</Muted>
+            <Muted>{tr("لا توجد دروس منشورة في هذا الكورس بعد.", "No lessons have been published in this course yet.")}</Muted>
           </View>
         )}
       </ScrollView>
@@ -166,6 +173,8 @@ export default function CourseMapScreen() {
 
 const createStyles = (theme: AppTheme) => ({
   content: { paddingBottom: 118, gap: 24 },
+  reloadBanner: { backgroundColor: `${theme.colors.error}14`, borderWidth: 1, borderColor: theme.colors.error, borderRadius: 12, padding: 10 },
+  reloadBannerText: { color: theme.colors.error, textAlign: "center", fontWeight: "800" },
   hero: {
     backgroundColor: theme.colors.darkPaper,
     borderRadius: 28,

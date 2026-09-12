@@ -10,6 +10,7 @@ import YoutubePlayer, { type YoutubeIframeRef } from "react-native-youtube-ifram
 import { apiRequest, enqueueEvent, flushEvents } from "@/api";
 import { Action, ErrorState, Loading, Muted, Screen, Title } from "@/components";
 import { type AppTheme, useAppTheme, useThemedStyles } from "@/theme";
+import { useAppLanguage } from "@/i18n";
 
 type LessonProgress = {
   last_slide?: number;
@@ -30,6 +31,14 @@ type Result = {
   progress: LessonProgress;
 };
 type Stage = "video" | "slides" | "quiz";
+type SlideQuizReceipt = { scorePercent: number; awardedXp: number; duplicate?: boolean };
+
+function createAttemptId() {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (value) => {
+    const random = Math.floor(Math.random() * 16);
+    return (value === "x" ? random : (random & 0x3) | 0x8).toString(16);
+  });
+}
 
 const ANDROID_BROWSER_USER_AGENT =
   "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36";
@@ -37,6 +46,7 @@ const ANDROID_BROWSER_USER_AGENT =
 export default function LessonScreen() {
   const theme = useAppTheme();
   const styles = useThemedStyles(createStyles);
+  const { tr } = useAppLanguage();
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const { isLoaded, isSignedIn, getToken } = useAuth();
   const { width } = useWindowDimensions();
@@ -60,6 +70,8 @@ export default function LessonScreen() {
   const [slideLoading, setSlideLoading] = useState(false);
   const [slideError, setSlideError] = useState("");
   const [viewedDecks, setViewedDecks] = useState<string[]>([]);
+  const [slideQuizReceipt, setSlideQuizReceipt] = useState<SlideQuizReceipt | null>(null);
+  const [savingSlideQuiz, setSavingSlideQuiz] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -71,6 +83,7 @@ export default function LessonScreen() {
       setDeckIndex(0);
       setSlideError("");
       setViewedDecks([]);
+      setSlideQuizReceipt(null);
       const nextVideo = Number(next.progress?.video_percent || 0);
       const nextSlide = Number(next.progress?.last_slide || 0);
       setVideoPercent(nextVideo);
@@ -104,7 +117,16 @@ export default function LessonScreen() {
     return () => clearTimeout(timeout);
   }, [data?.videos, playerError, playerFrameLoaded, playerRevision, stage]);
 
-  const sendProgress = useCallback(async (event: Record<string, unknown>) => {
+  useEffect(() => {
+    if (!slideLoading || stage !== "slides") return;
+    const timeout = setTimeout(() => {
+      setSlideLoading(false);
+      setSlideError("استغرق تحميل العرض أكثر من 20 ثانية. تحقق من الإنترنت ثم حاول مرة أخرى.");
+    }, 20_000);
+    return () => clearTimeout(timeout);
+  }, [slideLoading, slideRevision, stage]);
+
+  const sendProgress = useCallback(async <T = unknown,>(event: Record<string, unknown>): Promise<T | null> => {
     const payload = {
       ...event,
       idempotencyKey:
@@ -113,12 +135,13 @@ export default function LessonScreen() {
           : `mobile-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     };
     if (online) {
-      await apiRequest(`/lessons/${encodeURIComponent(slug)}/events`, getToken, {
+      return await apiRequest<T>(`/lessons/${encodeURIComponent(slug)}/events`, getToken, {
         method: "POST",
         body: JSON.stringify(payload),
       });
     } else {
       await enqueueEvent(slug, payload);
+      return null;
     }
   }, [getToken, online, slug]);
 
@@ -161,6 +184,8 @@ export default function LessonScreen() {
       </Screen>
     );
 
+  const activeDeck = data!.slideDecks[deckIndex] ?? data!.slideDecks[0];
+
   const handleMessage = async (raw: string) => {
     try {
       const event = JSON.parse(raw) as Record<string, unknown>;
@@ -169,6 +194,48 @@ export default function LessonScreen() {
         const index = Math.max(0, Number(event.index) || 0);
         setLastSlide((current) => Math.max(current, index));
         await sendProgress(event);
+        return;
+      }
+      if ((type === "quiz_finished" || type === "quiz_completed") && activeDeck) {
+        const total = Math.max(1, Math.round(Number(event.totalQuestions ?? event.total ?? event.questionCount ?? 10) || 10));
+        const explicitCorrect = Number(event.correctAnswers ?? event.correct);
+        const reportedScore = Number(event.scorePercent ?? event.percent ?? event.score);
+        const correctAnswers = Number.isFinite(explicitCorrect)
+          ? Math.max(0, Math.min(total, Math.round(explicitCorrect)))
+          : Number.isFinite(reportedScore) && reportedScore > total
+            ? Math.max(0, Math.min(total, Math.round((reportedScore / 100) * total)))
+            : Math.max(0, Math.min(total, Math.round(reportedScore || 0)));
+        const scorePercent = Math.round((correctAnswers / total) * 100);
+        const attemptId = typeof event.attemptId === "string" ? event.attemptId : createAttemptId();
+        const idempotencyKey = `quiz:${attemptId}`;
+        setSavingSlideQuiz(true);
+        setSlideError("");
+        try {
+          const receipt = await sendProgress<SlideQuizReceipt>({
+            type: "quiz_completed",
+            attemptId,
+            deckId: activeDeck.id,
+            courseSlug: data!.lesson.course_slug,
+            lessonSlug: slug,
+            lessonNumber: 0,
+            questionSetVersion:
+              typeof event.questionSetVersion === "string" && event.questionSetVersion.length >= 8
+                ? event.questionSetVersion
+                : `deck-${activeDeck.id}-v1`,
+            correctAnswers,
+            totalQuestions: total,
+            scorePercent,
+            completedAt: new Date().toISOString(),
+            idempotencyKey,
+          });
+          setLastSlide((current) => Math.max(current, Number(data!.lesson.required_slide_index ?? 1)));
+          setSlideQuizReceipt(receipt ?? { scorePercent, awardedXp: 0 });
+          setStage("quiz");
+        } catch (value) {
+          setSlideError(value instanceof Error ? value.message : "تعذّر حفظ نتيجة الاختبار.");
+        } finally {
+          setSavingSlideQuiz(false);
+        }
       }
     } catch {
       // Ignore malformed messages from third-party iframe contents.
@@ -184,7 +251,6 @@ export default function LessonScreen() {
   const continueWithoutVideo = () => {
     setStage(data!.slideDecks.length ? "slides" : "quiz");
   };
-  const activeDeck = data!.slideDecks[deckIndex] ?? data!.slideDecks[0];
   const activeEntryPath = (activeDeck?.entry_path || "index.html")
     .split("/")
     .map((part) => encodeURIComponent(part))
@@ -233,12 +299,12 @@ export default function LessonScreen() {
     <Screen>
       <ScrollView contentContainerStyle={styles.content}>
         {!online && (
-          <Text style={styles.offline}>أنت غير متصل — سيُرسل تقدّمك تلقائيًا عند عودة الإنترنت.</Text>
+          <Text style={styles.offline}>{tr("أنت غير متصل — سيُرسل تقدّمك تلقائيًا عند عودة الإنترنت.", "You're offline — your progress will sync automatically when the connection returns.")}</Text>
         )}
         <View style={styles.lessonHeader}>
-          <Text style={styles.kicker}>درس تفاعلي</Text>
+          <Text style={styles.kicker}>{tr("درس تفاعلي", "Interactive lesson")}</Text>
           <Title>{data!.lesson.title}</Title>
-          <Muted>{data!.lesson.description || "شاهد، طبّق، ثم اختبر فهمك لفتح المرحلة التالية."}</Muted>
+          <Muted>{data!.lesson.description || tr("شاهد، طبّق، ثم اختبر فهمك لفتح المرحلة التالية.", "Watch, practice, then test your understanding to unlock the next stage.")}</Muted>
         </View>
 
         <View style={styles.steps}>
@@ -250,7 +316,7 @@ export default function LessonScreen() {
                 </Text>
               </View>
               <Text style={styles.stepLabel}>
-                {item === "video" ? "الفيديو" : item === "slides" ? "الشرح" : "الأسئلة"}
+                {item === "video" ? tr("الفيديو", "Video") : item === "slides" ? tr("الشرح", "Slides") : tr("الأسئلة", "Quiz")}
               </Text>
             </View>
           ))}
@@ -379,7 +445,7 @@ export default function LessonScreen() {
           <View style={styles.slidesCard}>
             <View style={styles.slidesHeading}>
               <View>
-                <Text style={styles.deckCounter}>عرض {deckIndex + 1} من {data!.slideDecks.length}</Text>
+                <Text style={styles.deckCounter}>{tr("عرض", "Deck")} {deckIndex + 1} {tr("من", "of")} {data!.slideDecks.length}</Text>
                 <Text style={styles.sectionTitle}>{activeDeck.title}</Text>
               </View>
               <Pressable
@@ -391,7 +457,7 @@ export default function LessonScreen() {
                 }}
                 style={styles.slideReload}
               >
-                <Text style={styles.slideReloadText}>تحديث</Text>
+                <Text style={styles.slideReloadText}>{tr("تحديث", "Reload")}</Text>
               </Pressable>
             </View>
             {data!.slideDecks.length > 1 ? (
@@ -458,17 +524,17 @@ export default function LessonScreen() {
             </View>
             <View style={styles.deckNavigation}>
               <Pressable disabled={deckIndex === 0} onPress={() => selectDeck(deckIndex - 1)} style={[styles.deckNavButton, deckIndex === 0 && styles.deckNavDisabled]}>
-                <Text style={styles.deckNavText}>السابق</Text>
+                <Text style={styles.deckNavText}>{tr("السابق", "Previous")}</Text>
               </Pressable>
               <Pressable disabled={deckIndex === data!.slideDecks.length - 1} onPress={() => selectDeck(deckIndex + 1)} style={[styles.deckNavButton, deckIndex === data!.slideDecks.length - 1 && styles.deckNavDisabled]}>
-                <Text style={styles.deckNavText}>التالي</Text>
+                <Text style={styles.deckNavText}>{tr("التالي", "Next")}</Text>
               </Pressable>
             </View>
             <Text style={styles.slideProgress}>
               آخر شريحة محفوظة: {lastSlide + 1} • العروض المفتوحة: {viewedDecks.length}/{data!.slideDecks.length}
             </Text>
             <Action
-              title={data!.lesson.quiz_count ? "ابدأ أسئلة الدرس" : "إكمال المرحلة"}
+              title={data!.lesson.quiz_count ? tr("ابدأ أسئلة الدرس", "Start lesson quiz") : tr("إكمال المرحلة", "Continue")}
               disabled={!slidesReady}
               onPress={() => setStage("quiz")}
             />
@@ -481,8 +547,14 @@ export default function LessonScreen() {
         {stage === "quiz" && (
           <View style={styles.quizCard}>
             <Text style={styles.quizMark}>؟</Text>
+            {slideQuizReceipt ? (
+              <Text style={styles.slideQuizResult}>
+                {tr("نتيجة اختبار الشرائح", "Slides quiz score")}: {slideQuizReceipt.scorePercent}%
+                {slideQuizReceipt.awardedXp > 0 ? `  •  +${slideQuizReceipt.awardedXp} XP` : ""}
+              </Text>
+            ) : null}
             <Text style={styles.quizTitle}>
-              {data!.lesson.quiz_count > 0 ? "جاهز تختبر فهمك؟" : "أتممت محتوى الدرس"}
+              {data!.lesson.quiz_count > 0 ? tr("جاهز تختبر فهمك؟", "Ready to test your understanding?") : tr("أتممت محتوى الدرس", "Lesson content completed")}
             </Text>
             <Text style={styles.quizCopy}>
               {data!.lesson.quiz_count > 0
@@ -490,9 +562,22 @@ export default function LessonScreen() {
                 : "احفظ تقدّمك وافتح المرحلة التالية من خريطة الكورس."}
             </Text>
             <Action
-              title={data!.lesson.quiz_count > 0 ? "ابدأ الأسئلة" : "إنهاء الدرس"}
+              title={data!.lesson.quiz_count > 0 ? tr("ابدأ الأسئلة", "Start quiz") : tr("إنهاء الدرس", "Finish lesson")}
               onPress={goToQuiz}
             />
+            {slideQuizReceipt && data!.slideDecks.length ? (
+              <Pressable
+                disabled={savingSlideQuiz}
+                onPress={() => {
+                  setStage("slides");
+                  setSlideError("");
+                  setSlideRevision((current) => current + 1);
+                }}
+                style={styles.retakeQuiz}
+              >
+                <Text style={styles.retakeQuizText}>{tr("إعادة اختبار الشرائح", "Retake slides quiz")}</Text>
+              </Pressable>
+            ) : null}
           </View>
         )}
       </ScrollView>
@@ -558,6 +643,9 @@ const createStyles = (theme: AppTheme) => ({
   deckNavDisabled: { opacity: 0.35 },
   deckNavText: { color: theme.colors.ink, fontWeight: "900" },
   slideProgress: { color: theme.colors.gold, fontWeight: "800", textAlign: "right" },
+  slideQuizResult: { color: theme.colors.success, fontWeight: "900", textAlign: "center", fontSize: 16 },
+  retakeQuiz: { minHeight: 46, alignItems: "center", justifyContent: "center", borderRadius: 13, borderWidth: 1, borderColor: theme.colors.gold },
+  retakeQuizText: { color: theme.colors.gold, fontWeight: "900" },
   quizCard: { backgroundColor: theme.colors.card, borderRadius: 24, borderWidth: 2, borderColor: theme.colors.gold, padding: 24, alignItems: "center", gap: 12 },
   quizMark: { width: 58, height: 58, lineHeight: 58, textAlign: "center", borderRadius: 29, backgroundColor: theme.colors.ink, color: theme.colors.gold, fontSize: 30, fontWeight: "900" },
   quizTitle: { color: theme.colors.ink, fontSize: 23, fontWeight: "900", textAlign: "center" },

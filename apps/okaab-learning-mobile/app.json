@@ -2,17 +2,17 @@
   "expo": {
     "name": "عُقاب",
     "slug": "okaab-learning",
-    "version": "1.2.9",
+    "version": "1.3.0",
     "icon": "./assets/okaab-icon-v2.png",
     "orientation": "portrait",
     "scheme": "okaab",
     "userInterfaceStyle": "automatic",
     "android": {
       "package": "org.okaab.learning",
-      "versionCode": 14,
+      "versionCode": 15,
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/okaab-icon-foreground.png",
+        "foregroundImage": "./assets/okaab-icon-foreground-large.png",
         "backgroundColor": "#181511"
       }
     },
@@ -22,11 +22,11 @@
         "expo-localization",
         {
           "supportedLocales": {
-            "android": ["ar"],
-            "ios": ["ar"]
+            "android": ["ar", "en"],
+            "ios": ["ar", "en"]
           },
           "supportsRTL": true,
-          "forcesRTL": true
+          "forcesRTL": false
         }
       ],
       "expo-secure-store",

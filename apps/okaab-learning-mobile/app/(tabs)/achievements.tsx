@@ -6,6 +6,7 @@ import { apiRequest } from "@/api";
 import { ErrorState, Loading, Muted, Screen, Title } from "@/components";
 import { type AppTheme, useThemedStyles } from "@/theme";
 import type { Overview } from "@/types";
+import { useAppLanguage } from "@/i18n";
 
 type Period = "weekly" | "monthly" | "all";
 type Row = { id: string; display_name: string; points: number; rank: number };
@@ -13,6 +14,7 @@ type Leaderboard = { leaders: Row[]; me: Row | null };
 
 export default function AchievementsScreen() {
   const styles = useThemedStyles(createStyles);
+  const { tr } = useAppLanguage();
   const { getToken } = useAuth();
   const [period, setPeriod] = useState<Period>("weekly");
   const [overview, setOverview] = useState<Overview | null>(null);
@@ -55,18 +57,18 @@ export default function AchievementsScreen() {
         contentContainerStyle={styles.content}
       >
         <View style={styles.hero}>
-          <Text style={styles.kicker}>رحلتك في عُقاب</Text>
+          <Text style={styles.kicker}>{tr("رحلتك في عُقاب", "Your Okaab journey")}</Text>
           <Text style={styles.points}>{overview!.points}</Text>
-          <Text style={styles.pointsLabel}>نقطة مكتسبة</Text>
+          <Text style={styles.pointsLabel}>{tr("نقطة مكتسبة", "points earned")}</Text>
           <View style={styles.metrics}>
-            <Metric value={String(overview!.rank ?? "—")} label="ترتيبك" />
-            <Metric value={String(overview!.streak.current_days)} label="أيام متواصلة" />
-            <Metric value={String(overview!.badges.length)} label="شارات" />
+            <Metric value={String(overview!.rank ?? "—")} label={tr("ترتيبك", "Your rank")} />
+            <Metric value={String(overview!.streak.current_days)} label={tr("أيام متواصلة", "Day streak")} />
+            <Metric value={String(overview!.badges.length)} label={tr("شارات", "Badges")} />
           </View>
           <Text style={styles.level}>رتبتك الحالية: {overview!.level.name}</Text>
         </View>
 
-        <Title>شاراتك</Title>
+        <Title>{tr("شاراتك", "Your badges")}</Title>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.badges}>
           {overview!.badges.length ? overview!.badges.map((badge) => (
             <View key={badge.id} style={styles.badge}>
@@ -80,12 +82,12 @@ export default function AchievementsScreen() {
         </ScrollView>
 
         <View style={styles.boardHeader}>
-          <Title>لوحة المتصدرين</Title>
+          <Title>{tr("لوحة المتصدرين", "Leaderboard")}</Title>
           <Muted>نعرض الاسم الأول وحرفًا من الاسم الأخير احترامًا للخصوصية.</Muted>
           <View style={styles.tabs}>
             {(["weekly", "monthly", "all"] as Period[]).map((item) => (
               <Pressable key={item} onPress={() => setPeriod(item)} style={[styles.tab, period === item && styles.activeTab]}>
-                <Text style={styles.tabText}>{item === "weekly" ? "أسبوعي" : item === "monthly" ? "شهري" : "كل الوقت"}</Text>
+                <Text style={styles.tabText}>{item === "weekly" ? tr("أسبوعي", "Weekly") : item === "monthly" ? tr("شهري", "Monthly") : tr("كل الوقت", "All time")}</Text>
               </Pressable>
             ))}
           </View>

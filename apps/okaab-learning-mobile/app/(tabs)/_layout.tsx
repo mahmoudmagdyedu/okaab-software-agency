@@ -5,6 +5,7 @@ import type { ComponentProps } from "react";
 import { StyleSheet, View } from "react-native";
 import { EagleLoader } from "@/components";
 import { type AppTheme, useAppTheme, useThemedStyles } from "@/theme";
+import { useAppLanguage } from "@/i18n";
 
 function TabIcon({
   active,
@@ -31,6 +32,7 @@ function TabIcon({
 export default function TabsLayout() {
   const { isLoaded, isSignedIn } = useAuth();
   const theme = useAppTheme();
+  const { tr, isRtl } = useAppLanguage();
 
   if (!isLoaded) return <EagleLoader label="نجهّز مساحتك التعليمية…" />;
   if (!isSignedIn) return <Redirect href="/(auth)/sign-in" />;
@@ -40,7 +42,7 @@ export default function TabsLayout() {
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: theme.colors.gold || "#E8A33D",
-        sceneStyle: { backgroundColor: theme.colors.paper, direction: "rtl" },
+        sceneStyle: { backgroundColor: theme.colors.paper, direction: isRtl ? "rtl" : "ltr" },
         tabBarInactiveTintColor: "rgba(246,241,231,0.62)",
         tabBarStyle: {
           position: "absolute",
@@ -62,32 +64,32 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "الرئيسية",
-          tabBarLabel: "الرئيسية",
+          title: tr("الرئيسية", "Home"),
+          tabBarLabel: tr("الرئيسية", "Home"),
           tabBarIcon: ({ focused }) => <TabIcon active={focused} activeName="home" inactiveName="home-outline" />,
         }}
       />
       <Tabs.Screen
         name="courses"
         options={{
-          title: "الدورات",
-          tabBarLabel: "الدورات",
+          title: tr("الدورات", "Courses"),
+          tabBarLabel: tr("الدورات", "Courses"),
           tabBarIcon: ({ focused }) => <TabIcon active={focused} activeName="map" inactiveName="map-outline" />,
         }}
       />
       <Tabs.Screen
         name="achievements"
         options={{
-          title: "الإنجازات",
-          tabBarLabel: "الإنجازات",
+          title: tr("الإنجازات", "Achievements"),
+          tabBarLabel: tr("الإنجازات", "Achievements"),
           tabBarIcon: ({ focused }) => <TabIcon active={focused} activeName="trophy" inactiveName="trophy-outline" />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: "الحساب",
-          tabBarLabel: "الحساب",
+          title: tr("الحساب", "Profile"),
+          tabBarLabel: tr("الحساب", "Profile"),
           tabBarIcon: ({ focused }) => <TabIcon active={focused} activeName="person" inactiveName="person-outline" />,
         }}
       />
