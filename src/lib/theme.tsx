@@ -15,14 +15,20 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const stored = localStorage.getItem(THEME_STORAGE_KEY);
-    const dark = stored
-      ? stored === "dark"
-      : window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const dark = stored ? stored === "dark" : media.matches;
     setTheme(dark ? "dark" : "light");
+
+    // Follow OS changes live until the visitor makes an explicit choice.
+    if (stored) return undefined;
+    const followSystem = (event: MediaQueryListEvent) => setTheme(event.matches ? "dark" : "light");
+    media.addEventListener("change", followSystem);
+    return () => media.removeEventListener("change", followSystem);
   }, []);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
+    document.documentElement.style.colorScheme = theme;
   }, [theme]);
 
   const toggleTheme = useCallback(() => {
