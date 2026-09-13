@@ -1,7 +1,8 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHmac } from "node:crypto";
 import { createFileRoute } from "@tanstack/react-router";
 
 import { getDb, sql } from "@/lib/db.server";
+import { safeCompare } from "@/lib/safe-compare";
 import { OKAAB_CHANNEL_ID, syncYouTubeChannel } from "@/lib/youtube-sync.server";
 
 function validSignature(body: string, signature: string | null) {
@@ -9,10 +10,7 @@ function validSignature(body: string, signature: string | null) {
   if (!secret || !signature?.startsWith("sha1=")) return false;
   const expected = createHmac("sha1", secret).update(body).digest("hex");
   const supplied = signature.slice(5);
-  return (
-    expected.length === supplied.length &&
-    timingSafeEqual(Buffer.from(expected), Buffer.from(supplied))
-  );
+  return safeCompare(expected, supplied);
 }
 
 export const Route = createFileRoute("/api/youtube/webhook")({
