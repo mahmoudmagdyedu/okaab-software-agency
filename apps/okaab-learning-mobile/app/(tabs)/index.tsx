@@ -8,9 +8,11 @@ import { apiRequest, flushEvents } from "@/api";
 import { Card, ErrorState, Loading, Muted, Screen, Title } from "@/components";
 import { type AppTheme, useThemedStyles } from "@/theme";
 import type { Announcement, Overview, PublicConfig } from "@/types";
+import { useAppLanguage } from "@/i18n";
 
 export default function Home() {
   const styles = useThemedStyles(createStyles);
+  const { tr } = useAppLanguage();
   const { isLoaded, isSignedIn, getToken } = useAuth();
   const [overview, setOverview] = useState<Overview | null>(null);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -62,23 +64,23 @@ export default function Home() {
               <Image accessibilityLabel="شعار عُقاب" source={require("../../assets/okaab-brand-logo-transparent.png")} style={styles.brandLogo} />
               <View style={styles.brandTitleWrap}>
                 <Text style={styles.logo}>عُقاب</Text>
-                <Text style={styles.tagline}>تعلّم بخطوات واضحة، وحلّق بمهاراتك.</Text>
+                <Text style={styles.tagline}>{tr("تعلّم بخطوات واضحة، وحلّق بمهاراتك.", "Learn in clear steps and let your skills soar.")}</Text>
               </View>
             </View>
-            <Text style={styles.brandCopy}>مسارات عملية قصيرة تجمع الفيديو والتطبيق والاختبار في تجربة عربية واحدة.</Text>
+            <Text style={styles.brandCopy}>{tr("مسارات عملية قصيرة تجمع الفيديو والتطبيق والاختبار في تجربة عربية واحدة.", "Short practical paths combining video, practice, and quizzes in one experience.")}</Text>
             <View style={styles.brandBadge}><Text style={styles.brandBadgeText}>منصة تعلّم من فريق Okaab</Text></View>
           </Animated.View>
 
           <Animated.View entering={FadeIn.delay(70).duration(220)} style={styles.aboutGrid}>
             <View style={styles.aboutCard}>
               <Text style={styles.aboutNumber}>01</Text>
-              <Text style={styles.aboutTitle}>تعلّم بالممارسة</Text>
-              <Text style={styles.aboutText}>كل درس ينتهي بسؤال أو مهمة ونقاط حقيقية.</Text>
+              <Text style={styles.aboutTitle}>{tr("تعلّم بالممارسة", "Learn by doing")}</Text>
+              <Text style={styles.aboutText}>{tr("كل درس ينتهي بسؤال أو مهمة ونقاط حقيقية.", "Every lesson ends with a quiz or task and real points.")}</Text>
             </View>
             <View style={styles.aboutCard}>
               <Text style={styles.aboutNumber}>02</Text>
-              <Text style={styles.aboutTitle}>مسار واضح</Text>
-              <Text style={styles.aboutText}>لا تشتت: مرحلة تفتح المرحلة التالية تلقائيًا.</Text>
+              <Text style={styles.aboutTitle}>{tr("مسار واضح", "A clear path")}</Text>
+              <Text style={styles.aboutText}>{tr("لا تشتت: مرحلة تفتح المرحلة التالية تلقائيًا.", "No distractions: each stage unlocks the next automatically.")}</Text>
             </View>
           </Animated.View>
 
@@ -91,7 +93,7 @@ export default function Home() {
 
           {overview ? (
             <Card>
-              <Title>أهلًا {overview.profile.display_name.split(" ")[0]}</Title>
+              <Title>{tr("أهلًا", "Welcome")} {overview.profile.display_name.split(" ")[0]}</Title>
               <View style={styles.metrics}>
                 <View style={styles.metric}>
                   <Text style={styles.metricValue}>{overview.points}</Text>
@@ -114,7 +116,7 @@ export default function Home() {
                 >
                   <Pressable style={styles.continue}>
                     <Text style={styles.continueText}>
-                      كمّل: {overview.continueLearning.title}
+                      {tr("كمّل", "Continue")}: {overview.continueLearning.title}
                     </Text>
                   </Pressable>
                 </Link>
@@ -123,7 +125,7 @@ export default function Home() {
           ) : (
             <Link href="/(auth)/sign-in" asChild>
               <Pressable style={styles.signIn}>
-                <Text style={styles.signInText}>سجّل دخولك واحفظ تقدّمك</Text>
+                <Text style={styles.signInText}>{tr("سجّل دخولك واحفظ تقدّمك", "Sign in and save your progress")}</Text>
               </Pressable>
             </Link>
           )}
@@ -131,11 +133,11 @@ export default function Home() {
           <View style={styles.nav}>
             <Link href="/(tabs)/courses" asChild>
               <Pressable style={styles.explore}>
-                <Text style={styles.exploreText}>استكشف مسارات التعلّم</Text>
+                <Text style={styles.exploreText}>{tr("استكشف مسارات التعلّم", "Explore learning paths")}</Text>
               </Pressable>
             </Link>
             <Link href="/(tabs)/about" style={styles.navLink}>
-              مين عُقاب؟
+              {tr("مين عُقاب؟", "About Okaab")}
             </Link>
           </View>
         </View>

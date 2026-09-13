@@ -3,7 +3,7 @@ import { clerkClient } from "@clerk/tanstack-react-start/server";
 import { ApiProblem } from "@/lib/api-response.server";
 import { getDb, sql } from "@/lib/db.server";
 import { consumeQuoteRateLimits } from "@/lib/quote-rate-limit";
-import { slideQuizAward } from "@/lib/slide-quiz-score";
+import { slideQuizOutcome } from "@/lib/slide-quiz-score";
 import { getAccountProfile } from "@/lib/admin-auth.server";
 import { lessonCompletion, type LessonCompletionFacts } from "@/lib/lesson-completion";
 
@@ -573,11 +573,15 @@ export async function recordLessonEvent(slug: string, event: LessonEvent) {
         .input("user_id", sql.NVarChar(64), learner.id)
         .input("attempt_id", sql.NVarChar(64), event.attemptId).query<{
         score_percent: number;
+        best_score_percent: number;
+        improved: boolean;
         awarded_xp: number;
       }>(`
-          select top (1) score_percent,awarded_xp
-          from okaab.slide_quiz_attempts
-          where user_id=@user_id and attempt_id=@attempt_id
+          select top (1) a.score_percent,a.awarded_xp,a.improved,
+            (select max(best.score_percent) from okaab.slide_quiz_attempts best
+             where best.user_id=a.user_id and best.lesson_id=a.lesson_id and best.deck_id=a.deck_id) best_score_percent
+          from okaab.slide_quiz_attempts a
+          where a.user_id=@user_id and a.attempt_id=@attempt_id
         `);
       if (priorAttempt.recordset[0]) {
         const rules = await pointsRules(transaction);
@@ -587,6 +591,8 @@ export async function recordLessonEvent(slug: string, event: LessonEvent) {
           accepted: true,
           duplicate: true,
           scorePercent: priorAttempt.recordset[0].score_percent,
+          bestScorePercent: priorAttempt.recordset[0].best_score_percent,
+          improved: Boolean(priorAttempt.recordset[0].improved),
           awardedXp: priorAttempt.recordset[0].awarded_xp,
           completion,
         };
@@ -629,18 +635,23 @@ export async function recordLessonEvent(slug: string, event: LessonEvent) {
       const previousBest = await new sql.Request(transaction)
         .input("user_id", sql.NVarChar(64), learner.id)
         .input("lesson_id", sql.NVarChar(64), lessonId)
-        .input("version", sql.NVarChar(128), event.questionSetVersion).query<{
+        .input("deck_id", sql.NVarChar(64), event.deckId).query<{
         best_correct: number;
+        best_score_percent: number;
       }>(`
-          select coalesce(max(correct_answers),0) best_correct
+          select top (1) correct_answers best_correct,score_percent best_score_percent
           from okaab.slide_quiz_attempts
-          where user_id=@user_id and lesson_id=@lesson_id and question_set_version=@version
+          where user_id=@user_id and lesson_id=@lesson_id and deck_id=@deck_id
+          order by score_percent desc,correct_answers desc,completed_at asc
         `);
-      const { awardedXp } = slideQuizAward(
-        event.correctAnswers,
-        previousBest.recordset[0]?.best_correct ?? 0,
-        rules.quiz_first_correct,
-      );
+      const outcome = slideQuizOutcome({
+        scorePercent: event.scorePercent,
+        correctAnswers: event.correctAnswers,
+        previousBestScorePercent: previousBest.recordset[0]?.best_score_percent ?? 0,
+        previousBestCorrectAnswers: previousBest.recordset[0]?.best_correct ?? 0,
+        pointsPerAnswer: rules.quiz_first_correct,
+      });
+      const { awardedXp, improved, bestScorePercent: nextBestScorePercent } = outcome;
       await new sql.Request(transaction)
         .input("user_id", sql.NVarChar(64), learner.id)
         .input("attempt_id", sql.NVarChar(64), event.attemptId)
@@ -653,21 +664,25 @@ export async function recordLessonEvent(slug: string, event: LessonEvent) {
         .input("correct", sql.Int, event.correctAnswers)
         .input("total", sql.Int, event.totalQuestions)
         .input("percent", sql.Int, event.scorePercent)
+        .input("improved", sql.Bit, improved)
         .input("awarded_xp", sql.Int, awardedXp)
         .input("completed_at", sql.DateTimeOffset, new Date(event.completedAt)).query(`
           insert into okaab.slide_quiz_attempts
-            (user_id,attempt_id,lesson_id,deck_id,course_slug,lesson_slug,lesson_number,question_set_version,correct_answers,total_questions,score_percent,awarded_xp,completed_at)
+            (user_id,attempt_id,lesson_id,deck_id,course_slug,lesson_slug,lesson_number,question_set_version,correct_answers,total_questions,score_percent,improved,awarded_xp,completed_at)
           values
-            (@user_id,@attempt_id,@lesson_id,@deck_id,@course_slug,@lesson_slug,@lesson_number,@version,@correct,@total,@percent,@awarded_xp,@completed_at)
+            (@user_id,@attempt_id,@lesson_id,@deck_id,@course_slug,@lesson_slug,@lesson_number,@version,@correct,@total,@percent,@improved,@awarded_xp,@completed_at)
         `);
       await new sql.Request(transaction)
         .input("user_id", sql.NVarChar(64), learner.id)
         .input("lesson_id", sql.NVarChar(64), lessonId)
         .input("percent", sql.Int, event.scorePercent).query(`
-          update okaab.lesson_progress
+          update p
           set quiz_score=case when @percent>coalesce(quiz_score,0) then @percent else quiz_score end,
+              last_slide=case when coalesce(l.required_slide_index,1)>coalesce(p.last_slide,0)
+                then coalesce(l.required_slide_index,1) else p.last_slide end,
               updated_at=sysutcdatetime()
-          where user_id=@user_id and lesson_id=@lesson_id
+          from okaab.lesson_progress p join okaab.lessons l on l.id=p.lesson_id
+          where p.user_id=@user_id and p.lesson_id=@lesson_id
         `);
       if (awardedXp > 0) {
         await awardPoints(transaction, {
@@ -688,6 +703,8 @@ export async function recordLessonEvent(slug: string, event: LessonEvent) {
         accepted: true,
         duplicate: false,
         scorePercent: event.scorePercent,
+        bestScorePercent: nextBestScorePercent,
+        improved,
         awardedXp,
         completion,
       };
@@ -718,6 +735,18 @@ export async function recordLessonEvent(slug: string, event: LessonEvent) {
           lessonId,
           idempotencyKey: `video:${learner.id}:${lessonId}`,
         });
+    }
+    if (event.type === "quiz_finished") {
+      const percent = Math.round(Math.min(100, Math.max(0, event.score ?? 0)));
+      await new sql.Request(transaction)
+        .input("user_id", sql.NVarChar(64), learner.id)
+        .input("lesson_id", sql.NVarChar(64), lessonId)
+        .input("percent", sql.Int, percent).query(`
+          update okaab.lesson_progress
+          set quiz_score=case when @percent>coalesce(quiz_score,0) then @percent else quiz_score end,
+              updated_at=sysutcdatetime()
+          where user_id=@user_id and lesson_id=@lesson_id
+        `);
     }
     if (event.type === "task_result" && event.passed) {
       await new sql.Request(transaction)

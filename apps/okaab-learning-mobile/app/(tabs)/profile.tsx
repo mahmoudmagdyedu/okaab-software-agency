@@ -23,6 +23,7 @@ import {
 import { apiRequest } from "@/api";
 import { Action, ErrorState, Loading, Muted, Screen, Title } from "@/components";
 import { type AppTheme, useAppTheme, useThemedStyles, useThemePreference } from "@/theme";
+import { useAppLanguage } from "@/i18n";
 import type { Overview } from "@/types";
 
 const PUSH_TOKEN_KEY = "okaab-learning-fcm-token-v1";
@@ -30,7 +31,8 @@ const PUSH_TOKEN_KEY = "okaab-learning-fcm-token-v1";
 export default function Profile() {
   const theme = useAppTheme();
   const styles = useThemedStyles(createStyles);
-  const { toggleDarkMode } = useThemePreference();
+  const { preference, setPreference } = useThemePreference();
+  const { language, setLanguage, tr } = useAppLanguage();
   const { isLoaded, isSignedIn, getToken, sessionId } = useAuth();
   const { signOut } = useClerk();
   const { user } = useUser();
@@ -327,7 +329,7 @@ export default function Profile() {
             style={styles.avatarButton}
           >
             <Text style={styles.avatarButtonText}>
-              {avatarBusy ? "جاري رفع الصورة…" : "تغيير الصورة الشخصية"}
+              {avatarBusy ? tr("جاري رفع الصورة…", "Uploading photo…") : tr("📷  تغيير الصورة الشخصية", "📷  Change profile photo")}
             </Text>
           </Pressable>
           <Text style={styles.profileName}>{data!.profile.display_name}</Text>
@@ -351,17 +353,28 @@ export default function Profile() {
           )}
         </View>
         <View style={styles.notifications}>
-          <View style={styles.switchRow}>
-            <Switch
-              accessibilityLabel="الوضع الداكن"
-              value={theme.isDark}
-              onValueChange={(value) => void toggleDarkMode(value)}
-              trackColor={{ false: theme.colors.border, true: theme.colors.gold }}
-              thumbColor={theme.isDark ? theme.colors.ink : theme.colors.card}
-            />
-            <View style={styles.notificationText}>
-              <Text style={styles.label}>الوضع الداكن</Text>
-              <Muted>واجهة مريحة للعين بألوان عُقاب، ويُحفظ اختيارك على هذا الجهاز.</Muted>
+          <View style={styles.choiceSection}>
+            <Text style={styles.label}>{tr("المظهر", "Appearance")}</Text>
+            <View style={styles.choiceRow}>
+              {(["system", "light", "dark"] as const).map((item) => (
+                <Pressable key={item} onPress={() => void setPreference(item)} style={[styles.choice, preference === item && styles.choiceActive]}>
+                  <Text style={[styles.choiceText, preference === item && styles.choiceTextActive]}>
+                    {item === "system" ? tr("الجهاز", "System") : item === "light" ? tr("فاتح", "Light") : tr("داكن", "Dark")}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+          <View style={styles.settingDivider} />
+          <View style={styles.choiceSection}>
+            <Text style={styles.label}>{tr("لغة التطبيق", "App language")}</Text>
+            <View style={styles.choiceRow}>
+              <Pressable onPress={() => void setLanguage("ar")} style={[styles.choice, language === "ar" && styles.choiceActive]}>
+                <Text style={[styles.choiceText, language === "ar" && styles.choiceTextActive]}>العربية</Text>
+              </Pressable>
+              <Pressable onPress={() => void setLanguage("en")} style={[styles.choice, language === "en" && styles.choiceActive]}>
+                <Text style={[styles.choiceText, language === "en" && styles.choiceTextActive]}>English</Text>
+              </Pressable>
             </View>
           </View>
           <View style={styles.settingDivider} />
@@ -555,7 +568,7 @@ const createStyles = (theme: AppTheme) => ({
     alignSelf: "center",
     backgroundColor: theme.colors.paperAlt,
   },
-  avatarButton: { minHeight: 40, alignSelf: "center", justifyContent: "center", paddingHorizontal: 12 },
+  avatarButton: { minHeight: 44, alignSelf: "center", justifyContent: "center", paddingHorizontal: 16, borderWidth: 1, borderColor: theme.colors.gold, borderRadius: 22, backgroundColor: `${theme.colors.gold}12` },
   avatarButtonText: { color: theme.colors.gold, fontWeight: "800" },
   profileName: { color: theme.colors.ink, fontSize: 24, fontWeight: "900", textAlign: "center", writingDirection: "rtl" },
   email: { maxWidth: "100%", color: theme.colors.ink, opacity: 0.58, textAlign: "center", writingDirection: "ltr" },
@@ -624,6 +637,12 @@ const createStyles = (theme: AppTheme) => ({
     padding: 16,
     borderRadius: 16,
   },
+  choiceSection: { gap: 10 },
+  choiceRow: { flexDirection: "row", gap: 8 },
+  choice: { flex: 1, minHeight: 44, alignItems: "center", justifyContent: "center", borderRadius: 12, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.paperAlt },
+  choiceActive: { backgroundColor: theme.colors.gold, borderColor: theme.colors.gold },
+  choiceText: { color: theme.colors.ink, fontWeight: "800" },
+  choiceTextActive: { color: "#181511" },
   settingDivider: { height: 1, backgroundColor: theme.colors.border, marginVertical: 4 },
   notificationText: { flex: 1, direction: "rtl", gap: 3, marginLeft: 14 },
   sessionRow: {

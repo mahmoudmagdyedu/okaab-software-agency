@@ -3,7 +3,7 @@ import { tokenCache } from "@clerk/expo/token-cache";
 import * as Notifications from "expo-notifications";
 import { Stack } from "expo-router";
 import { useEffect, useState } from "react";
-import { I18nManager, Linking, StyleSheet, Text, View } from "react-native";
+import { Linking, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import {
   IBMPlexSansArabic_400Regular,
@@ -16,12 +16,9 @@ import {
 import { apiRequest } from "@/api";
 import { Action, EagleLoader, Muted, Title } from "@/components";
 import { AppThemeProvider, type AppTheme, useAppTheme, useThemedStyles } from "@/theme";
+import { AppLanguageProvider, useAppLanguage } from "@/i18n";
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
-
-I18nManager.allowRTL(true);
-I18nManager.forceRTL(true);
-I18nManager.swapLeftAndRightInRTL(false);
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -112,13 +109,14 @@ function SystemState({
 function RootNavigator() {
   const theme = useAppTheme();
   const styles = useThemedStyles(createStyles);
+  const { isRtl, tr } = useAppLanguage();
   return (
     <View style={styles.navigator}>
       <Stack
         screenOptions={{
           headerTitleAlign: "center",
-          headerBackTitle: "رجوع",
-          contentStyle: { direction: "rtl", backgroundColor: theme.colors.paper },
+          headerBackTitle: tr("رجوع", "Back"),
+          contentStyle: { direction: isRtl ? "rtl" : "ltr", backgroundColor: theme.colors.paper },
           headerStyle: { backgroundColor: theme.colors.paper },
           headerTintColor: theme.colors.ink,
         }}
@@ -169,7 +167,9 @@ export default function RootLayout() {
 
   return (
     <AppThemeProvider>
-      <AppShell fontsLoaded={fontsLoaded} />
+      <AppLanguageProvider>
+        <AppShell fontsLoaded={fontsLoaded} />
+      </AppLanguageProvider>
     </AppThemeProvider>
   );
 }

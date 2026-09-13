@@ -6,9 +6,9 @@ const QUEUE_KEY = "okaab-learning-event-queue-v1";
 
 type Envelope<T> = { data: T | null; error: { message: string } | null };
 const REQUEST_TIMEOUT_MS = 12_000;
+export type TokenGetter = (options?: { skipCache?: boolean }) => Promise<string | null>;
 
-export async function apiRequest<T>(path: string, getToken?: () => Promise<string | null>, init?: RequestInit): Promise<T> {
-  const token = getToken ? await getToken() : null;
+export async function apiRequest<T>(path: string, getToken?: TokenGetter, init?: RequestInit): Promise<T> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   const callerSignal = init?.signal;
@@ -16,20 +16,31 @@ export async function apiRequest<T>(path: string, getToken?: () => Promise<strin
   callerSignal?.addEventListener("abort", forwardAbort, { once: true });
 
   try {
-    const response = await fetch(`${apiUrl}${path}`, {
-      ...init,
-      signal: controller.signal,
-      headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}), ...init?.headers },
-    });
-    const body = await response.text();
-    let payload: Envelope<T>;
-    try {
-      payload = JSON.parse(body) as Envelope<T>;
-    } catch {
-      throw new Error("وصل رد غير متوقع من المنصة. حاول مرة أخرى بعد لحظات.");
+    let token = getToken ? await getToken() : null;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const response = await fetch(`${apiUrl}${path}`, {
+        ...init,
+        signal: controller.signal,
+        headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}), ...init?.headers },
+      });
+      const body = await response.text();
+      let payload: Envelope<T>;
+      try {
+        payload = JSON.parse(body) as Envelope<T>;
+      } catch {
+        throw new Error("وصل رد غير متوقع من المنصة. حاول مرة أخرى بعد لحظات.");
+      }
+      if (response.status === 401 && getToken && attempt === 0) {
+        token = await getToken({ skipCache: true });
+        continue;
+      }
+      if (response.status === 401) {
+        throw new Error("انتهت جلسة تسجيل الدخول. أعد المحاولة، وإن استمرت المشكلة سجّل الدخول مرة أخرى.");
+      }
+      if (!response.ok || payload.error) throw new Error(payload.error?.message || "تعذّر الاتصال بمنصة عُقاب");
+      return payload.data as T;
     }
-    if (!response.ok || payload.error) throw new Error(payload.error?.message || "تعذّر الاتصال بمنصة عُقاب");
-    return payload.data as T;
+    throw new Error("تعذّر تجديد جلسة تسجيل الدخول.");
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
       throw new Error("استغرق الاتصال وقتًا أطول من المعتاد. تحقق من الإنترنت ثم أعد المحاولة.");
@@ -50,7 +61,7 @@ export async function enqueueEvent(slug: string, event: Record<string, unknown>)
   await AsyncStorage.setItem(QUEUE_KEY, JSON.stringify(queue.slice(-200)));
 }
 
-export async function flushEvents(getToken: () => Promise<string | null>) {
+export async function flushEvents(getToken: TokenGetter) {
   const queue = JSON.parse((await AsyncStorage.getItem(QUEUE_KEY)) || "[]") as { slug: string; event: Record<string, unknown> }[];
   const pending: typeof queue = [];
   for (const item of queue) {

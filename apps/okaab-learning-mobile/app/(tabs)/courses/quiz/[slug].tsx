@@ -6,6 +6,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { apiRequest } from "@/api";
 import { Action, ErrorState, Loading, Muted, Screen, Title } from "@/components";
 import { type AppTheme, useThemedStyles } from "@/theme";
+import { useAppLanguage } from "@/i18n";
 
 type QuizOption = { id: string; option_text: string };
 type QuizQuestion = {
@@ -18,6 +19,7 @@ type AnswerResult = { correct: boolean; explanation: string; pointsAwarded: numb
 
 export default function QuizScreen() {
   const styles = useThemedStyles(createStyles);
+  const { tr } = useAppLanguage();
   const { slug, next: nextStep, course } = useLocalSearchParams<{
     slug: string;
     next?: "task" | "finish";
@@ -31,11 +33,13 @@ export default function QuizScreen() {
   const [correct, setCorrect] = useState(0);
   const [busy, setBusy] = useState(false);
   const [finished, setFinished] = useState(false);
+  const [bestScore, setBestScore] = useState(0);
+  const [lessonCompleted, setLessonCompleted] = useState(false);
   const [error, setError] = useState("");
 
   const load = async () => {
     try {
-      setQuestions(await apiRequest<QuizQuestion[]>(`/lessons/${encodeURIComponent(slug)}/quiz`));
+      setQuestions(await apiRequest<QuizQuestion[]>(`/lessons/${encodeURIComponent(slug)}/quiz`, getToken));
       setError("");
     } catch (value) {
       setError(value instanceof Error ? value.message : "تعذّر تحميل الاختبار");
@@ -65,9 +69,9 @@ export default function QuizScreen() {
     return (
       <Screen>
         <View style={styles.empty}>
-          <Title>لا يوجد اختبار لهذا الدرس</Title>
-          <Muted>ارجع للدرس وكمل المحتوى، وسيظهر الاختبار هنا عند نشره.</Muted>
-          <Action title="العودة إلى الدرس" onPress={() => router.back()} />
+          <Title>{tr("لا يوجد اختبار لهذا الدرس", "No quiz for this lesson")}</Title>
+          <Muted>{tr("ارجع للدرس وكمل المحتوى، وسيظهر الاختبار هنا عند نشره.", "Return to the lesson and continue the content. The quiz will appear when it is published.")}</Muted>
+          <Action title={tr("العودة إلى الدرس", "Back to lesson")} onPress={() => router.back()} />
         </View>
       </Screen>
     );
@@ -114,15 +118,19 @@ export default function QuizScreen() {
           idempotencyKey: `mobile-quiz-finished-${Date.now()}`,
         }),
       });
+      let completed = false;
       if (nextStep !== "task") {
-        await apiRequest(`/lessons/${encodeURIComponent(slug)}/events`, getToken, {
+        const completion = await apiRequest<{ completed?: boolean }>(`/lessons/${encodeURIComponent(slug)}/events`, getToken, {
           method: "POST",
           body: JSON.stringify({
             type: "lesson_finished",
             idempotencyKey: `mobile-lesson-finished-${Date.now()}`,
           }),
         });
+        completed = Boolean(completion.completed);
       }
+      setBestScore((value) => Math.max(value, finalScore));
+      setLessonCompleted(completed);
       setFinished(true);
     } catch (value) {
       setError(value instanceof Error ? value.message : "تم حفظ الإجابات وتعذّر إنهاء الدرس");
@@ -135,14 +143,22 @@ export default function QuizScreen() {
     return (
       <Screen>
         <View style={styles.empty}>
-          <Text style={styles.resultMark}>{score >= 70 ? "أحسنت!" : "محاولة جيدة"}</Text>
-          <Title>نتيجتك {score}%</Title>
+          <Text style={styles.resultMark}>{score >= 70 ? tr("أحسنت!", "Well done!") : tr("محاولة جيدة", "Good attempt")}</Text>
+          <Title>{tr("نتيجتك", "Your score")} {score}%</Title>
           <Muted>
             أجبت عن {correct} من {questions.length}. نقاط الإجابات الصحيحة من أول محاولة أُضيفت
             تلقائيًا.
           </Muted>
+          <Muted>{tr("أفضل نتيجة في هذه الجلسة", "Best score in this session")}: {Math.max(bestScore, score)}%</Muted>
+          {nextStep !== "task" && !lessonCompleted ? (
+            <Text style={styles.error}>الدرس لم يكتمل بعد. أعد الاختبار للإجابة عن الأسئلة المتبقية بشكل صحيح.</Text>
+          ) : null}
           <Action
-            title={nextStep === "task" ? "انتقل إلى المهمة العملية" : "افتح المرحلة التالية"}
+            title={nextStep === "task"
+              ? tr("انتقل إلى المهمة العملية", "Continue to the practical task")
+              : lessonCompleted
+                ? tr("افتح المرحلة التالية", "Open next stage")
+                : tr("العودة إلى الكورس", "Back to course")}
             onPress={() =>
               nextStep === "task"
                 ? router.replace({
@@ -157,6 +173,21 @@ export default function QuizScreen() {
                   : router.replace("/")
             }
           />
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => {
+              setIndex(0);
+              setSelected("");
+              setResult(null);
+              setCorrect(0);
+              setFinished(false);
+              setLessonCompleted(false);
+              setError("");
+            }}
+            style={styles.retake}
+          >
+            <Text style={styles.retakeText}>{tr("إعادة الاختبار", "Retake quiz")}</Text>
+          </Pressable>
         </View>
       </Screen>
     );
@@ -166,7 +197,7 @@ export default function QuizScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.progressRow}>
           <Text style={styles.progressText}>
-            السؤال {index + 1} من {questions.length}
+            {tr("السؤال", "Question")} {index + 1} {tr("من", "of")} {questions.length}
           </Text>
           <Text style={styles.level}>
             المستوى{" "}
@@ -211,23 +242,14 @@ export default function QuizScreen() {
         {error && <Text style={styles.error}>{error}</Text>}
         {!result ? (
           <Action
-            title="تأكيد الإجابة"
+            title={tr("تأكيد الإجابة", "Submit answer")}
             onPress={() => void submit()}
             disabled={!selected}
             loading={busy}
           />
-        ) : !result.correct ? (
-          <Action
-            title="راجع الشرح وحاول السؤال مرة أخرى"
-            onPress={() => {
-              setSelected("");
-              setResult(null);
-              setError("");
-            }}
-          />
         ) : (
           <Action
-            title={index === questions.length - 1 ? "عرض النتيجة" : "السؤال التالي"}
+            title={index === questions.length - 1 ? tr("عرض النتيجة", "Show result") : tr("السؤال التالي", "Next question")}
             onPress={() => void next()}
             loading={busy}
           />
@@ -286,4 +308,6 @@ const createStyles = (theme: AppTheme) => ({
   points: { color: theme.colors.success, textAlign: "right", fontWeight: "900" },
   error: { color: theme.colors.error, textAlign: "right", fontWeight: "700" },
   resultMark: { color: theme.colors.gold, textAlign: "right", fontSize: 34, fontWeight: "900" },
+  retake: { minHeight: 48, borderWidth: 1, borderColor: theme.colors.gold, borderRadius: theme.radius.md, alignItems: "center", justifyContent: "center" },
+  retakeText: { color: theme.colors.gold, fontWeight: "900" },
 });
