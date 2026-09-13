@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { getToken } from "@clerk/tanstack-react-start";
 import {
   ArrowLeft,
   BookOpen,
@@ -846,15 +847,35 @@ export function LessonExperience({
   if (!course || !lesson) return <EmptyCourses error={error} locale={locale} />;
 
   async function sendLearningEvent(event: LearningEvent, endpoint = "events") {
-    const response = await fetch(`/api/v1/lessons/${encodeURIComponent(lessonSlug)}/${endpoint}`, {
-      method: "POST",
-      credentials: "same-origin",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        ...event,
-        idempotencyKey: event["idempotencyKey"] ?? learningEventKey(event.type),
-      }),
+    const url = `/api/v1/lessons/${encodeURIComponent(lessonSlug)}/${endpoint}`;
+    const body = JSON.stringify({
+      ...event,
+      idempotencyKey: event["idempotencyKey"] ?? learningEventKey(event.type),
     });
+    const post = async (skipCache = false) => {
+      const token = await getToken(skipCache ? { skipCache: true } : undefined).catch(() => null);
+      return fetch(url, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "content-type": "application/json",
+          ...(token ? { authorization: `Bearer ${token}` } : {}),
+        },
+        body,
+      });
+    };
+    let response = await post();
+    if (response.status === 401) {
+      const refreshed = await getToken({ skipCache: true }).catch(() => null);
+      if (refreshed) {
+        response = await fetch(url, {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "content-type": "application/json", authorization: `Bearer ${refreshed}` },
+          body,
+        });
+      }
+    }
     const payload = await response.json().catch(() => null);
     if (response.status === 401) {
       setProgressMessage(copy.signInToSave);

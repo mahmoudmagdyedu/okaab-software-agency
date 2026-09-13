@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+import { ClerkBoundary } from "@/components/auth/ClerkBoundary";
 import { LessonExperience } from "@/components/courses/CourseExperience";
 import { OkaabStyles, SiteFooter, SiteHeader } from "@/components/okaab/SiteChrome";
 import { I18nProvider, useI18n } from "@/lib/i18n";
@@ -27,7 +28,9 @@ function LessonPage() {
   return (
     <ThemeProvider>
       <I18nProvider>
-        <LessonContent courseSlug={courseSlug} lessonSlug={lessonSlug} />
+        <ClerkBoundary>
+          <LessonContent courseSlug={courseSlug} lessonSlug={lessonSlug} />
+        </ClerkBoundary>
       </I18nProvider>
     </ThemeProvider>
   );
