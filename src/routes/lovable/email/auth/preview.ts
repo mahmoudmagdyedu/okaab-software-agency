@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto'
 import * as React from 'react'
 import { render } from '@react-email/render'
 import { createFileRoute } from '@tanstack/react-router'
@@ -73,9 +74,12 @@ export const Route = createFileRoute("/lovable/email/auth/preview")({
           )
         }
 
-        // Verify the caller is authorized with LOVABLE_API_KEY
-        const authHeader = request.headers.get('Authorization')
-        if (!authHeader || authHeader !== `Bearer ${apiKey}`) {
+        // Verify the caller is authorized with LOVABLE_API_KEY using constant-time comparison
+        const authHeader = request.headers.get('Authorization') || ''
+        const expectedHeader = `Bearer ${apiKey}`
+        const suppliedBuf = Buffer.from(authHeader)
+        const expectedBuf = Buffer.from(expectedHeader)
+        if (suppliedBuf.length !== expectedBuf.length || !timingSafeEqual(suppliedBuf, expectedBuf)) {
           return Response.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
