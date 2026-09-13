@@ -24,6 +24,7 @@ import type {
   YouTubeVideo,
 } from "@/integrations/supabase/types";
 import { LEARNING_COPY, learningLanguage } from "@/lib/learning-copy";
+import { trustedSlideEvent } from "@/lib/lesson-message";
 
 type RoadmapCourse = { roadmap_id: string; course_id: string; sort_order: number };
 type LearningEvent = { type: string; [key: string]: unknown };
@@ -695,13 +696,12 @@ function SlideViewer({
 
   useEffect(() => {
     const receive = (message: MessageEvent) => {
-      if (
-        message.origin !== window.location.origin ||
-        message.source !== frameRef.current?.contentWindow
-      )
-        return;
-      const payload = message.data as { source?: string; event?: LearningEvent };
-      if (payload?.source === "okaab-lesson" && payload.event) onEvent(payload.event, deck);
+      const event = trustedSlideEvent(
+        message,
+        frameRef.current?.contentWindow,
+        window.location.origin,
+      );
+      if (event) onEvent(event, deck);
     };
     window.addEventListener("message", receive);
     return () => window.removeEventListener("message", receive);
@@ -861,15 +861,29 @@ export function LessonExperience({
       return null;
     }
     if (!response.ok) {
+      const missing = Array.isArray(payload?.error?.missing)
+        ? (payload.error.missing as string[])
+        : [];
+      const missingLabels: Record<string, string> = {
+        video: copy.missingVideo,
+        slides: copy.missingSlides,
+        quiz: copy.missingQuiz,
+        task: copy.missingTask,
+      };
+      const preciseMessage = missing
+        .map((key) => missingLabels[key])
+        .filter(Boolean)
+        .join(" · ");
       setProgressMessage(
-        learningLanguage(locale) === "ar"
-          ? payload?.error?.message || copy.saveFailed
-          : copy.saveFailed,
+        preciseMessage ||
+          (learningLanguage(locale) === "ar"
+            ? payload?.error?.message || copy.saveFailed
+            : copy.saveFailed),
       );
       return null;
     }
     setProgressMessage(endpoint === "complete" ? copy.completed : copy.saved);
-    if (endpoint === "complete") setLessonCompleted(true);
+    if (endpoint === "complete" && payload?.data?.completed === true) setLessonCompleted(true);
     return payload?.data ?? {};
   }
 
@@ -878,9 +892,9 @@ export function LessonExperience({
       await sendLearningEvent(event);
       return;
     }
-    const correctAnswers = Number(event.correctAnswers);
-    const totalQuestions = Number(event.totalQuestions);
-    const scorePercent = Number(event.scorePercent);
+    const correctAnswers = Number(event["correctAnswers"]);
+    const totalQuestions = Number(event["totalQuestions"]);
+    const scorePercent = Number(event["scorePercent"]);
     if (
       !Number.isInteger(correctAnswers) ||
       !Number.isInteger(totalQuestions) ||

@@ -342,12 +342,12 @@ export default function Profile() {
               <Text style={styles.statLabel}>الترتيب</Text>
             </View>
           </View>
-          <Text style={styles.level}>رتبة {data!.level.name}</Text>
+          <Text style={styles.level}>المستوى: {data!.level.name}</Text>
           <View style={styles.track}>
             <View style={[styles.fill, { width: `${levelProgress}%` }]} />
           </View>
           {data!.level.next && (
-            <Muted>فاضل {data!.level.next - data!.points} نقطة للرتبة التالية.</Muted>
+            <Muted>فاضل {data!.level.next - data!.points} نقطة للمستوى التالي.</Muted>
           )}
         </View>
         <View style={styles.notifications}>

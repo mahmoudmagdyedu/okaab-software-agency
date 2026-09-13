@@ -5,6 +5,7 @@ import { getDb, sql } from "@/lib/db.server";
 import { consumeQuoteRateLimits } from "@/lib/quote-rate-limit";
 import { slideQuizAward } from "@/lib/slide-quiz-score";
 import { getAccountProfile } from "@/lib/admin-auth.server";
+import { lessonCompletion, type LessonCompletionFacts } from "@/lib/lesson-completion";
 
 export type LearnerProfile = {
   id: string;
@@ -442,6 +443,113 @@ export async function answerQuiz(input: {
   }
 }
 
+type CompletionRow = {
+  status: string | null;
+  video_count: number;
+  video_percent: number | null;
+  slide_deck_count: number;
+  last_slide: number | null;
+  required_slide_index: number | null;
+  quiz_question_count: number;
+  correct_quiz_question_count: number;
+  embedded_quiz_count: number;
+  completed_embedded_quiz_count: number;
+  task_enabled: boolean;
+  task_passed: boolean | null;
+};
+
+async function readLessonCompletion(
+  request: () => InstanceType<typeof sql.Request>,
+  userId: string,
+  lessonId: string,
+) {
+  const result = await request()
+    .input("user_id", sql.NVarChar(64), userId)
+    .input("lesson_id", sql.NVarChar(64), lessonId).query<CompletionRow>(`
+      select top (1)
+        p.status,p.video_percent,p.last_slide,p.task_passed,l.task_enabled,l.required_slide_index,
+        (select count(*) from okaab.youtube_videos v where v.lesson_id=l.id and v.is_available=1) video_count,
+        (select count(*) from okaab.slide_decks d where d.lesson_id=l.id and d.is_published=1) slide_deck_count,
+        (select count(*) from okaab.quiz_questions q where q.lesson_id=l.id and q.is_published=1) quiz_question_count,
+        (select count(distinct a.question_id)
+           from okaab.quiz_attempts a join okaab.quiz_questions q on q.id=a.question_id
+          where a.user_id=@user_id and q.lesson_id=l.id and q.is_published=1 and a.is_correct=1
+        ) correct_quiz_question_count,
+        (select count(*)
+           from okaab.slide_decks d join okaab.slide_assets sa on sa.deck_id=d.id and sa.path=d.entry_path
+          where d.lesson_id=l.id and d.is_published=1
+            and (convert(varchar(max),sa.content) like '%UQ_TEST%' or convert(varchar(max),sa.content) like '%okaab:quiz-finished%')
+        ) embedded_quiz_count,
+        (select count(distinct d.id)
+           from okaab.slide_decks d join okaab.slide_assets sa on sa.deck_id=d.id and sa.path=d.entry_path
+          where d.lesson_id=l.id and d.is_published=1
+            and (convert(varchar(max),sa.content) like '%UQ_TEST%' or convert(varchar(max),sa.content) like '%okaab:quiz-finished%')
+            and exists(select 1 from okaab.slide_quiz_attempts a where a.user_id=@user_id and a.lesson_id=l.id and a.deck_id=d.id)
+        ) completed_embedded_quiz_count
+      from okaab.lessons l
+      left join okaab.lesson_progress p on p.lesson_id=l.id and p.user_id=@user_id
+      where l.id=@lesson_id
+    `);
+  const row = result.recordset[0];
+  if (!row) throw new ApiProblem("الدرس غير موجود", 404);
+  const facts: LessonCompletionFacts = {
+    status: row.status,
+    videoCount: Number(row.video_count ?? 0),
+    videoPercent: Number(row.video_percent ?? 0),
+    slideDeckCount: Number(row.slide_deck_count ?? 0),
+    lastSlide: Number(row.last_slide ?? 0),
+    requiredSlideIndex: Number(row.required_slide_index ?? 1),
+    quizQuestionCount: Number(row.quiz_question_count ?? 0),
+    correctQuizQuestionCount: Number(row.correct_quiz_question_count ?? 0),
+    embeddedQuizCount: Number(row.embedded_quiz_count ?? 0),
+    completedEmbeddedQuizCount: Number(row.completed_embedded_quiz_count ?? 0),
+    taskEnabled: Boolean(row.task_enabled),
+    taskPassed: Boolean(row.task_passed),
+  };
+  return lessonCompletion(facts);
+}
+
+async function finalizeLessonIfEligible(
+  transaction: InstanceType<typeof sql.Transaction>,
+  userId: string,
+  lessonId: string,
+  rules: typeof DEFAULT_POINTS,
+) {
+  const request = () => new sql.Request(transaction);
+  const completion = await readLessonCompletion(request, userId, lessonId);
+  if (!completion.eligible) return completion;
+  await request()
+    .input("user_id", sql.NVarChar(64), userId)
+    .input("lesson_id", sql.NVarChar(64), lessonId).query(`
+      update okaab.lesson_progress
+      set status='completed',completed_at=coalesce(completed_at,sysutcdatetime()),updated_at=sysutcdatetime()
+      where user_id=@user_id and lesson_id=@lesson_id
+    `);
+  await awardPoints(transaction, {
+    userId,
+    amount: rules.interactive_complete,
+    reason: "interactive_complete",
+    lessonId,
+    idempotencyKey: `lesson:${userId}:${lessonId}`,
+  });
+  await unlockBadge(transaction, userId, "first_lesson", `lesson:${lessonId}`);
+  return { ...completion, completed: true };
+}
+
+export async function getLessonCompletion(slug: string) {
+  const learner = await requireLearnerProfile();
+  const pool = await getDb();
+  const lesson = await pool
+    .request()
+    .input("slug", sql.NVarChar(180), slug)
+    .query<{ id: string }>(
+      "select top (1) id from okaab.lessons where slug=@slug and is_published=1",
+    );
+  const lessonId = lesson.recordset[0]?.id;
+  if (!lessonId) throw new ApiProblem("الدرس غير موجود", 404);
+  return readLessonCompletion(() => pool.request(), learner.id, lessonId);
+}
+
 export async function recordLessonEvent(slug: string, event: LessonEvent) {
   const learner = await requireLearnerProfile();
   const pool = await getDb();
@@ -458,6 +566,7 @@ export async function recordLessonEvent(slug: string, event: LessonEvent) {
   if (!lessonId || !lessonRow) throw new ApiProblem("الدرس غير موجود", 404);
   const transaction = new sql.Transaction(pool);
   await transaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
+  let completion;
   try {
     if (event.type === "quiz_completed") {
       const priorAttempt = await new sql.Request(transaction)
@@ -471,12 +580,15 @@ export async function recordLessonEvent(slug: string, event: LessonEvent) {
           where user_id=@user_id and attempt_id=@attempt_id
         `);
       if (priorAttempt.recordset[0]) {
+        const rules = await pointsRules(transaction);
+        completion = await finalizeLessonIfEligible(transaction, learner.id, lessonId, rules);
         await transaction.commit();
         return {
           accepted: true,
           duplicate: true,
           scorePercent: priorAttempt.recordset[0].score_percent,
           awardedXp: priorAttempt.recordset[0].awarded_xp,
+          completion,
         };
       }
       const deck = await new sql.Request(transaction)
@@ -569,9 +681,16 @@ export async function recordLessonEvent(slug: string, event: LessonEvent) {
       if (event.scorePercent === 100) {
         await unlockBadge(transaction, learner.id, "perfect_quiz", `deck-quiz:${lessonId}`);
       }
+      completion = await finalizeLessonIfEligible(transaction, learner.id, lessonId, rules);
       await touchDailyStreak(transaction, learner.id);
       await transaction.commit();
-      return { accepted: true, duplicate: false, scorePercent: event.scorePercent, awardedXp };
+      return {
+        accepted: true,
+        duplicate: false,
+        scorePercent: event.scorePercent,
+        awardedXp,
+        completion,
+      };
     }
     if (event.type === "slide_changed") {
       await new sql.Request(transaction)
@@ -579,7 +698,7 @@ export async function recordLessonEvent(slug: string, event: LessonEvent) {
         .input("lesson_id", sql.NVarChar(64), lessonId)
         .input("value", sql.Int, Math.max(0, event.index ?? 0))
         .query(
-          "update okaab.lesson_progress set last_slide=case when @value>last_slide then @value else last_slide end,status='in_progress',updated_at=sysutcdatetime() where user_id=@user_id and lesson_id=@lesson_id",
+          "update okaab.lesson_progress set last_slide=case when @value>last_slide then @value else last_slide end,status=case when status='completed' then status else 'in_progress' end,updated_at=sysutcdatetime() where user_id=@user_id and lesson_id=@lesson_id",
         );
     }
     if (event.type === "video_progress") {
@@ -589,7 +708,7 @@ export async function recordLessonEvent(slug: string, event: LessonEvent) {
         .input("lesson_id", sql.NVarChar(64), lessonId)
         .input("value", sql.Decimal(5, 2), percent)
         .query(
-          "update okaab.lesson_progress set video_percent=case when @value>video_percent then @value else video_percent end,status='in_progress',updated_at=sysutcdatetime() where user_id=@user_id and lesson_id=@lesson_id",
+          "update okaab.lesson_progress set video_percent=case when @value>video_percent then @value else video_percent end,status=case when status='completed' then status else 'in_progress' end,updated_at=sysutcdatetime() where user_id=@user_id and lesson_id=@lesson_id",
         );
       if (percent >= 85)
         await awardPoints(transaction, {
@@ -617,38 +736,11 @@ export async function recordLessonEvent(slug: string, event: LessonEvent) {
       await unlockBadge(transaction, learner.id, "first_task", `task:${lessonId}`);
     }
     if (event.type === "lesson_finished") {
-      await new sql.Request(transaction)
-        .input("user_id", sql.NVarChar(64), learner.id)
-        .input("lesson_id", sql.NVarChar(64), lessonId).query(`
-        update p set status='completed',completed_at=coalesce(completed_at,sysutcdatetime()),updated_at=sysutcdatetime()
-        from okaab.lesson_progress p join okaab.lessons l on l.id=p.lesson_id
-        where p.user_id=@user_id and p.lesson_id=@lesson_id
-          and (not exists(select 1 from okaab.youtube_videos v where v.lesson_id=l.id and v.is_available=1) or p.video_percent>=85)
-          and (not exists(select 1 from okaab.slide_decks d where d.lesson_id=l.id and d.is_published=1) or p.last_slide>=coalesce(l.required_slide_index,1))
-          and (not exists(select 1 from okaab.quiz_questions q where q.lesson_id=l.id and q.is_published=1) or
-               (select count(distinct a.question_id) from okaab.quiz_attempts a join okaab.quiz_questions q on q.id=a.question_id where a.user_id=@user_id and q.lesson_id=l.id and q.is_published=1 and a.is_correct=1)=(select count(*) from okaab.quiz_questions q where q.lesson_id=l.id and q.is_published=1))
-          and (l.task_enabled=0 or p.task_passed=1)
-      `);
-      const completed = await new sql.Request(transaction)
-        .input("user_id", sql.NVarChar(64), learner.id)
-        .input("lesson_id", sql.NVarChar(64), lessonId)
-        .query(
-          "select status from okaab.lesson_progress where user_id=@user_id and lesson_id=@lesson_id",
-        );
-      if (completed.recordset[0]?.status === "completed") {
-        await awardPoints(transaction, {
-          userId: learner.id,
-          amount: rules.interactive_complete,
-          reason: "interactive_complete",
-          lessonId,
-          idempotencyKey: `lesson:${learner.id}:${lessonId}`,
-        });
-        await unlockBadge(transaction, learner.id, "first_lesson", `lesson:${lessonId}`);
-      }
+      completion = await finalizeLessonIfEligible(transaction, learner.id, lessonId, rules);
     }
     await touchDailyStreak(transaction, learner.id);
     await transaction.commit();
-    return { duplicate: false };
+    return { duplicate: false, ...(event.type === "lesson_finished" ? { completion } : {}) };
   } catch (error) {
     await transaction.rollback();
     throw error;
@@ -792,7 +884,7 @@ export async function getOverview() {
     { name: "كاسر", minimum: 2000, next: 5000 },
     { name: "مُحلّق", minimum: 800, next: 2000 },
     { name: "ناهض", minimum: 300, next: 800 },
-    { name: "هيثم", minimum: 0, next: 300 },
+    { name: "مبتدئ", minimum: 0, next: 300 },
   ];
   const level = levels.find((item) => points >= item.minimum) ?? levels[levels.length - 1];
   return {
@@ -884,19 +976,20 @@ export async function getLeaderboard(period: "weekly" | "monthly" | "all") {
   `);
   const sets = result.recordsets as unknown as Array<Array<Record<string, unknown>>>;
   const hideSurname = (row: Record<string, unknown>) => {
-    const names = String(row["display_name"] ?? "متعلّم عُقاب")
-      .trim()
-      .split(/\s+/u)
-      .filter(Boolean);
+    const raw = String(row["display_name"] ?? "").trim();
+    const safeName = !raw || /^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(raw) ? "متعلّم عُقاب" : raw;
+    const names = safeName.split(/\s+/u).filter(Boolean);
     return {
-      ...row,
       display_name:
         names.length > 1
           ? `${names[0]} ${names
               .slice(1)
               .map((name) => `${name[0]}.`)
               .join(" ")}`
-          : names[0],
+          : (names[0] ?? "متعلّم عُقاب"),
+      avatar_url: row["avatar_url"] ?? null,
+      points: Number(row["points"] ?? 0),
+      rank: Number(row["rank"] ?? 0),
     };
   };
   return {

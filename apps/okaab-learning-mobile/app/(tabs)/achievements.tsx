@@ -63,7 +63,7 @@ export default function AchievementsScreen() {
             <Metric value={String(overview!.streak.current_days)} label="أيام متواصلة" />
             <Metric value={String(overview!.badges.length)} label="شارات" />
           </View>
-          <Text style={styles.level}>رتبتك الحالية: {overview!.level.name}</Text>
+          <Text style={styles.level}>مستواك الحالي: {overview!.level.name}</Text>
         </View>
 
         <Title>شاراتك</Title>

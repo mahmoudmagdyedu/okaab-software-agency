@@ -9,7 +9,6 @@ import { ThemeProvider } from "@/lib/theme";
 
 type Period = "weekly" | "monthly" | "all";
 type Leader = {
-  id: string;
   display_name: string;
   avatar_url: string | null;
   points: number;
@@ -120,7 +119,8 @@ function LeaderboardPage() {
 
 function LeaderboardContent() {
   const { locale, setLocale, t } = useI18n();
-  const copy = COPY[learningLanguage(locale)];
+  const language = learningLanguage(locale);
+  const copy = COPY[language];
   const [period, setPeriod] = useState<Period>("weekly");
   const [board, setBoard] = useState<Board | null>(null);
   const [error, setError] = useState("");
@@ -154,7 +154,7 @@ function LeaderboardContent() {
       className="min-h-screen bg-[var(--ok-paper)] text-[var(--ok-ink)]"
     >
       <OkaabStyles />
-      <SiteHeader lang={locale} onLanguageChange={(next) => void setLocale(next)} />
+      <SiteHeader lang={language} locale={locale} onLocaleChange={setLocale} />
       <main className="ok-container py-12 sm:py-16">
         <p className="font-bold text-[var(--ok-accent-text)]">{copy.eyebrow}</p>
         <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
@@ -198,7 +198,7 @@ function LeaderboardContent() {
             </div>
             {board.leaders.map((leader) => (
               <div
-                key={leader.id}
+                key={`${leader.rank}:${leader.display_name}`}
                 className="grid min-h-16 grid-cols-[64px_minmax(0,1fr)_auto] items-center border-b border-[var(--ok-ink)]/15 px-4 last:border-0"
               >
                 <span className="flex items-center gap-1 font-bold">
@@ -222,7 +222,7 @@ function LeaderboardContent() {
           </div>
         )}
       </main>
-      <SiteFooter lang={locale} />
+      <SiteFooter lang={language} />
     </div>
   );
 }

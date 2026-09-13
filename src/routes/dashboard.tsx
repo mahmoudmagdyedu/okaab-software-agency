@@ -166,14 +166,16 @@ function DashboardContent() {
               <Stat
                 icon={Award}
                 value={data.points}
-                label={`${copy.points} · ${localizedLearningLevel(data.level.name, language)}`}
+                label={`${copy.points} · ${copy.level}: ${localizedLearningLevel(data.level.name, language)}`}
               />
               <Stat icon={Flame} value={data.streak.current_days} label={copy.streak} />
               <Stat icon={Medal} value={data.rank ?? "—"} label={copy.rank} />
             </section>
             <section className="mt-4 rounded-3xl border-2 border-[var(--ok-ink)] bg-[var(--ok-card)] p-5 sm:p-6">
               <div className="flex items-center justify-between gap-4 text-sm font-bold">
-                <span>{localizedLearningLevel(data.level.name, language)}</span>
+                <span>
+                  {copy.level}: {localizedLearningLevel(data.level.name, language)}
+                </span>
                 <span className="opacity-60">
                   {data.level.next === null
                     ? copy.topLevel
