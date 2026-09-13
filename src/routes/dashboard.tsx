@@ -108,7 +108,7 @@ function DashboardContent() {
       className="min-h-screen bg-[var(--ok-paper)] text-[var(--ok-ink)]"
     >
       <OkaabStyles />
-      <SiteHeader lang={language} locale={locale} onLocaleChange={setLocale} />
+      <SiteHeader lang={language} locale={locale} onLocaleChange={setLocale} showAuth />
       <main className="ok-container py-9 sm:py-14 lg:py-16">
         <section className="relative overflow-hidden rounded-[2.25rem] border-2 border-[var(--ok-ink)] bg-[var(--ok-ink)] p-6 text-[var(--ok-paper)] sm:p-9">
           <div className="absolute -end-20 -top-24 size-64 rounded-full bg-[#E8A33D]/25 blur-3xl" />

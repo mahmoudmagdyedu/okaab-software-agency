@@ -46,7 +46,7 @@ function LessonContent({ courseSlug, lessonSlug }: { courseSlug: string; lessonS
       className="min-h-screen bg-[var(--ok-paper)] text-[var(--ok-ink)]"
     >
       <OkaabStyles />
-      <SiteHeader lang={language} locale={locale} onLocaleChange={setLocale} />
+      <SiteHeader lang={language} locale={locale} onLocaleChange={setLocale} showAuth />
       <main className="ok-container py-8 sm:py-12">
         <LessonExperience courseSlug={courseSlug} lessonSlug={lessonSlug} locale={locale} />
       </main>

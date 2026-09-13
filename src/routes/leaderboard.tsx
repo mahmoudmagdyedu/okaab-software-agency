@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Medal } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { ClerkBoundary } from "@/components/auth/ClerkBoundary";
 import { OkaabStyles, SiteFooter, SiteHeader } from "@/components/okaab/SiteChrome";
 import { I18nProvider, useI18n } from "@/lib/i18n";
 import { learningLanguage, type LearningLanguage } from "@/lib/learning-copy";
@@ -111,7 +112,9 @@ function LeaderboardPage() {
   return (
     <ThemeProvider>
       <I18nProvider>
-        <LeaderboardContent />
+        <ClerkBoundary>
+          <LeaderboardContent />
+        </ClerkBoundary>
       </I18nProvider>
     </ThemeProvider>
   );
@@ -154,7 +157,7 @@ function LeaderboardContent() {
       className="min-h-screen bg-[var(--ok-paper)] text-[var(--ok-ink)]"
     >
       <OkaabStyles />
-      <SiteHeader lang={language} locale={locale} onLocaleChange={setLocale} />
+      <SiteHeader lang={language} locale={locale} onLocaleChange={setLocale} showAuth />
       <main className="ok-container py-12 sm:py-16">
         <p className="font-bold text-[var(--ok-accent-text)]">{copy.eyebrow}</p>
         <div className="mt-2 flex flex-wrap items-end justify-between gap-4">

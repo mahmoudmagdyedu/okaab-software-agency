@@ -1,3 +1,4 @@
+import { useAuth } from "@clerk/tanstack-react-start";
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowUpRight, Menu, X, Sun, Moon, Globe } from "lucide-react";
@@ -28,6 +29,7 @@ type ChromeCopy = {
   projects: string;
   leaderboard: string;
   dashboard: string;
+  signIn: string;
 };
 
 export const CHROME: Record<ChromeLang, ChromeCopy> = {
@@ -43,6 +45,7 @@ export const CHROME: Record<ChromeLang, ChromeCopy> = {
     projects: "المشاريع",
     leaderboard: "المتصدرون",
     dashboard: "لوحة التعلّم",
+    signIn: "تسجيل الدخول",
     footerLinks: [
       { label: "الخدمات", hash: "catalog" },
       { label: "طريقة شغلنا", hash: "about" },
@@ -67,6 +70,7 @@ export const CHROME: Record<ChromeLang, ChromeCopy> = {
     projects: "Projects",
     leaderboard: "Leaderboard",
     dashboard: "Dashboard",
+    signIn: "Sign in",
     footerLinks: [
       { label: "Services", hash: "catalog" },
       { label: "How we work", hash: "about" },
@@ -91,6 +95,7 @@ export const CHROME: Record<ChromeLang, ChromeCopy> = {
     projects: "Projets",
     leaderboard: "Classement",
     dashboard: "Tableau de bord",
+    signIn: "Se connecter",
     footerLinks: [
       { label: "Services", hash: "catalog" },
       { label: "Notre méthode", hash: "about" },
@@ -115,6 +120,7 @@ export const CHROME: Record<ChromeLang, ChromeCopy> = {
     projects: "Proyectos",
     leaderboard: "Clasificación",
     dashboard: "Panel",
+    signIn: "Iniciar sesión",
     footerLinks: [
       { label: "Servicios", hash: "catalog" },
       { label: "Cómo trabajamos", hash: "about" },
@@ -234,12 +240,14 @@ export function SiteHeader({
   path,
   locale,
   onLocaleChange,
+  showAuth = false,
 }: {
   lang?: ChromeLang;
   alternates?: Record<string, string>;
   path?: string;
   locale?: string;
   onLocaleChange?: (locale: string) => void;
+  showAuth?: boolean;
 }) {
   const { theme, toggleTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -319,6 +327,7 @@ export function SiteHeader({
           >
             {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
           </button>
+          {showAuth && <SiteSignInLink label={c.signIn} />}
           <Link
             to="/"
             hash="quote"
@@ -417,6 +426,9 @@ export function SiteHeader({
               {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
             </button>
           </div>
+          {showAuth && (
+            <SiteSignInLink label={c.signIn} mobile onNavigate={() => setMenuOpen(false)} />
+          )}
           <Link
             to="/"
             hash="quote"
@@ -428,6 +440,33 @@ export function SiteHeader({
         </div>
       )}
     </nav>
+  );
+}
+
+function SiteSignInLink({
+  label,
+  mobile = false,
+  onNavigate,
+}: {
+  label: string;
+  mobile?: boolean;
+  onNavigate?: () => void;
+}) {
+  const { isLoaded, isSignedIn } = useAuth();
+  if (!isLoaded || isSignedIn) return null;
+  return (
+    <Link
+      to="/sign-in/$"
+      params={{ _splat: "" }}
+      onClick={onNavigate}
+      className={
+        mobile
+          ? "rounded-full border-2 border-[var(--ok-ink)] px-4 py-3 text-center font-bold"
+          : "rounded-full border-2 border-[var(--ok-ink)] px-3 py-2 font-bold whitespace-nowrap transition-colors hover:bg-[var(--ok-ink)] hover:text-[var(--ok-paper)]"
+      }
+    >
+      {label}
+    </Link>
   );
 }
 

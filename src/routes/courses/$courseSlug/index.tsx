@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+import { ClerkBoundary } from "@/components/auth/ClerkBoundary";
 import { CourseOverview } from "@/components/courses/CourseExperience";
 import { OkaabStyles, SiteFooter, SiteHeader } from "@/components/okaab/SiteChrome";
 import { I18nProvider, useI18n } from "@/lib/i18n";
@@ -22,7 +23,9 @@ function CoursePage() {
   return (
     <ThemeProvider>
       <I18nProvider>
-        <CourseContent courseSlug={courseSlug} />
+        <ClerkBoundary>
+          <CourseContent courseSlug={courseSlug} />
+        </ClerkBoundary>
       </I18nProvider>
     </ThemeProvider>
   );
@@ -38,7 +41,7 @@ function CourseContent({ courseSlug }: { courseSlug: string }) {
       className="min-h-screen bg-[var(--ok-paper)] text-[var(--ok-ink)]"
     >
       <OkaabStyles />
-      <SiteHeader lang={language} locale={locale} onLocaleChange={setLocale} />
+      <SiteHeader lang={language} locale={locale} onLocaleChange={setLocale} showAuth />
       <main className="ok-container py-10 sm:py-14 lg:py-16">
         <CourseOverview slug={courseSlug} locale={locale} />
       </main>

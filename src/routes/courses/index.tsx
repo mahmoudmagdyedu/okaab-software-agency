@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+import { ClerkBoundary } from "@/components/auth/ClerkBoundary";
 import { CoursesCatalog } from "@/components/courses/CourseExperience";
 import { OkaabStyles, SiteFooter, SiteHeader } from "@/components/okaab/SiteChrome";
 import { I18nProvider, useI18n } from "@/lib/i18n";
@@ -27,7 +28,9 @@ function CoursesPage() {
   return (
     <ThemeProvider>
       <I18nProvider>
-        <CoursesContent />
+        <ClerkBoundary>
+          <CoursesContent />
+        </ClerkBoundary>
       </I18nProvider>
     </ThemeProvider>
   );
@@ -44,7 +47,7 @@ function CoursesContent() {
       className="min-h-screen bg-[var(--ok-paper)] text-[var(--ok-ink)]"
     >
       <OkaabStyles />
-      <SiteHeader lang={language} locale={locale} onLocaleChange={setLocale} />
+      <SiteHeader lang={language} locale={locale} onLocaleChange={setLocale} showAuth />
       <main>
         <section className="border-b-2 border-[var(--ok-ink)] paper-grain">
           <div className="ok-container py-14 sm:py-20 lg:py-24">
