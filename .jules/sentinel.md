@@ -1,0 +1,4 @@
+## 2025-02-21 - [CRITICAL] Fix unhandled exception DoS in timingSafeEqual validation
+**Vulnerability:** Node.js `crypto.timingSafeEqual` strictly requires input Buffers to have the exact same byte length. The application was checking the string length of the expected and supplied hashes prior to creating Buffers. An attacker could supply a multi-byte character signature (e.g., emojis or Arabic text) that matches the string length but differs in byte length, causing an unhandled `TypeError` that crashes the endpoint (Denial of Service).
+**Learning:** Checking string lengths before using `timingSafeEqual` is insufficient and dangerous when multi-byte characters are possible. The length comparison must always be done on the instantiated Buffer byte lengths.
+**Prevention:** When using `timingSafeEqual`, always convert inputs to `Buffer` objects first, and compare their `.length` properties before proceeding with the timing-safe comparison.
