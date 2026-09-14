@@ -141,6 +141,15 @@ export function CoursesCatalog({ locale = "ar" }: { locale?: string }) {
   if (!roadmaps.length && !courses.length && !latest.length)
     return <EmptyCourses error={error} locale={locale} />;
 
+  // ⚡ Bolt: Build map for O(1) lookups instead of O(N) array search in render loop
+  const coursesById = useMemo(() => {
+    const map = new Map<string, Course>();
+    for (const c of courses) {
+      map.set(c.id, c);
+    }
+    return map;
+  }, [courses]);
+
   const linkedCourseIds = new Set(links.map((link) => link.course_id));
   const standaloneCourses = courses.filter((course) => !linkedCourseIds.has(course.id));
 
@@ -150,7 +159,7 @@ export function CoursesCatalog({ locale = "ar" }: { locale?: string }) {
         const roadmapCourses = links
           .filter((link) => link.roadmap_id === roadmap.id)
           .sort((a, b) => a.sort_order - b.sort_order)
-          .map((link) => courses.find((course) => course.id === link.course_id))
+          .map((link) => coursesById.get(link.course_id))
           .filter(Boolean) as Course[];
         if (!roadmapCourses.length) return null;
         return (
@@ -309,6 +318,23 @@ export function CourseOverview({ slug, locale = "ar" }: { slug: string; locale?:
     };
   }, [locale, slug]);
 
+  // ⚡ Bolt: Replace O(N²) nested loops in rendering with O(N) map building
+  const videoCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const v of videos) {
+      if (v.lesson_id) counts.set(v.lesson_id, (counts.get(v.lesson_id) || 0) + 1);
+    }
+    return counts;
+  }, [videos]);
+
+  const slideCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const s of slides) {
+      if (s.lesson_id) counts.set(s.lesson_id, (counts.get(s.lesson_id) || 0) + 1);
+    }
+    return counts;
+  }, [slides]);
+
   if (loading)
     return (
       <div className="h-80 animate-pulse rounded-3xl border-2 border-[var(--ok-ink)]/20 bg-[var(--ok-card)]" />
@@ -344,8 +370,9 @@ export function CourseOverview({ slug, locale = "ar" }: { slug: string; locale?:
         </div>
         <div className="space-y-3">
           {lessons.map((lesson, index) => {
-            const videoCount = videos.filter((video) => video.lesson_id === lesson.id).length;
-            const slideCount = slides.filter((deck) => deck.lesson_id === lesson.id).length;
+            // ⚡ Bolt: O(1) map lookup instead of O(N) array filter for each lesson
+            const videoCount = videoCounts.get(lesson.id) || 0;
+            const slideCount = slideCounts.get(lesson.id) || 0;
             return (
               <Link
                 key={lesson.id}
