@@ -219,11 +219,19 @@ export async function getQuiz(slug: string) {
     where l.slug=@slug and l.is_published=1 and q.is_published=1
     order by o.sort_order,o.id
   `);
+  // Optimization: Pre-group options by question_id using a Map to avoid O(Q * O) nested filtering.
+  const optionsByQuestionId = new Map<string, typeof options.recordset>();
+  for (const option of options.recordset) {
+    const list = optionsByQuestionId.get(option.question_id);
+    if (list) {
+      list.push(option);
+    } else {
+      optionsByQuestionId.set(option.question_id, [option]);
+    }
+  }
   return questions.recordset.map((question: { id: string }) => ({
     ...question,
-    options: options.recordset.filter(
-      (option: { question_id: string }) => option.question_id === question.id,
-    ),
+    options: optionsByQuestionId.get(question.id) ?? [],
   }));
 }
 

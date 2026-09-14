@@ -127,6 +127,17 @@ export function CoursesCatalog({ locale = "ar" }: { locale?: string }) {
       .finally(() => setLoading(false));
   }, []);
 
+  // Optimization: Memoize maps and lookups to avoid O(R * L * C) nested searches on every render.
+  const coursesById = useMemo(
+    () => new Map(courses.map((course) => [course.id, course])),
+    [courses],
+  );
+  const linkedCourseIds = useMemo(() => new Set(links.map((link) => link.course_id)), [links]);
+  const standaloneCourses = useMemo(
+    () => courses.filter((course) => !linkedCourseIds.has(course.id)),
+    [courses, linkedCourseIds],
+  );
+
   if (loading)
     return (
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -138,11 +149,9 @@ export function CoursesCatalog({ locale = "ar" }: { locale?: string }) {
         ))}
       </div>
     );
+
   if (!roadmaps.length && !courses.length && !latest.length)
     return <EmptyCourses error={error} locale={locale} />;
-
-  const linkedCourseIds = new Set(links.map((link) => link.course_id));
-  const standaloneCourses = courses.filter((course) => !linkedCourseIds.has(course.id));
 
   return (
     <div className="space-y-14">
@@ -150,7 +159,7 @@ export function CoursesCatalog({ locale = "ar" }: { locale?: string }) {
         const roadmapCourses = links
           .filter((link) => link.roadmap_id === roadmap.id)
           .sort((a, b) => a.sort_order - b.sort_order)
-          .map((link) => courses.find((course) => course.id === link.course_id))
+          .map((link) => coursesById.get(link.course_id))
           .filter(Boolean) as Course[];
         if (!roadmapCourses.length) return null;
         return (
@@ -309,6 +318,27 @@ export function CourseOverview({ slug, locale = "ar" }: { slug: string; locale?:
     };
   }, [locale, slug]);
 
+  // Optimization: Pre-calculate counts by lesson using useMemo and Map lookups to avoid O(L * (V + S)) filters inside render loop.
+  const videoCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const video of videos) {
+      if (video.lesson_id) {
+        counts.set(video.lesson_id, (counts.get(video.lesson_id) ?? 0) + 1);
+      }
+    }
+    return counts;
+  }, [videos]);
+
+  const slideCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const deck of slides) {
+      if (deck.lesson_id) {
+        counts.set(deck.lesson_id, (counts.get(deck.lesson_id) ?? 0) + 1);
+      }
+    }
+    return counts;
+  }, [slides]);
+
   if (loading)
     return (
       <div className="h-80 animate-pulse rounded-3xl border-2 border-[var(--ok-ink)]/20 bg-[var(--ok-card)]" />
@@ -344,8 +374,8 @@ export function CourseOverview({ slug, locale = "ar" }: { slug: string; locale?:
         </div>
         <div className="space-y-3">
           {lessons.map((lesson, index) => {
-            const videoCount = videos.filter((video) => video.lesson_id === lesson.id).length;
-            const slideCount = slides.filter((deck) => deck.lesson_id === lesson.id).length;
+            const videoCount = videoCounts.get(lesson.id) ?? 0;
+            const slideCount = slideCounts.get(lesson.id) ?? 0;
             return (
               <Link
                 key={lesson.id}
