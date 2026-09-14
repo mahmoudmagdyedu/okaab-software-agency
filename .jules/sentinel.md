@@ -1,0 +1,4 @@
+## 2024-03-24 - Unhandled Exception in timingSafeEqual DoS
+**Vulnerability:** Use of `timingSafeEqual(Buffer.from(expected), Buffer.from(supplied))` in `src/routes/api/youtube/webhook.ts` after comparing string lengths. If `supplied` contains multi-byte characters, `Buffer.from(supplied).length` can differ from `Buffer.from(expected).length` even if their string lengths match. `timingSafeEqual` throws an exception when buffer lengths differ, which can lead to a Denial of Service (DoS) if unhandled.
+**Learning:** `timingSafeEqual` requires the `byteLength` of the underlying buffers to be identical. Comparing `.length` on strings before conversion is not sufficient for secure comparison, because UTF-8 strings with the same character length can have different byte lengths.
+**Prevention:** Always compare the byte lengths of the instantiated `Buffer` objects, not the lengths of the original strings, immediately before passing them to `timingSafeEqual`.
