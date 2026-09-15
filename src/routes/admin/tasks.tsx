@@ -388,16 +388,25 @@ function TasksContent() {
     const assignments = (assigneeResult.data ?? []) as TaskAssignee[];
     setTeams((teamResult.data ?? []) as Team[]);
     setProfiles((profileResult.data ?? []) as Profile[]);
+
+    // Group assignments by task_id to avoid O(N^2) loops in the map below
+    const assignmentsByTask = new Map<string, TaskAssignee[]>();
+    for (const assignment of assignments) {
+      const list = assignmentsByTask.get(assignment.task_id) ?? [];
+      list.push(assignment);
+      assignmentsByTask.set(assignment.task_id, list);
+    }
+
     setTasks(
-      ((taskResult.data ?? []) as Task[]).map((task) => ({
-        ...task,
-        assigneeIds: assignments
-          .filter((item) => item.task_id === task.id)
-          .map((item) => item.profile_id),
-        personalStatus:
-          assignments.find((item) => item.task_id === task.id && item.profile_id === profile?.id)
-            ?.status ?? null,
-      })),
+      ((taskResult.data ?? []) as Task[]).map((task) => {
+        const taskAssignments = assignmentsByTask.get(task.id) ?? [];
+        return {
+          ...task,
+          assigneeIds: taskAssignments.map((item) => item.profile_id),
+          personalStatus:
+            taskAssignments.find((item) => item.profile_id === profile?.id)?.status ?? null,
+        };
+      }),
     );
     setLoading(false);
   }, [selectedDay, profile?.id]);
@@ -426,14 +435,17 @@ function TasksContent() {
   );
   const displayTasks = useMemo(() => {
     const normalized = searchQuery.trim().toLocaleLowerCase("ar");
+    const displayTeamIds = new Set(displayTeams.map((t) => t.id));
+    const profileMap = new Map(profiles.map((p) => [p.id, p]));
+
     return tasks.filter(
       (task) =>
-        displayTeams.some((team) => team.id === task.team_id) &&
+        displayTeamIds.has(task.team_id) &&
         (!normalized ||
           task.title.toLocaleLowerCase("ar").includes(normalized) ||
           task.description.toLocaleLowerCase("ar").includes(normalized) ||
           task.assigneeIds.some((id) => {
-            const person = profiles.find((profile) => profile.id === id);
+            const person = profileMap.get(id);
             return (person?.display_name || person?.email || "")
               .toLocaleLowerCase("ar")
               .includes(normalized);
@@ -506,10 +518,17 @@ function TasksContent() {
     }
   }
 
-  const personName = (id: string) =>
-    profiles.find((person) => person.id === id)?.display_name ||
-    profiles.find((person) => person.id === id)?.email ||
-    "عضو";
+  const profileMap = useMemo(() => {
+    return new Map(profiles.map((p) => [p.id, p]));
+  }, [profiles]);
+
+  const personName = useCallback(
+    (id: string) => {
+      const person = profileMap.get(id);
+      return person?.display_name || person?.email || "عضو";
+    },
+    [profileMap],
+  );
 
   return (
     <div className="space-y-5">

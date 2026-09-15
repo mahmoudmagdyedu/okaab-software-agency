@@ -1,0 +1,3 @@
+## 2024-03-24 - [O(N^2) Reductions in Admin Dashboard React Components]
+**Learning:** Found critical O(N²) bottlenecks inside render loops and data loading paths (specifically mapping nested objects like tasks filtering through assignments or profiles). Performing array `.filter()` or `.find()` inside a `.map()` or `.some()` iteration creates massive CPU overhead on each React render cycle.
+**Action:** Always preprocess relational data coming from the database into an O(1) hash map (`Map<string, T>`) outside of the render iteration loops, then use map lookup (`map.get(id)`) inside nested maps and useMemo filters.
