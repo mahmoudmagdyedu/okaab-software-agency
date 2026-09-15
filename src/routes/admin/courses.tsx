@@ -9,7 +9,7 @@ import {
   RefreshCw,
   Shield,
 } from "lucide-react";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
 import { AdminLayout, useAdminAuth } from "@/components/admin/AdminShell";
@@ -294,6 +294,28 @@ function CourseAdminContent() {
     return payload.lessonId;
   }
 
+  // Cache course titles by ID for O(1) lookups
+  const courseMap = useMemo(
+    () => new Map(courses.map((course) => [course.id, course.title])),
+    [courses],
+  );
+
+  // Precompute lesson option labels to prevent O(V * L * C) array scans inside video dropdown render loop
+  const lessonOptions = useMemo(
+    () =>
+      lessons.map((lesson) => ({
+        id: lesson.id,
+        label: `${courseMap.get(lesson.course_id) ?? ""} — ${lesson.title}`,
+      })),
+    [lessons, courseMap],
+  );
+
+  // Cache lessons by ID for O(1) lookups in slide deck cards
+  const lessonMap = useMemo(
+    () => new Map(lessons.map((lesson) => [lesson.id, lesson])),
+    [lessons],
+  );
+
   if (!profile || !["super_admin", "admin"].includes(profile.role))
     return (
       <div className="rounded-3xl border-2 border-[var(--ok-ink)] bg-[var(--ok-card)] p-8 text-center">
@@ -551,10 +573,9 @@ function CourseAdminContent() {
                 className="h-10 rounded-xl border-2 border-[var(--ok-ink)] bg-[var(--ok-paper)] px-2 text-sm"
               >
                 <option value="">بدون درس</option>
-                {lessons.map((lesson) => (
-                  <option key={lesson.id} value={lesson.id}>
-                    {courses.find((course) => course.id === lesson.course_id)?.title} —{" "}
-                    {lesson.title}
+                {lessonOptions.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
                   </option>
                 ))}
               </select>
@@ -582,10 +603,10 @@ function CourseAdminContent() {
               <h3 className="font-bold">{deck.title}</h3>
               <p className="mt-1 text-xs font-bold text-[var(--ok-accent-text)]">
                 {(() => {
-                  const lesson = lessons.find((item) => item.id === deck.lesson_id);
-                  const course = courses.find((item) => item.id === lesson?.course_id);
+                  const lesson = lessonMap.get(deck.lesson_id);
+                  const courseTitle = lesson ? courseMap.get(lesson.course_id) : undefined;
                   return (
-                    [course?.title, lesson?.title].filter(Boolean).join(" — ") || "درس غير محدد"
+                    [courseTitle, lesson?.title].filter(Boolean).join(" — ") || "درس غير محدد"
                   );
                 })()}
               </p>
