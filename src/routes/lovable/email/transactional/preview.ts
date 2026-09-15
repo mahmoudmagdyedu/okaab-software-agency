@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto'
 import * as React from 'react'
 import { render } from '@react-email/render'
 import { createFileRoute } from '@tanstack/react-router'
@@ -18,10 +19,15 @@ export const Route = createFileRoute("/lovable/email/transactional/preview")({
           )
         }
 
-        // Verify the caller is authorized with LOVABLE_API_KEY
+        // Verify the caller is authorized with LOVABLE_API_KEY using constant-time comparison
         const authHeader = request.headers.get('Authorization')
-        const token = authHeader?.replace(/^Bearer\s+/i, '')
-        if (token !== apiKey) {
+        const token = authHeader?.replace(/^Bearer\s+/i, '') || ''
+        const tokenBuf = Buffer.from(token)
+        const apiBuf = Buffer.from(apiKey)
+        if (
+          tokenBuf.length !== apiBuf.length ||
+          !timingSafeEqual(tokenBuf, apiBuf)
+        ) {
           return Response.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
