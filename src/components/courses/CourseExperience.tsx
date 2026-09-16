@@ -143,6 +143,8 @@ export function CoursesCatalog({ locale = "ar" }: { locale?: string }) {
 
   const linkedCourseIds = new Set(links.map((link) => link.course_id));
   const standaloneCourses = courses.filter((course) => !linkedCourseIds.has(course.id));
+  // ⚡ Bolt: Pre-process courses into an O(1) map to avoid O(N^2) lookups inside the roadmap loop
+  const courseMap = new Map(courses.map((c) => [c.id, c]));
 
   return (
     <div className="space-y-14">
@@ -150,7 +152,7 @@ export function CoursesCatalog({ locale = "ar" }: { locale?: string }) {
         const roadmapCourses = links
           .filter((link) => link.roadmap_id === roadmap.id)
           .sort((a, b) => a.sort_order - b.sort_order)
-          .map((link) => courses.find((course) => course.id === link.course_id))
+          .map((link) => courseMap.get(link.course_id))
           .filter(Boolean) as Course[];
         if (!roadmapCourses.length) return null;
         return (
