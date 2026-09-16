@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { createHmac } from "node:crypto";
 import { errorResponse, secureResponse } from "./lib/secure-response.ts";
+import { validSignature } from "./lib/youtube-webhook-security.ts";
 
 function nonceFrom(response: Response): string {
   const csp = response.headers.get("content-security-policy") ?? "";
@@ -86,4 +88,23 @@ test("uploaded slide HTML keeps its own policy and frame behavior", async () => 
   );
   assert.equal(secured.headers.get("x-frame-options"), "SAMEORIGIN");
   assert.equal(await secured.text(), "<script>bridge()</script>");
+});
+
+test("webhook signature verification safely handles multi-byte signature strings without throwing", () => {
+  const secret = "test-secret";
+  process.env["YOUTUBE_WEBSUB_SECRET"] = secret;
+  const body = "hello world";
+
+  const expectedHex = createHmac("sha1", secret).update(body).digest("hex");
+  const validSig = `sha1=${expectedHex}`;
+  assert.equal(validSignature(body, validSig), true);
+
+  const invalidSig = `sha1=${"a".repeat(40)}`;
+  assert.equal(validSignature(body, invalidSig), false);
+
+  // 20 emojis, string length 40, byte length 80
+  const multiByteSig = `sha1=${"😀".repeat(20)}`;
+  assert.doesNotThrow(() => {
+    assert.equal(validSignature(body, multiByteSig), false);
+  });
 });
