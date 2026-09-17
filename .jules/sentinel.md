@@ -1,0 +1,4 @@
+## 2024-05-15 - Unhandled Exception / DoS via timingSafeEqual Length Mismatch
+**Vulnerability:** Comparing string lengths rather than buffer byte lengths before calling `timingSafeEqual()` in Node.js.
+**Learning:** `timingSafeEqual()` throws an unhandled exception if the two `Buffer` arguments have different byte lengths. Comparing `.length` on strings before creating `Buffer`s fails for multibyte characters because string length does not always match byte length. An attacker can send a payload containing multibyte characters that results in a string with the same character length but a different byte length, causing the Node process to crash (DoS).
+**Prevention:** Always convert strings to `Buffer` objects first, then compare the `.length` of the buffers. If they are equal, then call `timingSafeEqual()`.
