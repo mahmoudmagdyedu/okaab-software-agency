@@ -141,16 +141,24 @@ export function CoursesCatalog({ locale = "ar" }: { locale?: string }) {
   if (!roadmaps.length && !courses.length && !latest.length)
     return <EmptyCourses error={error} locale={locale} />;
 
+  // Bolt: Pre-process arrays into O(1) Maps to prevent O(N^2) bottlenecks during render loops
+  const courseById = new Map(courses.map((course) => [course.id, course]));
+  const linksByRoadmap = new Map<string, RoadmapCourse[]>();
+  for (const link of links) {
+    if (!linksByRoadmap.has(link.roadmap_id)) linksByRoadmap.set(link.roadmap_id, []);
+    linksByRoadmap.get(link.roadmap_id)!.push(link);
+  }
+
   const linkedCourseIds = new Set(links.map((link) => link.course_id));
   const standaloneCourses = courses.filter((course) => !linkedCourseIds.has(course.id));
 
   return (
     <div className="space-y-14">
       {roadmaps.map((roadmap, roadmapIndex) => {
-        const roadmapCourses = links
-          .filter((link) => link.roadmap_id === roadmap.id)
+        const roadmapLinks = linksByRoadmap.get(roadmap.id) || [];
+        const roadmapCourses = roadmapLinks
           .sort((a, b) => a.sort_order - b.sort_order)
-          .map((link) => courses.find((course) => course.id === link.course_id))
+          .map((link) => courseById.get(link.course_id))
           .filter(Boolean) as Course[];
         if (!roadmapCourses.length) return null;
         return (

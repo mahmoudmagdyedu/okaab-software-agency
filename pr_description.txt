@@ -1,0 +1,4 @@
+💡 What: Optimized the rendering of course catalogs by replacing `O(N)` `.filter()` and `.find()` array methods inside a `.map()` loop with O(1) lookups via `Map`.
+🎯 Why: `CourseExperience.tsx` iterates over `roadmaps.map`, and previously used `.filter()` on `links` and `.find()` on `courses` during every iteration. This created an O(N^2) time complexity relationship. When the number of roadmaps or courses scaled, rendering the catalog component could cause large performance bottlenecks on the main thread, resulting in jank or slow rendering times.
+📊 Impact: Reduces time complexity from O(N^2) to O(N) by pre-computing Maps outside of the render loops. This substantially improves React rendering speeds when there are many courses and roadmaps.
+🔬 Measurement: Use React Developer Tools Profiler to measure the render time of `CoursesCatalog` with a large number of courses. Render times should be consistently lower and have less variance as list sizes grow.
