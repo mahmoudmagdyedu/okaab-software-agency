@@ -1,0 +1,3 @@
+## 2026-09-17 - Pre-process Relational Lookups in React Render Loops
+**Learning:** Performing $O(N)$ operations such as `array.find()` or `array.filter()` inside nested `.map()` render loops creates an $O(N \cdot M)$ performance bottleneck. Pre-computing relational data into `Map` or `Set` lookup tables with `useMemo` reduces per-item lookups to $O(1)$. Always ensure `useMemo` declarations are placed unconditionally at the top level of function components before any early `return` statements to comply with the React Rules of Hooks.
+**Action:** When mapping over lists that cross-reference secondary collections, pre-build `Map` or `Set` lookup structures using `useMemo` above all conditional returns.
