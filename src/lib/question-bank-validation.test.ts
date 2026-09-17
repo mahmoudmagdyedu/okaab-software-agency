@@ -37,6 +37,23 @@ test("question bank rejects visual-only or ambiguous question data", () => {
   );
 });
 
+test("question bank rejects unknown injected properties for strict schema safety", () => {
+  assert.equal(
+    questionSaveSchema.safeParse({ ...validQuestion, injectedField: "malicious" }).success,
+    false,
+  );
+  assert.equal(
+    questionSaveSchema.safeParse({
+      ...validQuestion,
+      options: [
+        { text: "Option A", explanation: "Exp", correct: true, injected: true },
+        { text: "Option B", explanation: "Exp", correct: false },
+      ],
+    }).success,
+    false,
+  );
+});
+
 test("lesson tasks require bounded slide indexes and a real prompt when enabled", () => {
   const enabled = lessonTaskSaveSchema.safeParse({
     lessonId: "lesson-1",
