@@ -1,0 +1,4 @@
+## 2025-02-25 - [Denial of Service via timingSafeEqual Length Check]
+**Vulnerability:** In `validSignature` (`src/routes/api/youtube/webhook.ts`), a Denial of Service vulnerability existed because the length check before `crypto.timingSafeEqual` evaluated string character lengths instead of byte lengths. Supplying a multi-byte string signature bypasses the check, causing `timingSafeEqual` to throw an unhandled exception.
+**Learning:** `crypto.timingSafeEqual` strictly requires matching byte lengths, and comparing string lengths (`expected.length === supplied.length`) is insufficient for strings containing multi-byte characters.
+**Prevention:** Always instantiate `Buffer.from(string)` first and compare the byte lengths (`expectedBuffer.length === suppliedBuffer.length`) before calling `timingSafeEqual`.
