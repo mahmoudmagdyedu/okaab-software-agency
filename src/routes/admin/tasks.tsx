@@ -388,15 +388,27 @@ function TasksContent() {
     const assignments = (assigneeResult.data ?? []) as TaskAssignee[];
     setTeams((teamResult.data ?? []) as Team[]);
     setProfiles((profileResult.data ?? []) as Profile[]);
+
+    // Bolt Optimization: Pre-process assignments into Maps to convert O(Tasks * Assignments) array lookups into O(1) lookups
+    const assigneesByTask = new Map<string, string[]>();
+    const personalStatusByTask = new Map<string, TaskStatus>();
+
+    for (const assignment of assignments) {
+      if (!assigneesByTask.has(assignment.task_id)) {
+        assigneesByTask.set(assignment.task_id, []);
+      }
+      assigneesByTask.get(assignment.task_id)!.push(assignment.profile_id);
+
+      if (profile?.id && assignment.profile_id === profile.id) {
+        personalStatusByTask.set(assignment.task_id, assignment.status);
+      }
+    }
+
     setTasks(
       ((taskResult.data ?? []) as Task[]).map((task) => ({
         ...task,
-        assigneeIds: assignments
-          .filter((item) => item.task_id === task.id)
-          .map((item) => item.profile_id),
-        personalStatus:
-          assignments.find((item) => item.task_id === task.id && item.profile_id === profile?.id)
-            ?.status ?? null,
+        assigneeIds: assigneesByTask.get(task.id) ?? [],
+        personalStatus: personalStatusByTask.get(task.id) ?? null,
       })),
     );
     setLoading(false);
@@ -424,22 +436,36 @@ function TasksContent() {
       teamFilter === "all" ? visibleTeams : visibleTeams.filter((team) => team.id === teamFilter),
     [teamFilter, visibleTeams],
   );
+
+  // Bolt Optimization: Pre-compute structures for O(1) lookups during filtering and rendering
+  const profileMap = useMemo(() => {
+    const map = new Map<string, Profile>();
+    for (const profile of profiles) {
+      map.set(profile.id, profile);
+    }
+    return map;
+  }, [profiles]);
+
+  const displayTeamIds = useMemo(() => {
+    return new Set(displayTeams.map((team) => team.id));
+  }, [displayTeams]);
+
   const displayTasks = useMemo(() => {
     const normalized = searchQuery.trim().toLocaleLowerCase("ar");
     return tasks.filter(
       (task) =>
-        displayTeams.some((team) => team.id === task.team_id) &&
+        displayTeamIds.has(task.team_id) &&
         (!normalized ||
           task.title.toLocaleLowerCase("ar").includes(normalized) ||
           task.description.toLocaleLowerCase("ar").includes(normalized) ||
           task.assigneeIds.some((id) => {
-            const person = profiles.find((profile) => profile.id === id);
+            const person = profileMap.get(id);
             return (person?.display_name || person?.email || "")
               .toLocaleLowerCase("ar")
               .includes(normalized);
           })),
     );
-  }, [displayTeams, searchQuery, tasks, profiles]);
+  }, [displayTeamIds, searchQuery, tasks, profileMap]);
   const emptyColumnCount = Math.max(0, DESKTOP_MIN_COLUMNS - displayTeams.length);
   const desktopColumnCount = displayTeams.length + emptyColumnCount;
   const desktopGridColumns = `70px repeat(${desktopColumnCount}, minmax(250px, 1fr))`;
@@ -506,10 +532,10 @@ function TasksContent() {
     }
   }
 
-  const personName = (id: string) =>
-    profiles.find((person) => person.id === id)?.display_name ||
-    profiles.find((person) => person.id === id)?.email ||
-    "عضو";
+  const personName = (id: string) => {
+    const person = profileMap.get(id);
+    return person?.display_name || person?.email || "عضو";
+  };
 
   return (
     <div className="space-y-5">

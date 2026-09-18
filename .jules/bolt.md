@@ -1,0 +1,3 @@
+## 2024-03-24 - Array Traversal Bottlenecks in React Data Hydration
+**Learning:** Found a recurring pattern in the codebase where relational data (e.g., tasks linking to assignees or teams) is mapped and filtered using nested array traversals (e.g., `.filter(task => task.assigneeIds.some(id => profiles.find(p => p.id === id)))`). This creates O(N^2) or worse complexity on every render and during search inputs, causing noticeable frontend lag when datasets grow.
+**Action:** When handling relational data mapping or search filtering in React components, always pre-process dependency arrays into O(1) Maps or Sets (e.g., `profileMap`, `teamIdsSet`) outside the render loop or inside a `useMemo` block, and use these structures for O(1) lookups.
