@@ -1,0 +1,4 @@
+## 2024-09-18 - [crypto.timingSafeEqual Multi-byte DoS]
+**Vulnerability:** Unhandled `RangeError` exception leading to Denial of Service (DoS) when using `crypto.timingSafeEqual` with differently sized buffers.
+**Learning:** `crypto.timingSafeEqual` strictly requires both input buffers to have the exact same `byteLength`. If strings are checked for length equality (e.g., `a.length === b.length`) before being converted to Buffers, multi-byte characters can cause the resulting Buffers to have different byte lengths despite having the same string length, causing `timingSafeEqual` to throw an unhandled exception.
+**Prevention:** Always convert strings to `Buffer` objects *before* performing the length comparison, and compare `buffer.byteLength` or `buffer.length` instead of the original string lengths.
