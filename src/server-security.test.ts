@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
+import { createHmac } from "node:crypto";
 import test from "node:test";
 
 import { errorResponse, secureResponse } from "./lib/secure-response.ts";
+import { validSignature } from "./lib/youtube-webhook-security.ts";
 
 function nonceFrom(response: Response): string {
   const csp = response.headers.get("content-security-policy") ?? "";
@@ -86,4 +88,30 @@ test("uploaded slide HTML keeps its own policy and frame behavior", async () => 
   );
   assert.equal(secured.headers.get("x-frame-options"), "SAMEORIGIN");
   assert.equal(await secured.text(), "<script>bridge()</script>");
+});
+
+test("validSignature verifies valid hmac and handles multi-byte signatures safely", () => {
+  const previousSecret = process.env["YOUTUBE_WEBSUB_SECRET"];
+  process.env["YOUTUBE_WEBSUB_SECRET"] = "test-secret-12345";
+
+  try {
+    const body = '{"feed":"update"}';
+    const validHmac = createHmac("sha1", "test-secret-12345").update(body).digest("hex");
+
+    assert.equal(validSignature(body, `sha1=${validHmac}`), true);
+    assert.equal(validSignature(body, `sha1=${"a".repeat(40)}`), false);
+    assert.equal(validSignature(body, validHmac), false);
+    assert.equal(validSignature(body, null), false);
+
+    const multiByteString = "á".repeat(40);
+    assert.doesNotThrow(() => {
+      assert.equal(validSignature(body, `sha1=${multiByteString}`), false);
+    });
+  } finally {
+    if (previousSecret !== undefined) {
+      process.env["YOUTUBE_WEBSUB_SECRET"] = previousSecret;
+    } else {
+      delete process.env["YOUTUBE_WEBSUB_SECRET"];
+    }
+  }
 });
