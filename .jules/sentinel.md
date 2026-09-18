@@ -1,0 +1,4 @@
+## 2025-03-08 - [TimingSafeEqual Input Buffers RangeError DoS]
+**Vulnerability:** Calling `crypto.timingSafeEqual` with strings that have the same character length but different byte lengths (due to multi-byte characters) causes Node.js to throw a `RangeError: Input buffers must have the same byte length`. If this exception is unhandled, it can crash the Node process and cause a Denial of Service (DoS).
+**Learning:** Comparing the string length `expected.length === supplied.length` is not sufficient before converting to Buffers and calling `timingSafeEqual`. An attacker can supply a multi-byte string (e.g. `ä`) of the same string length, causing the underlying Buffers to have different lengths and triggering the RangeError.
+**Prevention:** When using `crypto.timingSafeEqual` in Node.js, always compare the lengths of the instantiated Buffer objects (`expectedBuffer.length === suppliedBuffer.length`), not the original strings, prior to comparison.
