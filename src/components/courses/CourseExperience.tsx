@@ -309,6 +309,28 @@ export function CourseOverview({ slug, locale = "ar" }: { slug: string; locale?:
     };
   }, [locale, slug]);
 
+  // Optimization: Pre-aggregate video and slide counts by lesson_id into O(1) Map lookups
+  // outside render loop to reduce per-lesson filtering overhead from O(N * (V + S)) to O(V + S + N).
+  const videoCountsByLesson = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const video of videos) {
+      if (video.lesson_id) {
+        counts.set(video.lesson_id, (counts.get(video.lesson_id) ?? 0) + 1);
+      }
+    }
+    return counts;
+  }, [videos]);
+
+  const slideCountsByLesson = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const deck of slides) {
+      if (deck.lesson_id) {
+        counts.set(deck.lesson_id, (counts.get(deck.lesson_id) ?? 0) + 1);
+      }
+    }
+    return counts;
+  }, [slides]);
+
   if (loading)
     return (
       <div className="h-80 animate-pulse rounded-3xl border-2 border-[var(--ok-ink)]/20 bg-[var(--ok-card)]" />
@@ -344,8 +366,8 @@ export function CourseOverview({ slug, locale = "ar" }: { slug: string; locale?:
         </div>
         <div className="space-y-3">
           {lessons.map((lesson, index) => {
-            const videoCount = videos.filter((video) => video.lesson_id === lesson.id).length;
-            const slideCount = slides.filter((deck) => deck.lesson_id === lesson.id).length;
+            const videoCount = videoCountsByLesson.get(lesson.id) ?? 0;
+            const slideCount = slideCountsByLesson.get(lesson.id) ?? 0;
             return (
               <Link
                 key={lesson.id}
