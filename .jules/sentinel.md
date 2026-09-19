@@ -1,0 +1,4 @@
+## 2025-02-20 - [HIGH] Fix DoS vulnerability in timingSafeEqual
+**Vulnerability:** The application was comparing the length of strings before passing them to `crypto.timingSafeEqual()`. If an attacker provided a string containing multi-byte UTF-8 characters (e.g. emojis) such that the string length equaled the expected string length, but the byte length differed, `timingSafeEqual()` would throw an unhandled `RangeError` exception, crashing the Node.js application (DoS).
+**Learning:** `crypto.timingSafeEqual()` strictly requires input buffers to have the exact same byte length. Comparing the lengths of the original strings is insufficient because multi-byte characters have different string and byte lengths.
+**Prevention:** Always instantiate `Buffer` objects from strings first and compare the `.length` property of the `Buffer` objects (which represents the byte length) before passing them to `crypto.timingSafeEqual()`.
