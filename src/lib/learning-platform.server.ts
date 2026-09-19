@@ -47,6 +47,25 @@ type CompletedSlideQuizEvent = {
 
 export type LessonEvent = LegacyLessonEvent | CompletedSlideQuizEvent;
 
+// ⚡ Bolt Optimization:
+// Intl.DateTimeFormat initialization is expensive. Caching these instances
+// avoids significant overhead during repetitive operations like formatting
+// dates in hot paths (e.g. loops in `getLeaderboard`).
+const DATE_FORMAT_CACHE = new Map<string, Intl.DateTimeFormat>();
+
+function getCachedDateTimeFormat(
+  locale: string,
+  options: Intl.DateTimeFormatOptions,
+): Intl.DateTimeFormat {
+  const key = `${locale}-${JSON.stringify(options)}`;
+  let formatter = DATE_FORMAT_CACHE.get(key);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(locale, options);
+    DATE_FORMAT_CACHE.set(key, formatter);
+  }
+  return formatter;
+}
+
 const DEFAULT_POINTS = {
   quiz_first_correct: 10,
   video_complete: 15,
@@ -283,7 +302,7 @@ async function unlockBadge(
 }
 
 async function touchDailyStreak(transaction: InstanceType<typeof sql.Transaction>, userId: string) {
-  const today = new Intl.DateTimeFormat("en-CA", {
+  const today = getCachedDateTimeFormat("en-CA", {
     timeZone: "Africa/Cairo",
     year: "numeric",
     month: "2-digit",
@@ -932,7 +951,7 @@ export async function getLeaderboard(period: "weekly" | "monthly" | "all") {
   const pool = await getDb();
   const now = new Date();
   const cairoParts = Object.fromEntries(
-    new Intl.DateTimeFormat("en-CA", {
+    getCachedDateTimeFormat("en-CA", {
       timeZone: "Africa/Cairo",
       year: "numeric",
       month: "2-digit",
@@ -963,7 +982,7 @@ export async function getLeaderboard(period: "weekly" | "monthly" | "all") {
   }
   const target = Date.UTC(boundary.year, boundary.month - 1, boundary.day);
   let sinceMs = target;
-  const cairoClock = new Intl.DateTimeFormat("en-CA", {
+  const cairoClock = getCachedDateTimeFormat("en-CA", {
     timeZone: "Africa/Cairo",
     hourCycle: "h23",
     year: "numeric",
