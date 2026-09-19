@@ -13,13 +13,19 @@ export const Route = createFileRoute("/api/data/$table")({
           );
           return Response.json(result, { headers: { "cache-control": "no-store" } });
         } catch (error) {
-          if (error instanceof Response) return error;
+          if (error instanceof Response) {
+            const status = error.status;
+            const text = await error.text();
+            return Response.json(
+              { data: null, count: null, error: { message: text || error.statusText || "تعذّر تنفيذ العملية" } },
+              { status, headers: { "cache-control": "no-store" } },
+            );
+          }
           console.error("Okaab data API failed", error);
-          const message =
-            error instanceof Error && process.env["NODE_ENV"] !== "production"
-              ? error.message
-              : "تعذّر تنفيذ العملية";
-          return Response.json({ data: null, count: null, error: { message } }, { status: 400 });
+          return Response.json(
+            { data: null, count: null, error: { message: "تعذّر تنفيذ العملية" } },
+            { status: 400, headers: { "cache-control": "no-store" } },
+          );
         }
       },
     },
