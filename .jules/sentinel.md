@@ -1,0 +1,4 @@
+## 2024-09-19 - DoS vulnerability in timingSafeEqual validation
+**Vulnerability:** Unhandled `RangeError` from `node:crypto`'s `timingSafeEqual` function when used with `Buffer.from(supplied)` where `supplied` contains multi-byte characters and string lengths were compared before the buffer conversion. This creates a Denial of Service (DoS) risk if an attacker provides a multi-byte string whose character length matches the expected length.
+**Learning:** `timingSafeEqual` strictly enforces that both input buffers have the exact same byte length. A string length equality check is not sufficient when user input is converted to a Buffer, because strings with multi-byte characters can have identical string lengths but differing byte lengths in memory.
+**Prevention:** Always compare the `length` property of the `Buffer` objects themselves (byte length) before passing them to `timingSafeEqual`, rather than comparing the `length` property of the original strings.
