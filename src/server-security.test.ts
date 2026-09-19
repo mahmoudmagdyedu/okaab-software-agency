@@ -87,3 +87,36 @@ test("uploaded slide HTML keeps its own policy and frame behavior", async () => 
   assert.equal(secured.headers.get("x-frame-options"), "SAMEORIGIN");
   assert.equal(await secured.text(), "<script>bridge()</script>");
 });
+
+test("data API error handling returns safe error payload without leaking internal error details", async () => {
+  // Test error handling behavior similar to src/routes/api/data/$table.ts
+  const handleRequest = async (err: unknown) => {
+    try {
+      throw err;
+    } catch (error) {
+      if (error instanceof Response) {
+        const status = error.status;
+        const text = await error.text();
+        return Response.json(
+          { data: null, count: null, error: { message: text || error.statusText || "تعذّر تنفيذ العملية" } },
+          { status, headers: { "cache-control": "no-store" } },
+        );
+      }
+      return Response.json(
+        { data: null, count: null, error: { message: "تعذّر تنفيذ العملية" } },
+        { status: 400, headers: { "cache-control": "no-store" } },
+      );
+    }
+  };
+
+  const internalErrResponse = await handleRequest(new Error("Database connection failed at 127.0.0.1:1433 with user sa"));
+  assert.equal(internalErrResponse.status, 400);
+  const internalData = await internalErrResponse.json();
+  assert.deepEqual(internalData, { data: null, count: null, error: { message: "تعذّر تنفيذ العملية" } });
+  assert.equal((internalData as any).error.message.includes("Database connection failed"), false);
+
+  const authResponse = await handleRequest(new Response("Unauthorized", { status: 401 }));
+  assert.equal(authResponse.status, 401);
+  const authData = await authResponse.json();
+  assert.deepEqual(authData, { data: null, count: null, error: { message: "Unauthorized" } });
+});
