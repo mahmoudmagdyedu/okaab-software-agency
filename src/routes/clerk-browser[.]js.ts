@@ -1,16 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-const clerkProxyUrl =
-  process.env["CLERK_PROXY_URL"]?.replace(/\/$/, "") || "https://okaab.org/__clerk";
-const CLERK_JS_URL =
-  process.env["CLERK_JS_URL"] ||
-  `${clerkProxyUrl}/npm/@clerk/clerk-js@6.30.1/dist/clerk.browser.js`;
+const CLERK_JS_UPSTREAM =
+  "https://frontend-api.clerk.dev/npm/@clerk/clerk-js@6.30.1/dist/clerk.browser.js";
 
 let clerkJsPromise: Promise<string> | undefined;
 
 async function loadClerkJs() {
-  clerkJsPromise ??= fetch(CLERK_JS_URL, {
-    headers: { "user-agent": "Okaab-Clerk-Loader/1.0" },
+  const secretKey = process.env["CLERK_SECRET_KEY"];
+  if (!secretKey) throw new Error("Clerk proxy is not configured");
+
+  const proxyUrl =
+    process.env["CLERK_PROXY_URL"]?.replace(/\/$/, "") || "https://okaab.org/__clerk";
+  clerkJsPromise ??= fetch(CLERK_JS_UPSTREAM, {
+    headers: {
+      "Clerk-Proxy-Url": proxyUrl,
+      "Clerk-Secret-Key": secretKey,
+      "user-agent": "Okaab-Clerk-Loader/1.0",
+    },
     signal: AbortSignal.timeout(20_000),
   }).then(async (response) => {
     if (!response.ok) {
