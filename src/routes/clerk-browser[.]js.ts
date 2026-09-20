@@ -1,7 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+const clerkProxyUrl =
+  process.env["CLERK_PROXY_URL"]?.replace(/\/$/, "") || "https://okaab.org/__clerk";
 const CLERK_JS_URL =
-  "https://clerk.okaab.org/npm/@clerk/clerk-js@6.30.1/dist/clerk.browser.js";
+  process.env["CLERK_JS_URL"] ||
+  `${clerkProxyUrl}/npm/@clerk/clerk-js@6.30.1/dist/clerk.browser.js`;
 
 let clerkJsPromise: Promise<string> | undefined;
 
