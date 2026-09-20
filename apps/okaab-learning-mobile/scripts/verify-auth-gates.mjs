@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const read = (path) => readFileSync(resolve(root, path), "utf8");
+const rootLayout = read("app/_layout.tsx");
 const authLayout = read("app/(auth)/_layout.tsx");
 const tabsLayout = read("app/(tabs)/_layout.tsx");
 const signIn = read("app/(auth)/sign-in.tsx");
@@ -34,9 +35,16 @@ verify(
   "Protected routes must never treat a pending Clerk session as signed in.",
 );
 verify(
-  authLayout.includes('session.status === "pending"')
-    && authLayout.includes("sessionList.setActive")
-    && !authLayout.includes("session.remove()"),
+  rootLayout.includes('publishableKey?.startsWith("pk_live_")') &&
+    rootLayout.includes("EXPO_PUBLIC_CLERK_PROXY_URL") &&
+    rootLayout.includes('"https://okaab.org/__clerk"') &&
+    rootLayout.includes("proxyUrl: clerkProxyUrl"),
+  "Production mobile authentication must use the configured Clerk Frontend API proxy.",
+);
+verify(
+  authLayout.includes('session.status === "pending"') &&
+    authLayout.includes("sessionList.setActive") &&
+    !authLayout.includes("session.remove()"),
   "Pending Clerk sessions must be resumed and never deleted by the auth layout.",
 );
 verify(
@@ -44,14 +52,14 @@ verify(
   "Authentication must finalize verified attempts instead of reviving arbitrary sessions.",
 );
 verify(
-  signIn.includes("navigate: navigateAfterAuthentication")
-    && signUp.includes("navigate: navigateAfterAuthentication"),
+  signIn.includes("navigate: navigateAfterAuthentication") &&
+    signUp.includes("navigate: navigateAfterAuthentication"),
   "Google SSO must explicitly activate only the session returned by Clerk.",
 );
 verify(
-  ssoCallback.includes("signIn.isTransferable")
-    && ssoCallback.includes("signUp.create({ transfer: true })")
-    && ssoCallback.includes('nativeID="clerk-captcha"'),
+  ssoCallback.includes("signIn.isTransferable") &&
+    ssoCallback.includes("signUp.create({ transfer: true })") &&
+    ssoCallback.includes('nativeID="clerk-captcha"'),
   "The SSO callback must complete Clerk transfer flows and host CAPTCHA.",
 );
 verify(
@@ -59,16 +67,16 @@ verify(
   "Every screen that can create an account through Google must host Clerk CAPTCHA.",
 );
 verify(
-  authSession.includes('session.currentTask ? "/session-task" : "/(tabs)"')
-    && sessionTask.includes('task === "choose-organization"')
-    && sessionTask.includes('task === "reset-password"')
-    && sessionTask.includes('task === "setup-mfa"'),
+  authSession.includes('session.currentTask ? "/session-task" : "/(tabs)"') &&
+    sessionTask.includes('task === "choose-organization"') &&
+    sessionTask.includes('task === "reset-password"') &&
+    sessionTask.includes('task === "setup-mfa"'),
   "Pending session tasks must route to a supported completion screen.",
 );
 verify(
-  signIn.includes('signIn.status === "needs_second_factor"')
-    && signIn.includes("signIn.mfa.verifyEmailCode")
-    && signIn.includes("signIn.mfa.verifyTOTP"),
+  signIn.includes('signIn.status === "needs_second_factor"') &&
+    signIn.includes("signIn.mfa.verifyEmailCode") &&
+    signIn.includes("signIn.mfa.verifyTOTP"),
   "Email sign-in must complete configured second-factor checks.",
 );
 verify(
@@ -76,10 +84,12 @@ verify(
   "The home screen must use the transparent Okaab PNG brand logo.",
 );
 verify(
-  !components.includes("compactEagle")
-    && !authUi.includes("EagleLoader")
-    && components.match(/<FlyingEagleLogo/g)?.length === 1,
+  !components.includes("compactEagle") &&
+    !authUi.includes("EagleLoader") &&
+    components.match(/<FlyingEagleLogo/g)?.length === 1,
   "The animated SVG must remain limited to the full-screen loading component.",
 );
 
-console.log("Auth gates, Google transfer, pending tasks, MFA, and logo separation verified.");
+console.log(
+  "Clerk proxy, auth gates, Google transfer, pending tasks, MFA, and logo separation verified.",
+);

@@ -18,6 +18,8 @@ import { Route as LeaderboardRouteImport } from './routes/leaderboard'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as SignInRouteImport } from './routes/sign-in'
+import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SoftwareDevelopmentEgyptRouteImport } from './routes/software-development-egypt'
 import { Route as SsoCallbackRouteImport } from './routes/sso-callback'
@@ -46,8 +48,6 @@ import { Route as EsEcommerceDevelopmentEgyptRouteImport } from './routes/es.eco
 import { Route as EsSoftwareDevelopmentEgyptRouteImport } from './routes/es.software-development-egypt'
 import { Route as FrEcommerceDevelopmentEgyptRouteImport } from './routes/fr.ecommerce-development-egypt'
 import { Route as FrSoftwareDevelopmentEgyptRouteImport } from './routes/fr.software-development-egypt'
-import { Route as SignInSplatRouteImport } from './routes/sign-in.$'
-import { Route as SignUpSplatRouteImport } from './routes/sign-up.$'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as ApiAccountMeRouteImport } from './routes/api/account/me'
 import { Route as ApiAdminInviteRouteImport } from './routes/api/admin/invite'
@@ -134,6 +134,16 @@ const PrivacyRoute = PrivacyRouteImport.update({
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignInRoute = SignInRouteImport.update({
+  id: '/sign-in',
+  path: '/sign-in',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignUpRoute = SignUpRouteImport.update({
+  id: '/sign-up',
+  path: '/sign-up',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -285,16 +295,6 @@ const FrSoftwareDevelopmentEgyptRoute =
     path: '/fr/software-development-egypt',
     getParentRoute: () => rootRouteImport,
   } as any)
-const SignInSplatRoute = SignInSplatRouteImport.update({
-  id: '/sign-in/$',
-  path: '/sign-in/$',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SignUpSplatRoute = SignUpSplatRouteImport.update({
-  id: '/sign-up/$',
-  path: '/sign-up/$',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const Char91DotmcpChar93InvokeToolToolRoute =
   Char91DotmcpChar93InvokeToolToolRouteImport.update({
     id: '/.mcp/invoke-tool/$tool',
@@ -518,6 +518,8 @@ export interface FileRoutesByFullPath {
   '/mcp': typeof McpRoute
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
+  '/sign-in': typeof SignInRoute
+  '/sign-up': typeof SignUpRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/software-development-egypt': typeof SoftwareDevelopmentEgyptRoute
   '/sso-callback': typeof SsoCallbackRoute
@@ -544,8 +546,6 @@ export interface FileRoutesByFullPath {
   '/es/software-development-egypt': typeof EsSoftwareDevelopmentEgyptRoute
   '/fr/ecommerce-development-egypt': typeof FrEcommerceDevelopmentEgyptRoute
   '/fr/software-development-egypt': typeof FrSoftwareDevelopmentEgyptRoute
-  '/sign-in/$': typeof SignInSplatRoute
-  '/sign-up/$': typeof SignUpSplatRoute
   '/admin/': typeof AdminIndexRoute
   '/courses/': typeof CoursesIndexRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
@@ -600,6 +600,8 @@ export interface FileRoutesByTo {
   '/mcp': typeof McpRoute
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
+  '/sign-in': typeof SignInRoute
+  '/sign-up': typeof SignUpRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/software-development-egypt': typeof SoftwareDevelopmentEgyptRoute
   '/sso-callback': typeof SsoCallbackRoute
@@ -626,8 +628,6 @@ export interface FileRoutesByTo {
   '/es/software-development-egypt': typeof EsSoftwareDevelopmentEgyptRoute
   '/fr/ecommerce-development-egypt': typeof FrEcommerceDevelopmentEgyptRoute
   '/fr/software-development-egypt': typeof FrSoftwareDevelopmentEgyptRoute
-  '/sign-in/$': typeof SignInSplatRoute
-  '/sign-up/$': typeof SignUpSplatRoute
   '/admin': typeof AdminIndexRoute
   '/courses': typeof CoursesIndexRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
@@ -683,6 +683,8 @@ export interface FileRoutesById {
   '/mcp': typeof McpRoute
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
+  '/sign-in': typeof SignInRoute
+  '/sign-up': typeof SignUpRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/software-development-egypt': typeof SoftwareDevelopmentEgyptRoute
   '/sso-callback': typeof SsoCallbackRoute
@@ -709,8 +711,6 @@ export interface FileRoutesById {
   '/es/software-development-egypt': typeof EsSoftwareDevelopmentEgyptRoute
   '/fr/ecommerce-development-egypt': typeof FrEcommerceDevelopmentEgyptRoute
   '/fr/software-development-egypt': typeof FrSoftwareDevelopmentEgyptRoute
-  '/sign-in/$': typeof SignInSplatRoute
-  '/sign-up/$': typeof SignUpSplatRoute
   '/admin/': typeof AdminIndexRoute
   '/courses/': typeof CoursesIndexRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
@@ -767,6 +767,8 @@ export interface FileRouteTypes {
     | '/mcp'
     | '/privacy'
     | '/profile'
+    | '/sign-in'
+    | '/sign-up'
     | '/sitemap.xml'
     | '/software-development-egypt'
     | '/sso-callback'
@@ -793,8 +795,6 @@ export interface FileRouteTypes {
     | '/es/software-development-egypt'
     | '/fr/ecommerce-development-egypt'
     | '/fr/software-development-egypt'
-    | '/sign-in/$'
-    | '/sign-up/$'
     | '/admin/'
     | '/courses/'
     | '/.mcp/invoke-tool/$tool'
@@ -849,6 +849,8 @@ export interface FileRouteTypes {
     | '/mcp'
     | '/privacy'
     | '/profile'
+    | '/sign-in'
+    | '/sign-up'
     | '/sitemap.xml'
     | '/software-development-egypt'
     | '/sso-callback'
@@ -875,8 +877,6 @@ export interface FileRouteTypes {
     | '/es/software-development-egypt'
     | '/fr/ecommerce-development-egypt'
     | '/fr/software-development-egypt'
-    | '/sign-in/$'
-    | '/sign-up/$'
     | '/admin'
     | '/courses'
     | '/.mcp/invoke-tool/$tool'
@@ -931,6 +931,8 @@ export interface FileRouteTypes {
     | '/mcp'
     | '/privacy'
     | '/profile'
+    | '/sign-in'
+    | '/sign-up'
     | '/sitemap.xml'
     | '/software-development-egypt'
     | '/sso-callback'
@@ -957,8 +959,6 @@ export interface FileRouteTypes {
     | '/es/software-development-egypt'
     | '/fr/ecommerce-development-egypt'
     | '/fr/software-development-egypt'
-    | '/sign-in/$'
-    | '/sign-up/$'
     | '/admin/'
     | '/courses/'
     | '/.mcp/invoke-tool/$tool'
@@ -1014,6 +1014,8 @@ export interface RootRouteChildren {
   McpRoute: typeof McpRoute
   PrivacyRoute: typeof PrivacyRoute
   ProfileRoute: typeof ProfileRoute
+  SignInRoute: typeof SignInRoute
+  SignUpRoute: typeof SignUpRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SoftwareDevelopmentEgyptRoute: typeof SoftwareDevelopmentEgyptRoute
   SsoCallbackRoute: typeof SsoCallbackRoute
@@ -1040,8 +1042,6 @@ export interface RootRouteChildren {
   EsSoftwareDevelopmentEgyptRoute: typeof EsSoftwareDevelopmentEgyptRoute
   FrEcommerceDevelopmentEgyptRoute: typeof FrEcommerceDevelopmentEgyptRoute
   FrSoftwareDevelopmentEgyptRoute: typeof FrSoftwareDevelopmentEgyptRoute
-  SignInSplatRoute: typeof SignInSplatRoute
-  SignUpSplatRoute: typeof SignUpSplatRoute
   AdminIndexRoute: typeof AdminIndexRoute
   CoursesIndexRoute: typeof CoursesIndexRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
@@ -1146,6 +1146,20 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sign-in': {
+      id: '/sign-in'
+      path: '/sign-in'
+      fullPath: '/sign-in'
+      preLoaderRoute: typeof SignInRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sign-up': {
+      id: '/sign-up'
+      path: '/sign-up'
+      fullPath: '/sign-up'
+      preLoaderRoute: typeof SignUpRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sitemap.xml': {
@@ -1342,20 +1356,6 @@ declare module '@tanstack/react-router' {
       path: '/fr/software-development-egypt'
       fullPath: '/fr/software-development-egypt'
       preLoaderRoute: typeof FrSoftwareDevelopmentEgyptRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sign-in/$': {
-      id: '/sign-in/$'
-      path: '/sign-in/$'
-      fullPath: '/sign-in/$'
-      preLoaderRoute: typeof SignInSplatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sign-up/$': {
-      id: '/sign-up/$'
-      path: '/sign-up/$'
-      fullPath: '/sign-up/$'
-      preLoaderRoute: typeof SignUpSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/.mcp/invoke-tool/$tool': {
@@ -1675,6 +1675,8 @@ const rootRouteChildren: RootRouteChildren = {
   McpRoute: McpRoute,
   PrivacyRoute: PrivacyRoute,
   ProfileRoute: ProfileRoute,
+  SignInRoute: SignInRoute,
+  SignUpRoute: SignUpRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SoftwareDevelopmentEgyptRoute: SoftwareDevelopmentEgyptRoute,
   SsoCallbackRoute: SsoCallbackRoute,
@@ -1702,8 +1704,6 @@ const rootRouteChildren: RootRouteChildren = {
   EsSoftwareDevelopmentEgyptRoute: EsSoftwareDevelopmentEgyptRoute,
   FrEcommerceDevelopmentEgyptRoute: FrEcommerceDevelopmentEgyptRoute,
   FrSoftwareDevelopmentEgyptRoute: FrSoftwareDevelopmentEgyptRoute,
-  SignInSplatRoute: SignInSplatRoute,
-  SignUpSplatRoute: SignUpSplatRoute,
   AdminIndexRoute: AdminIndexRoute,
   CoursesIndexRoute: CoursesIndexRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,

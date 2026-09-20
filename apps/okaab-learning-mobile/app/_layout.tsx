@@ -19,6 +19,9 @@ import { AppThemeProvider, type AppTheme, useAppTheme, useThemedStyles } from "@
 import { AppLanguageProvider, useAppLanguage } from "@/i18n";
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
+const clerkProxyUrl = publishableKey?.startsWith("pk_live_")
+  ? process.env.EXPO_PUBLIC_CLERK_PROXY_URL || "https://okaab.org/__clerk"
+  : undefined;
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -148,7 +151,11 @@ function AppShell({ fontsLoaded }: { fontsLoaded: boolean }) {
   }
 
   return (
-    <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
+    <ClerkProvider
+      publishableKey={publishableKey}
+      tokenCache={tokenCache}
+      {...(clerkProxyUrl ? { proxyUrl: clerkProxyUrl } : {})}
+    >
       <SystemGate>
         <StatusBar style={theme.isDark ? "light" : "dark"} />
         <RootNavigator />
