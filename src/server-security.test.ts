@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { errorResponse, secureResponse } from "./lib/secure-response.ts";
+import { validSignature } from "./lib/youtube-signature.ts";
 
 function nonceFrom(response: Response): string {
   const csp = response.headers.get("content-security-policy") ?? "";
@@ -86,4 +87,18 @@ test("uploaded slide HTML keeps its own policy and frame behavior", async () => 
   );
   assert.equal(secured.headers.get("x-frame-options"), "SAMEORIGIN");
   assert.equal(await secured.text(), "<script>bridge()</script>");
+});
+
+test("validSignature safely handles multi-byte signatures without throwing", () => {
+  process.env["YOUTUBE_WEBSUB_SECRET"] = "test-secret";
+  try {
+    // A string with multi-byte unicode characters, matching string length but differing byte length
+    const multiByteSig = "sha1=" + "✨".repeat(20);
+    assert.doesNotThrow(() => {
+      const isValid = validSignature("sample-body", multiByteSig);
+      assert.equal(isValid, false);
+    });
+  } finally {
+    delete process.env["YOUTUBE_WEBSUB_SECRET"];
+  }
 });
