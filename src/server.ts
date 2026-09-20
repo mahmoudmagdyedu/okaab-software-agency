@@ -51,11 +51,12 @@ async function proxyMawid(request: Request): Promise<Response | null> {
   if (!isMawidPath(incomingUrl.pathname)) return null;
 
   const normalizedPath = incomingUrl.pathname.replace(/^\/maw%27id/i, "/maw'id");
-  const upstreamPath = normalizedPath.replace(
+  const extractedPath = normalizedPath.replace(
     /^\/maw'id(?=\/(?:assets\/|favicon\.(?:ico|png)$))/i,
     "",
   );
-  const upstreamUrl = new URL(`${upstreamPath}${incomingUrl.search}`, MAWID_ORIGIN);
+  const safeUpstreamPath = "/" + extractedPath.replace(/^[/\\]+/, "");
+  const upstreamUrl = new URL(`${safeUpstreamPath}${incomingUrl.search}`, MAWID_ORIGIN);
   const headers = new Headers(request.headers);
   headers.delete("host");
   headers.delete("content-length");
@@ -95,11 +96,12 @@ async function proxyBunPos(request: Request): Promise<Response | null> {
   const incomingUrl = new URL(request.url);
   if (!isBunPosPath(incomingUrl.pathname)) return null;
 
-  const upstreamPath = incomingUrl.pathname.replace(
+  const extractedPath = incomingUrl.pathname.replace(
     /^\/bun-al-deerah(?=\/(?:assets\/|brand\/|favicon\.(?:ico|png)$|og\.png$))/i,
     "",
   );
-  const upstreamUrl = new URL(`${upstreamPath}${incomingUrl.search}`, BUN_POS_ORIGIN);
+  const safeUpstreamPath = "/" + extractedPath.replace(/^[/\\]+/, "");
+  const upstreamUrl = new URL(`${safeUpstreamPath}${incomingUrl.search}`, BUN_POS_ORIGIN);
   const headers = new Headers(request.headers);
   headers.delete("host");
   headers.delete("content-length");

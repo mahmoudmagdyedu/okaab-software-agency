@@ -87,3 +87,25 @@ test("uploaded slide HTML keeps its own policy and frame behavior", async () => 
   assert.equal(secured.headers.get("x-frame-options"), "SAMEORIGIN");
   assert.equal(await secured.text(), "<script>bridge()</script>");
 });
+
+test("SSRF payload normalizer strips leading slashes and prevents origin override", () => {
+  function normalize(path: string) {
+    return "/" + path.replace(/^[/\\]+/, "");
+  }
+  const API_BASE = "https://frontend-api.clerk.dev";
+
+  const maliciousPaths = [
+    "//evil.com",
+    "/\\evil.com",
+    "\\evil.com",
+    "\\\\evil.com",
+    "//evil.com/v1/client",
+  ];
+
+  for (const path of maliciousPaths) {
+    const safePath = normalize(path);
+    const url = new URL(safePath, API_BASE);
+    assert.equal(url.origin, "https://frontend-api.clerk.dev");
+    assert.ok(url.pathname.startsWith("/evil.com"));
+  }
+});

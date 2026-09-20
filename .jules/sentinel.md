@@ -1,0 +1,5 @@
+
+## 2024-05-31 - URL Constructor SSRF via Protocol-Relative Paths
+**Vulnerability:** The application constructs upstream proxy URLs using `new URL(path, baseUrl)` where `path` comes from user input (e.g., splat routes or sliced URL paths). By supplying a path starting with `//`, `/\`, or `\`, the path is treated as an absolute URL (with an implicit protocol or normalized slashes), overriding the intended `baseUrl` origin. This allowed attackers to redirect internal proxy requests to arbitrary external domains (SSRF).
+**Learning:** In Node.js, `new URL()` evaluates paths starting with multiple slashes or backslashes as protocol-relative URLs. If `path` is `//evil.com`, `new URL(path, "https://api.example.com")` results in `https://evil.com/` instead of `https://api.example.com//evil.com`.
+**Prevention:** Always sanitize dynamically constructed URL paths before passing them to the URL constructor. Use a regex to strip leading slashes and backslashes and guarantee a single leading slash, e.g., `const safePath = "/" + path.replace(/^[/\\]+/, "");`.
