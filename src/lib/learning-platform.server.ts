@@ -57,6 +57,20 @@ const DEFAULT_POINTS = {
   streak_30: 250,
 };
 
+const _dateTimeFormatCache = new Map<string, Intl.DateTimeFormat>();
+function getCachedDateTimeFormat(
+  locales: string,
+  options: Intl.DateTimeFormatOptions,
+): Intl.DateTimeFormat {
+  const key = `${locales}:${JSON.stringify(options)}`;
+  let format = _dateTimeFormatCache.get(key);
+  if (!format) {
+    format = new Intl.DateTimeFormat(locales, options);
+    _dateTimeFormatCache.set(key, format);
+  }
+  return format;
+}
+
 export async function getLearnerProfile(): Promise<LearnerProfile | null> {
   const account = await getAccountProfile();
   if (!account) return null;
@@ -283,7 +297,7 @@ async function unlockBadge(
 }
 
 async function touchDailyStreak(transaction: InstanceType<typeof sql.Transaction>, userId: string) {
-  const today = new Intl.DateTimeFormat("en-CA", {
+  const today = getCachedDateTimeFormat("en-CA", {
     timeZone: "Africa/Cairo",
     year: "numeric",
     month: "2-digit",
@@ -932,7 +946,7 @@ export async function getLeaderboard(period: "weekly" | "monthly" | "all") {
   const pool = await getDb();
   const now = new Date();
   const cairoParts = Object.fromEntries(
-    new Intl.DateTimeFormat("en-CA", {
+    getCachedDateTimeFormat("en-CA", {
       timeZone: "Africa/Cairo",
       year: "numeric",
       month: "2-digit",
@@ -963,7 +977,7 @@ export async function getLeaderboard(period: "weekly" | "monthly" | "all") {
   }
   const target = Date.UTC(boundary.year, boundary.month - 1, boundary.day);
   let sinceMs = target;
-  const cairoClock = new Intl.DateTimeFormat("en-CA", {
+  const cairoClock = getCachedDateTimeFormat("en-CA", {
     timeZone: "Africa/Cairo",
     hourCycle: "h23",
     year: "numeric",
