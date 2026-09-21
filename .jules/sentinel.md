@@ -1,0 +1,4 @@
+## 2024-05-27 - [CRITICAL] Prevent SSRF when using new URL() with user-supplied paths
+**Vulnerability:** Node.js resolves paths containing leading backslashes (`\`) or double slashes (`//`) as protocol-relative overrides. This allows attackers to bypass base URL boundaries in proxy implementations by providing inputs like `/\attacker.com` which resolves to `https://attacker.com/`.
+**Learning:** Even when path prefixes are stripped (e.g. replacing `^\/+` with empty string or using substring slice), backslashes bypass these basic checks. Using `new URL(path, base)` without aggressive stripping of these leading characters leads to SSRF vulnerabilities in server-side proxies, particularly when forwarding requests to authentication or internal services.
+**Prevention:** Always strip both slashes and backslashes using `.replace(/^[/\\]+/, "/")` or `.replace(/^[/\\]+/, "")` depending on context before passing user-controlled paths into `new URL()` constructors.
