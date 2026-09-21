@@ -1,0 +1,3 @@
+## 2025-05-18 - Caching Intl.DateTimeFormat in Slot Generation Hot Loops
+**Learning:** Instantiating `Intl.DateTimeFormat` inside loop functions (such as slot generation in `apps/mawid/src/lib/slots.ts`) creates significant CPU and GC memory allocation overhead because `Intl` formatter creation initializes complex ICU data. Caching `Intl.DateTimeFormat` instances in a module-level Map keyed by locale/timezone/options avoids re-allocating formatters across repeated calls.
+**Action:** Always cache `Intl.DateTimeFormat` instances in a module-level cache Map when formatting dates inside hot loops or frequently invoked library utility functions.
