@@ -54,7 +54,7 @@ async function proxyMawid(request: Request): Promise<Response | null> {
   const upstreamPath = normalizedPath.replace(
     /^\/maw'id(?=\/(?:assets\/|favicon\.(?:ico|png)$))/i,
     "",
-  );
+  ).replace(/^[/\\]+/, '/');
   const upstreamUrl = new URL(`${upstreamPath}${incomingUrl.search}`, MAWID_ORIGIN);
   const headers = new Headers(request.headers);
   headers.delete("host");
@@ -98,7 +98,7 @@ async function proxyBunPos(request: Request): Promise<Response | null> {
   const upstreamPath = incomingUrl.pathname.replace(
     /^\/bun-al-deerah(?=\/(?:assets\/|brand\/|favicon\.(?:ico|png)$|og\.png$))/i,
     "",
-  );
+  ).replace(/^[/\\]+/, '/');
   const upstreamUrl = new URL(`${upstreamPath}${incomingUrl.search}`, BUN_POS_ORIGIN);
   const headers = new Headers(request.headers);
   headers.delete("host");
