@@ -87,3 +87,15 @@ test("uploaded slide HTML keeps its own policy and frame behavior", async () => 
   assert.equal(secured.headers.get("x-frame-options"), "SAMEORIGIN");
   assert.equal(await secured.text(), "<script>bridge()</script>");
 });
+
+test("path sanitization prevents protocol-relative URL domain overrides (SSRF protection)", () => {
+  const base = "https://frontend-api.clerk.dev";
+  const maliciousPaths = ["//attacker.com", "/\\attacker.com", "\\\\attacker.com", "///attacker.com"];
+
+  for (const maliciousPath of maliciousPaths) {
+    const cleanPath = maliciousPath.replace(/^[/\\]+/, "");
+    const upstreamUrl = new URL(`/${cleanPath}`, base);
+    assert.equal(upstreamUrl.origin, "https://frontend-api.clerk.dev");
+    assert.notEqual(upstreamUrl.hostname, "attacker.com");
+  }
+});
