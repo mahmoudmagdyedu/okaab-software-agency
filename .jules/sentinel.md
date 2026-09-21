@@ -1,0 +1,4 @@
+## 2024-06-13 - [Server-Side Request Forgery via Node.js URL Protocol-Relative Paths]
+**Vulnerability:** Node.js `new URL(path, base)` allows user-supplied paths starting with `//` or `/\` to act as protocol-relative URLs. If user-controlled input isn't strictly sanitized to remove leading slashes before appending it to a base URL, an attacker can specify `//evil.com` to completely override the base hostname resulting in an SSRF vulnerability.
+**Learning:** Node.js parses paths like `//evil.com` or `/\evil.com` appended to a base URL as `https://evil.com`, effectively discarding the base domain. Standard single-slash stripping (e.g. `replace(/^\/+/, '')`) is insufficient as attackers can supply sequences like `/\evil.com` to bypass it.
+**Prevention:** Aggressively strip ALL leading forward slashes and backslashes using a regex like `path.replace(/^[/\\]+/, '')` before using the user-provided path component in `new URL()`.
