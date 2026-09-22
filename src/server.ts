@@ -55,7 +55,10 @@ async function proxyMawid(request: Request): Promise<Response | null> {
     /^\/maw'id(?=\/(?:assets\/|favicon\.(?:ico|png)$))/i,
     "",
   );
-  const upstreamUrl = new URL(`${upstreamPath}${incomingUrl.search}`, MAWID_ORIGIN);
+  const upstreamUrl = new URL(
+    `/${upstreamPath.replace(/^[/\\]+/, "")}${incomingUrl.search}`,
+    MAWID_ORIGIN,
+  );
   const headers = new Headers(request.headers);
   headers.delete("host");
   headers.delete("content-length");
@@ -99,7 +102,10 @@ async function proxyBunPos(request: Request): Promise<Response | null> {
     /^\/bun-al-deerah(?=\/(?:assets\/|brand\/|favicon\.(?:ico|png)$|og\.png$))/i,
     "",
   );
-  const upstreamUrl = new URL(`${upstreamPath}${incomingUrl.search}`, BUN_POS_ORIGIN);
+  const upstreamUrl = new URL(
+    `/${upstreamPath.replace(/^[/\\]+/, "")}${incomingUrl.search}`,
+    BUN_POS_ORIGIN,
+  );
   const headers = new Headers(request.headers);
   headers.delete("host");
   headers.delete("content-length");
