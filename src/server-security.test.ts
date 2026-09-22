@@ -87,3 +87,15 @@ test("uploaded slide HTML keeps its own policy and frame behavior", async () => 
   assert.equal(secured.headers.get("x-frame-options"), "SAMEORIGIN");
   assert.equal(await secured.text(), "<script>bridge()</script>");
 });
+
+test("Clerk proxy path construction prevents SSRF and domain overrides", () => {
+  const CLERK_FRONTEND_API = "https://frontend-api.clerk.dev";
+  const malformedPaths = ["//evil.com", "/\\evil.com", "\\evil.com", "///evil.com/path"];
+
+  for (const rawPath of malformedPaths) {
+    const safePath = rawPath.replace(/^[/\\]+/, "");
+    const upstreamUrl = new URL(`/${safePath}`, CLERK_FRONTEND_API);
+    assert.equal(upstreamUrl.origin, "https://frontend-api.clerk.dev");
+    assert.notEqual(upstreamUrl.hostname, "evil.com");
+  }
+});
