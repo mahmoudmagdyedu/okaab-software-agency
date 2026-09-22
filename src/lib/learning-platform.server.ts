@@ -7,6 +7,22 @@ import { slideQuizOutcome } from "@/lib/slide-quiz-score";
 import { getAccountProfile } from "@/lib/admin-auth.server";
 import { lessonCompletion, type LessonCompletionFacts } from "@/lib/lesson-completion";
 
+const dateTimeFormatCache = new Map<string, Intl.DateTimeFormat>();
+
+function getCachedDateTimeFormat(locale: string, options: Intl.DateTimeFormatOptions) {
+  const optionsKey = Object.keys(options)
+    .sort()
+    .map((k) => `${k}=${String(options[k as keyof Intl.DateTimeFormatOptions])}`)
+    .join(",");
+  const key = `${locale}|${optionsKey}`;
+  let format = dateTimeFormatCache.get(key);
+  if (!format) {
+    format = new Intl.DateTimeFormat(locale, options);
+    dateTimeFormatCache.set(key, format);
+  }
+  return format;
+}
+
 export type LearnerProfile = {
   id: string;
   email: string;
@@ -283,7 +299,7 @@ async function unlockBadge(
 }
 
 async function touchDailyStreak(transaction: InstanceType<typeof sql.Transaction>, userId: string) {
-  const today = new Intl.DateTimeFormat("en-CA", {
+  const today = getCachedDateTimeFormat("en-CA", {
     timeZone: "Africa/Cairo",
     year: "numeric",
     month: "2-digit",
@@ -932,7 +948,7 @@ export async function getLeaderboard(period: "weekly" | "monthly" | "all") {
   const pool = await getDb();
   const now = new Date();
   const cairoParts = Object.fromEntries(
-    new Intl.DateTimeFormat("en-CA", {
+    getCachedDateTimeFormat("en-CA", {
       timeZone: "Africa/Cairo",
       year: "numeric",
       month: "2-digit",
@@ -963,7 +979,7 @@ export async function getLeaderboard(period: "weekly" | "monthly" | "all") {
   }
   const target = Date.UTC(boundary.year, boundary.month - 1, boundary.day);
   let sinceMs = target;
-  const cairoClock = new Intl.DateTimeFormat("en-CA", {
+  const cairoClock = getCachedDateTimeFormat("en-CA", {
     timeZone: "Africa/Cairo",
     hourCycle: "h23",
     year: "numeric",
