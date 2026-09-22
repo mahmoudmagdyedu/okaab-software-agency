@@ -29,7 +29,7 @@ async function proxyClerkRequest({
   }
 
   const requestUrl = new URL(request.url);
-  const path = (params._splat || "").replace(/^\/+/, "");
+  const path = (params._splat || "").replace(/^[\/\\]+/, "");
   const upstreamUrl = new URL(`/${path}${requestUrl.search}`, CLERK_FRONTEND_API);
   const requestHeaders = new Headers(request.headers);
 
