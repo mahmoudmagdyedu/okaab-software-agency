@@ -29,7 +29,8 @@ async function proxyClerkRequest({
   }
 
   const requestUrl = new URL(request.url);
-  const path = (params._splat || "").replace(/^\/+/, "");
+  // Strip leading slashes and backslashes to prevent protocol-relative URL SSRF
+  const path = (params._splat || "").replace(/^[/\\]+/, "");
   const upstreamUrl = new URL(`/${path}${requestUrl.search}`, CLERK_FRONTEND_API);
   const requestHeaders = new Headers(request.headers);
 
