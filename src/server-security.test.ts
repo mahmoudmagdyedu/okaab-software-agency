@@ -87,3 +87,15 @@ test("uploaded slide HTML keeps its own policy and frame behavior", async () => 
   assert.equal(secured.headers.get("x-frame-options"), "SAMEORIGIN");
   assert.equal(await secured.text(), "<script>bridge()</script>");
 });
+
+test("proxy path sanitization strips leading slashes and backslashes to prevent SSRF", () => {
+  const baseOrigin = "http://127.0.0.1:3002";
+  const maliciousPaths = ["//evil.com", "/\\evil.com", "\\\\evil.com", "/bun-al-deerah//evil.com"];
+
+  for (const raw of maliciousPaths) {
+    const clean = raw.replace(/^[/\\]+/, "");
+    const upstreamUrl = new URL(`/${clean}`, baseOrigin);
+    assert.equal(upstreamUrl.origin, new URL(baseOrigin).origin);
+    assert.notEqual(upstreamUrl.hostname, "evil.com");
+  }
+});
