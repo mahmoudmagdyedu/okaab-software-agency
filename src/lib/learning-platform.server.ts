@@ -282,8 +282,31 @@ async function unlockBadge(
     `);
 }
 
+const dateTimeFormatCache = new Map<string, Intl.DateTimeFormat>();
+
+function getCachedDateTimeFormat(
+  locale: string,
+  options: Intl.DateTimeFormatOptions = {},
+): Intl.DateTimeFormat {
+  // Sort options keys to ensure consistent cache keys
+  const sortedOptions = Object.keys(options)
+    .sort()
+    .reduce((acc: Record<string, unknown>, key) => {
+      acc[key] = (options as Record<string, unknown>)[key];
+      return acc;
+    }, {});
+  const cacheKey = `${locale}-${JSON.stringify(sortedOptions)}`;
+  let formatter = dateTimeFormatCache.get(cacheKey);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(locale, options);
+    dateTimeFormatCache.set(cacheKey, formatter);
+  }
+  return formatter;
+}
+
 async function touchDailyStreak(transaction: InstanceType<typeof sql.Transaction>, userId: string) {
-  const today = new Intl.DateTimeFormat("en-CA", {
+  // Use cached Intl.DateTimeFormat to avoid instantiation overhead
+  const today = getCachedDateTimeFormat("en-CA", {
     timeZone: "Africa/Cairo",
     year: "numeric",
     month: "2-digit",
@@ -931,8 +954,9 @@ export async function getLeaderboard(period: "weekly" | "monthly" | "all") {
   const learner = await getLearnerProfile();
   const pool = await getDb();
   const now = new Date();
+  // Use cached Intl.DateTimeFormat to avoid instantiation overhead
   const cairoParts = Object.fromEntries(
-    new Intl.DateTimeFormat("en-CA", {
+    getCachedDateTimeFormat("en-CA", {
       timeZone: "Africa/Cairo",
       year: "numeric",
       month: "2-digit",
@@ -963,7 +987,8 @@ export async function getLeaderboard(period: "weekly" | "monthly" | "all") {
   }
   const target = Date.UTC(boundary.year, boundary.month - 1, boundary.day);
   let sinceMs = target;
-  const cairoClock = new Intl.DateTimeFormat("en-CA", {
+  // Use cached Intl.DateTimeFormat to avoid instantiation overhead
+  const cairoClock = getCachedDateTimeFormat("en-CA", {
     timeZone: "Africa/Cairo",
     hourCycle: "h23",
     year: "numeric",
