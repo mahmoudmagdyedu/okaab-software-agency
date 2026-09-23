@@ -18,8 +18,12 @@ async function proxyClerkFrontendApi(request: Request) {
   }
 
   const incomingUrl = new URL(request.url);
-  const upstreamPath = incomingUrl.pathname.slice(CLERK_PROXY_PATH.length) || "/";
-  const upstreamUrl = new URL(`${upstreamPath}${incomingUrl.search}`, CLERK_FRONTEND_API);
+  const rawPath = incomingUrl.pathname.slice(CLERK_PROXY_PATH.length);
+  const cleanPath = rawPath.replace(/^[/\\]+/, "");
+  const upstreamUrl = new URL(`/${cleanPath}${incomingUrl.search}`, CLERK_FRONTEND_API);
+  if (upstreamUrl.origin !== new URL(CLERK_FRONTEND_API).origin) {
+    return new Response("Bad Request", { status: 400 });
+  }
   // The production adapter reconstructs Request URLs with its internal
   // localhost origin. Clerk must receive the public, configured proxy URL.
   const proxyUrl =

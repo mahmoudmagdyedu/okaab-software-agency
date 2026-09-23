@@ -29,8 +29,11 @@ async function proxyClerkRequest({
   }
 
   const requestUrl = new URL(request.url);
-  const path = (params._splat || "").replace(/^\/+/, "");
+  const path = (params._splat || "").replace(/^[/\\]+/, "");
   const upstreamUrl = new URL(`/${path}${requestUrl.search}`, CLERK_FRONTEND_API);
+  if (upstreamUrl.origin !== new URL(CLERK_FRONTEND_API).origin) {
+    return new Response("Bad Request", { status: 400 });
+  }
   const requestHeaders = new Headers(request.headers);
 
   requestHeaders.delete("host");
