@@ -55,7 +55,9 @@ async function proxyMawid(request: Request): Promise<Response | null> {
     /^\/maw'id(?=\/(?:assets\/|favicon\.(?:ico|png)$))/i,
     "",
   );
-  const upstreamUrl = new URL(`${upstreamPath}${incomingUrl.search}`, MAWID_ORIGIN);
+  // Prevent SSRF by aggressively stripping leading slashes/backslashes so Node.js URL doesn't treat it as protocol-relative
+  const safeUpstreamPath = "/" + upstreamPath.replace(/^[/\\]+/, "");
+  const upstreamUrl = new URL(`${safeUpstreamPath}${incomingUrl.search}`, MAWID_ORIGIN);
   const headers = new Headers(request.headers);
   headers.delete("host");
   headers.delete("content-length");
@@ -99,7 +101,9 @@ async function proxyBunPos(request: Request): Promise<Response | null> {
     /^\/bun-al-deerah(?=\/(?:assets\/|brand\/|favicon\.(?:ico|png)$|og\.png$))/i,
     "",
   );
-  const upstreamUrl = new URL(`${upstreamPath}${incomingUrl.search}`, BUN_POS_ORIGIN);
+  // Prevent SSRF by aggressively stripping leading slashes/backslashes so Node.js URL doesn't treat it as protocol-relative
+  const safeUpstreamPath = "/" + upstreamPath.replace(/^[/\\]+/, "");
+  const upstreamUrl = new URL(`${safeUpstreamPath}${incomingUrl.search}`, BUN_POS_ORIGIN);
   const headers = new Headers(request.headers);
   headers.delete("host");
   headers.delete("content-length");
@@ -185,7 +189,7 @@ function withPerformanceHeaders(request: Request, response: Response, nonce: str
     htmlPolicy: !isSlideAsset,
   });
   const headers = new Headers(secured.headers);
-  let body = secured.body;
+  const body = secured.body;
 
   if (/^\/(?:assets|fonts)\//.test(pathname) || /^\/bun-al-deerah\/assets\//.test(pathname)) {
     headers.set("cache-control", "public, max-age=31536000, immutable");

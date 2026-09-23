@@ -30,7 +30,9 @@ async function proxyClerkRequest({
 
   const requestUrl = new URL(request.url);
   const path = (params._splat || "").replace(/^\/+/, "");
-  const upstreamUrl = new URL(`/${path}${requestUrl.search}`, CLERK_FRONTEND_API);
+  // Prevent SSRF by aggressively stripping leading slashes/backslashes so Node.js URL doesn't treat it as protocol-relative
+  const safePath = path.replace(/^[/\\]+/, "");
+  const upstreamUrl = new URL(`/${safePath}${requestUrl.search}`, CLERK_FRONTEND_API);
   const requestHeaders = new Headers(request.headers);
 
   requestHeaders.delete("host");

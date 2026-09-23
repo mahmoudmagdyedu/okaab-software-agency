@@ -1,0 +1,4 @@
+## 2025-03-09 - Node.js new URL() SSRF via Protocol-Relative Paths
+**Vulnerability:** The application was passing unvalidated user-controlled paths as the first argument to `new URL(path, base)`. Node.js evaluates paths starting with `//` or `/\` as protocol-relative URLs, overriding the base origin and causing Server-Side Request Forgery (SSRF) to arbitrary domains (e.g. `new URL('//evil.com', 'http://127.0.0.1')` evaluates to `http://evil.com/`).
+**Learning:** Standard pathname manipulations, string slicing, and regex replacements are insufficient if they leave leading slashes intact that can then be interpreted as protocol-relative by the `URL` constructor.
+**Prevention:** Aggressively strip all leading forward slashes and backslashes using `.replace(/^[/\\]+/, '')` from any user-controlled path before using it to construct a new URL, and explicitly prepend a single `/` if needed.

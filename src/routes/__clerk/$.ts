@@ -19,7 +19,9 @@ async function proxyClerkFrontendApi(request: Request) {
 
   const incomingUrl = new URL(request.url);
   const upstreamPath = incomingUrl.pathname.slice(CLERK_PROXY_PATH.length) || "/";
-  const upstreamUrl = new URL(`${upstreamPath}${incomingUrl.search}`, CLERK_FRONTEND_API);
+  // Prevent SSRF by aggressively stripping leading slashes/backslashes so Node.js URL doesn't treat it as protocol-relative
+  const safeUpstreamPath = "/" + upstreamPath.replace(/^[/\\]+/, "");
+  const upstreamUrl = new URL(`${safeUpstreamPath}${incomingUrl.search}`, CLERK_FRONTEND_API);
   // The production adapter reconstructs Request URLs with its internal
   // localhost origin. Clerk must receive the public, configured proxy URL.
   const proxyUrl =
