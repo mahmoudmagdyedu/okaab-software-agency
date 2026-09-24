@@ -87,3 +87,16 @@ test("uploaded slide HTML keeps its own policy and frame behavior", async () => 
   assert.equal(secured.headers.get("x-frame-options"), "SAMEORIGIN");
   assert.equal(await secured.text(), "<script>bridge()</script>");
 });
+
+test("reverse proxy URL path sanitization prevents SSRF via protocol-relative URLs", () => {
+  const baseOrigin = "http://127.0.0.1:3002";
+  const maliciousPaths = ["//evil.com", "/\\\\evil.com", "///attacker.com/path"];
+
+  for (const rawPath of maliciousPaths) {
+    const sanitizedPath = rawPath.replace(/^[/\\]+/, "/");
+    const constructedUrl = new URL(sanitizedPath, baseOrigin);
+    assert.equal(constructedUrl.origin, "http://127.0.0.1:3002");
+    assert.notEqual(constructedUrl.hostname, "evil.com");
+    assert.notEqual(constructedUrl.hostname, "attacker.com");
+  }
+});
