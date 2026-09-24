@@ -141,6 +141,13 @@ export function CoursesCatalog({ locale = "ar" }: { locale?: string }) {
   if (!roadmaps.length && !courses.length && !latest.length)
     return <EmptyCourses error={error} locale={locale} />;
 
+  // Bolt Optimization: Pre-index courses by ID in a Map for O(1) lookups during render.
+  // This avoids O(N*M) nested search loops when mapping courses to roadmaps.
+  const coursesMap = useMemo(
+    () => new Map(courses.map((course) => [course.id, course])),
+    [courses],
+  );
+
   const linkedCourseIds = new Set(links.map((link) => link.course_id));
   const standaloneCourses = courses.filter((course) => !linkedCourseIds.has(course.id));
 
@@ -150,7 +157,7 @@ export function CoursesCatalog({ locale = "ar" }: { locale?: string }) {
         const roadmapCourses = links
           .filter((link) => link.roadmap_id === roadmap.id)
           .sort((a, b) => a.sort_order - b.sort_order)
-          .map((link) => courses.find((course) => course.id === link.course_id))
+          .map((link) => coursesMap.get(link.course_id))
           .filter(Boolean) as Course[];
         if (!roadmapCourses.length) return null;
         return (
