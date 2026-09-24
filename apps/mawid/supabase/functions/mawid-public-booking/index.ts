@@ -48,17 +48,27 @@ function uuid(value: unknown) {
   return result;
 }
 
+// ⚡ Bolt: Cache Intl.DateTimeFormat instances to avoid instantiation overhead in hot loops
+const offsetFormatters = new Map<string, Intl.DateTimeFormat>();
+const timeFormatters = new Map<string, Intl.DateTimeFormat>();
+const dateFormatters = new Map<string, Intl.DateTimeFormat>();
+
 function timeZoneOffsetMinutes(instant: Date, timeZone: string) {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    hour12: false,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  }).formatToParts(instant);
+  let dtf = offsetFormatters.get(timeZone);
+  if (!dtf) {
+    dtf = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      hour12: false,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
+    offsetFormatters.set(timeZone, dtf);
+  }
+  const parts = dtf.formatToParts(instant);
   const pick = (type: string) => Number(parts.find((part) => part.type === type)?.value ?? "0");
   const asUtc = Date.UTC(
     pick("year"),
@@ -85,21 +95,31 @@ function weekdayOf(date: string) {
 }
 
 function formatTime(instant: Date | string, timeZone: string) {
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone,
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).format(typeof instant === "string" ? new Date(instant) : instant);
+  let dtf = timeFormatters.get(timeZone);
+  if (!dtf) {
+    dtf = new Intl.DateTimeFormat("en-GB", {
+      timeZone,
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+    timeFormatters.set(timeZone, dtf);
+  }
+  return dtf.format(typeof instant === "string" ? new Date(instant) : instant);
 }
 
 function formatDateKey(instant: Date | string, timeZone: string) {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(typeof instant === "string" ? new Date(instant) : instant);
+  let dtf = dateFormatters.get(timeZone);
+  if (!dtf) {
+    dtf = new Intl.DateTimeFormat("en-CA", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+    dateFormatters.set(timeZone, dtf);
+  }
+  return dtf.format(typeof instant === "string" ? new Date(instant) : instant);
 }
 
 function computeSlots(input: {
