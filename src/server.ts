@@ -51,10 +51,12 @@ async function proxyMawid(request: Request): Promise<Response | null> {
   if (!isMawidPath(incomingUrl.pathname)) return null;
 
   const normalizedPath = incomingUrl.pathname.replace(/^\/maw%27id/i, "/maw'id");
-  const upstreamPath = normalizedPath.replace(
+  let upstreamPath = normalizedPath.replace(
     /^\/maw'id(?=\/(?:assets\/|favicon\.(?:ico|png)$))/i,
     "",
   );
+  // Security: prevent SSRF. Node.js evaluates paths starting with // or /\ as protocol-relative.
+  upstreamPath = `/${upstreamPath.replace(/^[/\\]+/, "")}`;
   const upstreamUrl = new URL(`${upstreamPath}${incomingUrl.search}`, MAWID_ORIGIN);
   const headers = new Headers(request.headers);
   headers.delete("host");
@@ -95,10 +97,12 @@ async function proxyBunPos(request: Request): Promise<Response | null> {
   const incomingUrl = new URL(request.url);
   if (!isBunPosPath(incomingUrl.pathname)) return null;
 
-  const upstreamPath = incomingUrl.pathname.replace(
+  let upstreamPath = incomingUrl.pathname.replace(
     /^\/bun-al-deerah(?=\/(?:assets\/|brand\/|favicon\.(?:ico|png)$|og\.png$))/i,
     "",
   );
+  // Security: prevent SSRF. Node.js evaluates paths starting with // or /\ as protocol-relative.
+  upstreamPath = `/${upstreamPath.replace(/^[/\\]+/, "")}`;
   const upstreamUrl = new URL(`${upstreamPath}${incomingUrl.search}`, BUN_POS_ORIGIN);
   const headers = new Headers(request.headers);
   headers.delete("host");
@@ -185,7 +189,7 @@ function withPerformanceHeaders(request: Request, response: Response, nonce: str
     htmlPolicy: !isSlideAsset,
   });
   const headers = new Headers(secured.headers);
-  let body = secured.body;
+  const body = secured.body;
 
   if (/^\/(?:assets|fonts)\//.test(pathname) || /^\/bun-al-deerah\/assets\//.test(pathname)) {
     headers.set("cache-control", "public, max-age=31536000, immutable");
