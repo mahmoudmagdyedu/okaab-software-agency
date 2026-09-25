@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
+import { createHmac } from "node:crypto";
 import test from "node:test";
 
 import { errorResponse, secureResponse } from "./lib/secure-response.ts";
+import { validateYouTubeWebhookSignature } from "./lib/youtube-webhook-security.ts";
 
 function nonceFrom(response: Response): string {
   const csp = response.headers.get("content-security-policy") ?? "";
@@ -86,4 +88,27 @@ test("uploaded slide HTML keeps its own policy and frame behavior", async () => 
   );
   assert.equal(secured.headers.get("x-frame-options"), "SAMEORIGIN");
   assert.equal(await secured.text(), "<script>bridge()</script>");
+});
+
+test("validateYouTubeWebhookSignature verifies valid signature", () => {
+  const secret = "test-secret-key";
+  const body = '{"feed":"update"}';
+  const hmac = createHmac("sha1", secret).update(body).digest("hex");
+  const signature = `sha1=${hmac}`;
+
+  assert.equal(validateYouTubeWebhookSignature(body, signature, secret), true);
+  assert.equal(validateYouTubeWebhookSignature(body, "sha1=invalid", secret), false);
+  assert.equal(validateYouTubeWebhookSignature(body, null, secret), false);
+  assert.equal(validateYouTubeWebhookSignature(body, signature, undefined), false);
+});
+
+test("validateYouTubeWebhookSignature handles multi-byte signature strings without throwing", () => {
+  const secret = "test-secret-key";
+  const body = '{"feed":"update"}';
+  const multiByteSignature = "sha1=" + "😀".repeat(40);
+
+  assert.doesNotThrow(() => {
+    const result = validateYouTubeWebhookSignature(body, multiByteSignature, secret);
+    assert.equal(result, false);
+  });
 });
