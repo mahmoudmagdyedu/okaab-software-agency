@@ -55,7 +55,10 @@ async function proxyMawid(request: Request): Promise<Response | null> {
     /^\/maw'id(?=\/(?:assets\/|favicon\.(?:ico|png)$))/i,
     "",
   );
-  const upstreamUrl = new URL(`${upstreamPath}${incomingUrl.search}`, MAWID_ORIGIN);
+  // Prevent SSRF: Node.js URL evaluates // or /\ as overriding protocol-relative URLs.
+  // We aggressively strip all leading slashes and backslashes.
+  const safePath = upstreamPath.replace(/^[/\\]+/, "");
+  const upstreamUrl = new URL(`/${safePath}${incomingUrl.search}`, MAWID_ORIGIN);
   const headers = new Headers(request.headers);
   headers.delete("host");
   headers.delete("content-length");
@@ -99,7 +102,10 @@ async function proxyBunPos(request: Request): Promise<Response | null> {
     /^\/bun-al-deerah(?=\/(?:assets\/|brand\/|favicon\.(?:ico|png)$|og\.png$))/i,
     "",
   );
-  const upstreamUrl = new URL(`${upstreamPath}${incomingUrl.search}`, BUN_POS_ORIGIN);
+  // Prevent SSRF: Node.js URL evaluates // or /\ as overriding protocol-relative URLs.
+  // We aggressively strip all leading slashes and backslashes.
+  const safePath = upstreamPath.replace(/^[/\\]+/, "");
+  const upstreamUrl = new URL(`/${safePath}${incomingUrl.search}`, BUN_POS_ORIGIN);
   const headers = new Headers(request.headers);
   headers.delete("host");
   headers.delete("content-length");
