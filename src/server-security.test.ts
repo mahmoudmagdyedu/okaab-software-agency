@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { errorResponse, secureResponse } from "./lib/secure-response.ts";
+import { validSignature } from "./lib/youtube-webhook-security.ts";
 
 function nonceFrom(response: Response): string {
   const csp = response.headers.get("content-security-policy") ?? "";
@@ -86,4 +87,27 @@ test("uploaded slide HTML keeps its own policy and frame behavior", async () => 
   );
   assert.equal(secured.headers.get("x-frame-options"), "SAMEORIGIN");
   assert.equal(await secured.text(), "<script>bridge()</script>");
+});
+
+test("webhook signature validation handles multi-byte characters and mismatched lengths safely", () => {
+  const originalSecret = process.env["YOUTUBE_WEBSUB_SECRET"];
+  process.env["YOUTUBE_WEBSUB_SECRET"] = "secret-key";
+
+  try {
+    const body = '{"test":"payload"}';
+    // Multi-byte character string with JS length 40, but Buffer byte length 42
+    const multibyteSig = "sha1=" + "a".repeat(38) + "😊";
+    assert.equal(multibyteSig.slice(5).length, 40); // 40 string units
+
+    // Should return false safely without throwing a RangeError/TypeError from timingSafeEqual
+    assert.equal(validSignature(body, multibyteSig), false);
+    assert.equal(validSignature(body, "sha1=" + "a".repeat(40)), false);
+    assert.equal(validSignature(body, null), false);
+  } finally {
+    if (originalSecret === undefined) {
+      delete process.env["YOUTUBE_WEBSUB_SECRET"];
+    } else {
+      process.env["YOUTUBE_WEBSUB_SECRET"] = originalSecret;
+    }
+  }
 });
