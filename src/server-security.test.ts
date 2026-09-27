@@ -87,3 +87,15 @@ test("uploaded slide HTML keeps its own policy and frame behavior", async () => 
   assert.equal(secured.headers.get("x-frame-options"), "SAMEORIGIN");
   assert.equal(await secured.text(), "<script>bridge()</script>");
 });
+
+test("validYouTubeSignature handles multi-byte inputs and unequal lengths without throwing", async () => {
+  const { validYouTubeSignature } = await import("./lib/youtube-security.ts");
+  process.env["YOUTUBE_WEBSUB_SECRET"] = "test-secret";
+
+  assert.equal(validYouTubeSignature("body", null), false);
+  assert.equal(validYouTubeSignature("body", "sha1=invalid"), false);
+  // Signature length matches hex digest (40 chars) but has multi-byte characters
+  assert.equal(validYouTubeSignature("body", "sha1=" + "🎉".repeat(10)), false);
+
+  delete process.env["YOUTUBE_WEBSUB_SECRET"];
+});
