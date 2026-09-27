@@ -1,0 +1,3 @@
+## 2024-09-27 - Cache Intl.DateTimeFormat in Hot Loops
+**Learning:** Repeatedly instantiating `Intl.DateTimeFormat` objects in hot loops (e.g., generating slots for a whole day) causes significant performance overhead due to the high initialization cost of native formatting APIs.
+**Action:** Cache `Intl.DateTimeFormat` instances in a module-level Map keyed by locale and timezone options to achieve O(1) retrieval, drastically reducing CPU usage in date/time heavy algorithms.

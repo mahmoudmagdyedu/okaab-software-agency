@@ -46,18 +46,45 @@ export interface Slot {
 
 const MINUTE = 60_000;
 
+const dtfCache = new Map<string, Intl.DateTimeFormat>();
+function getDtf(timeZone: string, type: "offset" | "time" | "date"): Intl.DateTimeFormat {
+  const key = `${timeZone}:${type}`;
+  let dtf = dtfCache.get(key);
+  if (!dtf) {
+    if (type === "offset") {
+      dtf = new Intl.DateTimeFormat("en-US", {
+        timeZone,
+        hour12: false,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      });
+    } else if (type === "time") {
+      dtf = new Intl.DateTimeFormat("en-GB", {
+        timeZone,
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      });
+    } else {
+      dtf = new Intl.DateTimeFormat("en-CA", {
+        timeZone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      });
+    }
+    dtfCache.set(key, dtf);
+  }
+  return dtf;
+}
+
 /** إزاحة المنطقة الزمنية بالدقائق عند لحظة معيّنة. */
 export function timeZoneOffsetMinutes(instant: Date, timeZone: string): number {
-  const dtf = new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    hour12: false,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
+  const dtf = getDtf(timeZone, "offset");
   const parts = dtf.formatToParts(instant);
   const pick = (type: string): number => Number(parts.find((p) => p.type === type)?.value ?? "0");
   const asUTC = Date.UTC(
@@ -90,23 +117,13 @@ export function weekdayOf(date: string): number {
 /** تنسيق الوقت LTR بتوقيت الفرع مثل 10:30 */
 export function formatTime(instant: Date | string, timeZone: string): string {
   const dt = typeof instant === "string" ? new Date(instant) : instant;
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone,
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).format(dt);
+  return getDtf(timeZone, "time").format(dt);
 }
 
 /** التاريخ بصيغة YYYY-MM-DD بتوقيت الفرع. */
 export function formatDateKey(instant: Date | string, timeZone: string): string {
   const dt = typeof instant === "string" ? new Date(instant) : instant;
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(dt);
+  return getDtf(timeZone, "date").format(dt);
 }
 
 /** دقائق من منتصف ليل يوم الفرع للحظة UTC. */
