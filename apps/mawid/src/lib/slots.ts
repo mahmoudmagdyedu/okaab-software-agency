@@ -46,9 +46,26 @@ export interface Slot {
 
 const MINUTE = 60_000;
 
+// Module-level cache for Intl.DateTimeFormat instances to avoid high instantiation overhead in hot loops
+const formatterCache = new Map<string, Intl.DateTimeFormat>();
+
+function getDateTimeFormatter(
+  locale: string,
+  options: Intl.DateTimeFormatOptions,
+): Intl.DateTimeFormat {
+  const key = `${locale}:${JSON.stringify(options)}`;
+  let formatter = formatterCache.get(key);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(locale, options);
+    formatterCache.set(key, formatter);
+  }
+  return formatter;
+}
+
 /** إزاحة المنطقة الزمنية بالدقائق عند لحظة معيّنة. */
 export function timeZoneOffsetMinutes(instant: Date, timeZone: string): number {
-  const dtf = new Intl.DateTimeFormat("en-US", {
+  // Use cached DateTimeFormat to eliminate object creation overhead during slot generation loops
+  const dtf = getDateTimeFormatter("en-US", {
     timeZone,
     hour12: false,
     year: "numeric",
@@ -90,7 +107,8 @@ export function weekdayOf(date: string): number {
 /** تنسيق الوقت LTR بتوقيت الفرع مثل 10:30 */
 export function formatTime(instant: Date | string, timeZone: string): string {
   const dt = typeof instant === "string" ? new Date(instant) : instant;
-  return new Intl.DateTimeFormat("en-GB", {
+  // Cache Intl.DateTimeFormat for fast formatting in slot iteration
+  return getDateTimeFormatter("en-GB", {
     timeZone,
     hour: "2-digit",
     minute: "2-digit",
@@ -101,7 +119,8 @@ export function formatTime(instant: Date | string, timeZone: string): string {
 /** التاريخ بصيغة YYYY-MM-DD بتوقيت الفرع. */
 export function formatDateKey(instant: Date | string, timeZone: string): string {
   const dt = typeof instant === "string" ? new Date(instant) : instant;
-  return new Intl.DateTimeFormat("en-CA", {
+  // Cache Intl.DateTimeFormat for fast date key formatting
+  return getDateTimeFormatter("en-CA", {
     timeZone,
     year: "numeric",
     month: "2-digit",
