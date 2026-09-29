@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
+import { createHmac } from "node:crypto";
 import test from "node:test";
 
 import { errorResponse, secureResponse } from "./lib/secure-response.ts";
+import { validSignature } from "./lib/youtube-signature.ts";
 
 function nonceFrom(response: Response): string {
   const csp = response.headers.get("content-security-policy") ?? "";
@@ -86,4 +88,39 @@ test("uploaded slide HTML keeps its own policy and frame behavior", async () => 
   );
   assert.equal(secured.headers.get("x-frame-options"), "SAMEORIGIN");
   assert.equal(await secured.text(), "<script>bridge()</script>");
+});
+
+test("youtube webhook signature validation handles valid and invalid signatures", () => {
+  const secret = "test-secret-key";
+  const body = "sample-webhook-body";
+  const expectedHmac = createHmac("sha1", secret).update(body).digest("hex");
+
+  process.env["YOUTUBE_WEBSUB_SECRET"] = secret;
+  try {
+    assert.equal(validSignature(body, `sha1=${expectedHmac}`), true);
+    assert.equal(validSignature(body, "sha1=invalidhmac"), false);
+    assert.equal(validSignature(body, expectedHmac), false); // Missing sha1= prefix
+  } finally {
+    delete process.env["YOUTUBE_WEBSUB_SECRET"];
+  }
+
+  assert.equal(validSignature(body, `sha1=${expectedHmac}`), false); // Missing secret
+});
+
+test("youtube webhook signature validation handles multi-byte signatures without throwing", () => {
+  const secret = "test-secret-key";
+  const body = "sample-webhook-body";
+
+  process.env["YOUTUBE_WEBSUB_SECRET"] = secret;
+  try {
+    // String length is 40 characters (39 'a's + 1 '€'), matching expected 40 hex char length in JS,
+    // but byte length is 41 bytes in UTF-8.
+    const multiByteSig = "sha1=" + "a".repeat(39) + "€";
+    assert.doesNotThrow(() => {
+      const result = validSignature(body, multiByteSig);
+      assert.equal(result, false);
+    });
+  } finally {
+    delete process.env["YOUTUBE_WEBSUB_SECRET"];
+  }
 });
