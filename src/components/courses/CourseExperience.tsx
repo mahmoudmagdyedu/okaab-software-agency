@@ -127,6 +127,12 @@ export function CoursesCatalog({ locale = "ar" }: { locale?: string }) {
       .finally(() => setLoading(false));
   }, []);
 
+  // Pre-process courses lookup map to avoid O(N*M) nested array searches during roadmap rendering.
+  // Must be defined before any early returns to respect React hooks rules.
+  const coursesById = useMemo(() => {
+    return new Map(courses.map((course) => [course.id, course]));
+  }, [courses]);
+
   if (loading)
     return (
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -150,7 +156,7 @@ export function CoursesCatalog({ locale = "ar" }: { locale?: string }) {
         const roadmapCourses = links
           .filter((link) => link.roadmap_id === roadmap.id)
           .sort((a, b) => a.sort_order - b.sort_order)
-          .map((link) => courses.find((course) => course.id === link.course_id))
+          .map((link) => coursesById.get(link.course_id))
           .filter(Boolean) as Course[];
         if (!roadmapCourses.length) return null;
         return (
@@ -309,6 +315,28 @@ export function CourseOverview({ slug, locale = "ar" }: { slug: string; locale?:
     };
   }, [locale, slug]);
 
+  // Pre-process video and slide deck count lookup maps to avoid O(N*M) nested array iterations per lesson.
+  // Defined before early returns to abide by React hooks rules.
+  const videoCountByLessonId = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const video of videos) {
+      if (video.lesson_id) {
+        counts.set(video.lesson_id, (counts.get(video.lesson_id) ?? 0) + 1);
+      }
+    }
+    return counts;
+  }, [videos]);
+
+  const slideCountByLessonId = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const slide of slides) {
+      if (slide.lesson_id) {
+        counts.set(slide.lesson_id, (counts.get(slide.lesson_id) ?? 0) + 1);
+      }
+    }
+    return counts;
+  }, [slides]);
+
   if (loading)
     return (
       <div className="h-80 animate-pulse rounded-3xl border-2 border-[var(--ok-ink)]/20 bg-[var(--ok-card)]" />
@@ -344,8 +372,8 @@ export function CourseOverview({ slug, locale = "ar" }: { slug: string; locale?:
         </div>
         <div className="space-y-3">
           {lessons.map((lesson, index) => {
-            const videoCount = videos.filter((video) => video.lesson_id === lesson.id).length;
-            const slideCount = slides.filter((deck) => deck.lesson_id === lesson.id).length;
+            const videoCount = videoCountByLessonId.get(lesson.id) ?? 0;
+            const slideCount = slideCountByLessonId.get(lesson.id) ?? 0;
             return (
               <Link
                 key={lesson.id}
