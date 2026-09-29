@@ -7,6 +7,21 @@ import { slideQuizOutcome } from "@/lib/slide-quiz-score";
 import { getAccountProfile } from "@/lib/admin-auth.server";
 import { lessonCompletion, type LessonCompletionFacts } from "@/lib/lesson-completion";
 
+// Cache Intl.DateTimeFormat instances to prevent performance overhead in date calculation hot loops
+const dateTimeFormatCache = new Map<string, Intl.DateTimeFormat>();
+function getCachedDateTimeFormat(
+  locale: string,
+  options: Intl.DateTimeFormatOptions,
+): Intl.DateTimeFormat {
+  const key = locale + ":" + JSON.stringify(options);
+  let formatter = dateTimeFormatCache.get(key);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(locale, options);
+    dateTimeFormatCache.set(key, formatter);
+  }
+  return formatter;
+}
+
 export type LearnerProfile = {
   id: string;
   email: string;
@@ -283,7 +298,7 @@ async function unlockBadge(
 }
 
 async function touchDailyStreak(transaction: InstanceType<typeof sql.Transaction>, userId: string) {
-  const today = new Intl.DateTimeFormat("en-CA", {
+  const today = getCachedDateTimeFormat("en-CA", {
     timeZone: "Africa/Cairo",
     year: "numeric",
     month: "2-digit",
@@ -370,7 +385,9 @@ export async function answerQuiz(input: {
     if (!option) throw new ApiProblem("السؤال أو الاختيار غير صالح", 400);
     const recent = await new sql.Request(transaction)
       .input("user_id", sql.NVarChar(64), learner.id)
-      .query<{ answered_at: Date }>(
+      .query<{
+        answered_at: Date;
+      }>(
         "select top (1) answered_at from okaab.quiz_attempts where user_id=@user_id order by answered_at desc",
       );
     if (
@@ -381,7 +398,9 @@ export async function answerQuiz(input: {
     const prior = await new sql.Request(transaction)
       .input("user_id", sql.NVarChar(64), learner.id)
       .input("question_id", sql.NVarChar(64), input.questionId)
-      .query<{ attempts: number }>(
+      .query<{
+        attempts: number;
+      }>(
         "select count(*) attempts from okaab.quiz_attempts where user_id=@user_id and question_id=@question_id",
       );
     const first = prior.recordset[0]?.attempts === 0;
@@ -539,12 +558,9 @@ async function finalizeLessonIfEligible(
 export async function getLessonCompletion(slug: string) {
   const learner = await requireLearnerProfile();
   const pool = await getDb();
-  const lesson = await pool
-    .request()
-    .input("slug", sql.NVarChar(180), slug)
-    .query<{ id: string }>(
-      "select top (1) id from okaab.lessons where slug=@slug and is_published=1",
-    );
+  const lesson = await pool.request().input("slug", sql.NVarChar(180), slug).query<{
+    id: string;
+  }>("select top (1) id from okaab.lessons where slug=@slug and is_published=1");
   const lessonId = lesson.recordset[0]?.id;
   if (!lessonId) throw new ApiProblem("الدرس غير موجود", 404);
   return readLessonCompletion(() => pool.request(), learner.id, lessonId);
@@ -600,7 +616,9 @@ export async function recordLessonEvent(slug: string, event: LessonEvent) {
       const deck = await new sql.Request(transaction)
         .input("deck_id", sql.NVarChar(64), event.deckId)
         .input("lesson_id", sql.NVarChar(64), lessonId)
-        .query<{ id: string }>(
+        .query<{
+          id: string;
+        }>(
           "select top (1) id from okaab.slide_decks where id=@deck_id and lesson_id=@lesson_id and is_published=1",
         );
       if (!deck.recordset[0]) throw new ApiProblem("الشرائح لا تتبع هذا الدرس", 422);
@@ -932,7 +950,7 @@ export async function getLeaderboard(period: "weekly" | "monthly" | "all") {
   const pool = await getDb();
   const now = new Date();
   const cairoParts = Object.fromEntries(
-    new Intl.DateTimeFormat("en-CA", {
+    getCachedDateTimeFormat("en-CA", {
       timeZone: "Africa/Cairo",
       year: "numeric",
       month: "2-digit",
@@ -963,7 +981,7 @@ export async function getLeaderboard(period: "weekly" | "monthly" | "all") {
   }
   const target = Date.UTC(boundary.year, boundary.month - 1, boundary.day);
   let sinceMs = target;
-  const cairoClock = new Intl.DateTimeFormat("en-CA", {
+  const cairoClock = getCachedDateTimeFormat("en-CA", {
     timeZone: "Africa/Cairo",
     hourCycle: "h23",
     year: "numeric",
@@ -1030,13 +1048,10 @@ export async function getLeaderboard(period: "weekly" | "monthly" | "all") {
 }
 
 export async function getPublicConfig() {
-  const result = await (
-    await getDb()
-  )
-    .request()
-    .query<{ key: string; value_json: string }>(
-      "select [key] as [key],value_json from okaab.remote_config where is_public=1",
-    );
+  const result = await (await getDb()).request().query<{
+    key: string;
+    value_json: string;
+  }>("select [key] as [key],value_json from okaab.remote_config where is_public=1");
   return Object.fromEntries(
     result.recordset.map((item) => {
       try {
