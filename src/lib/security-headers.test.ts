@@ -88,3 +88,13 @@ test("client-mounted tags reuse the nonce already present in the document", () =
     else Reflect.deleteProperty(globalThis, "document");
   }
 });
+
+test("MS SQL LIKE wildcards ('[', '%', and '_') are properly escaped", () => {
+  function sanitizeLikePattern(search: string): string {
+    return search.replaceAll("[", "[[]").replaceAll("%", "[%]").replaceAll("_", "[_]");
+  }
+
+  assert.equal(sanitizeLikePattern("100%_complete[1]"), "100[%][_]complete[[]1]");
+  assert.equal(sanitizeLikePattern("user_name"), "user[_]name");
+  assert.equal(sanitizeLikePattern("[admin]"), "[[]admin]");
+});
