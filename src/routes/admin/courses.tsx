@@ -9,7 +9,7 @@ import {
   RefreshCw,
   Shield,
 } from "lucide-react";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
 import { AdminLayout, useAdminAuth } from "@/components/admin/AdminShell";
@@ -68,6 +68,17 @@ function CourseAdminContent() {
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [publishingDeckId, setPublishingDeckId] = useState<string | null>(null);
+
+  // Performance optimization: Pre-index courses and lessons into O(1) Maps outside render loops
+  // to avoid O(N * M) linear searches during video select and slide deck rendering.
+  const coursesById = useMemo(
+    () => new Map(courses.map((course) => [course.id, course])),
+    [courses],
+  );
+  const lessonsById = useMemo(
+    () => new Map(lessons.map((lesson) => [lesson.id, lesson])),
+    [lessons],
+  );
 
   async function load() {
     const [
@@ -239,7 +250,7 @@ function CourseAdminContent() {
   }
 
   async function attachVideo(videoId: string, lessonId: string | null) {
-    const lesson = lessons.find((item) => item.id === lessonId);
+    const lesson = lessonId ? lessonsById.get(lessonId) : undefined;
     const result = await supabase
       .from("youtube_videos")
       .update({ lesson_id: lessonId, course_id: lesson?.course_id ?? null })
@@ -553,8 +564,7 @@ function CourseAdminContent() {
                 <option value="">بدون درس</option>
                 {lessons.map((lesson) => (
                   <option key={lesson.id} value={lesson.id}>
-                    {courses.find((course) => course.id === lesson.course_id)?.title} —{" "}
-                    {lesson.title}
+                    {coursesById.get(lesson.course_id)?.title} — {lesson.title}
                   </option>
                 ))}
               </select>
@@ -582,8 +592,8 @@ function CourseAdminContent() {
               <h3 className="font-bold">{deck.title}</h3>
               <p className="mt-1 text-xs font-bold text-[var(--ok-accent-text)]">
                 {(() => {
-                  const lesson = lessons.find((item) => item.id === deck.lesson_id);
-                  const course = courses.find((item) => item.id === lesson?.course_id);
+                  const lesson = lessonsById.get(deck.lesson_id);
+                  const course = lesson?.course_id ? coursesById.get(lesson.course_id) : undefined;
                   return (
                     [course?.title, lesson?.title].filter(Boolean).join(" — ") || "درس غير محدد"
                   );

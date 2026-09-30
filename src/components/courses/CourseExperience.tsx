@@ -104,6 +104,13 @@ export function CoursesCatalog({ locale = "ar" }: { locale?: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // Performance optimization: Pre-index courses into O(1) Map outside render loops
+  // to avoid O(N * M) linear searches inside roadmaps.map().
+  const coursesById = useMemo(
+    () => new Map(courses.map((course) => [course.id, course])),
+    [courses],
+  );
+
   useEffect(() => {
     void fetch("/api/v1/catalog", { credentials: "same-origin" })
       .then(async (response) => {
@@ -150,7 +157,7 @@ export function CoursesCatalog({ locale = "ar" }: { locale?: string }) {
         const roadmapCourses = links
           .filter((link) => link.roadmap_id === roadmap.id)
           .sort((a, b) => a.sort_order - b.sort_order)
-          .map((link) => courses.find((course) => course.id === link.course_id))
+          .map((link) => coursesById.get(link.course_id))
           .filter(Boolean) as Course[];
         if (!roadmapCourses.length) return null;
         return (
@@ -252,6 +259,24 @@ export function CourseOverview({ slug, locale = "ar" }: { slug: string; locale?:
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // Performance optimization: Pre-aggregate video and slide counts per lesson into O(1) Maps
+  // to prevent running O(L * V) and O(L * S) array filters inside lessons.map().
+  const videoCountByLesson = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const video of videos) {
+      if (video.lesson_id) map.set(video.lesson_id, (map.get(video.lesson_id) ?? 0) + 1);
+    }
+    return map;
+  }, [videos]);
+
+  const slideCountByLesson = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const slide of slides) {
+      if (slide.lesson_id) map.set(slide.lesson_id, (map.get(slide.lesson_id) ?? 0) + 1);
+    }
+    return map;
+  }, [slides]);
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -344,8 +369,8 @@ export function CourseOverview({ slug, locale = "ar" }: { slug: string; locale?:
         </div>
         <div className="space-y-3">
           {lessons.map((lesson, index) => {
-            const videoCount = videos.filter((video) => video.lesson_id === lesson.id).length;
-            const slideCount = slides.filter((deck) => deck.lesson_id === lesson.id).length;
+            const videoCount = videoCountByLesson.get(lesson.id) ?? 0;
+            const slideCount = slideCountByLesson.get(lesson.id) ?? 0;
             return (
               <Link
                 key={lesson.id}
