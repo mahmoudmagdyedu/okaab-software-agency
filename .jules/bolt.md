@@ -1,0 +1,3 @@
+## 2024-10-01 - Caching Intl.DateTimeFormat in Hot Loops
+**Learning:** Instantiating `Intl.DateTimeFormat` is an expensive operation that can cause significant performance bottlenecks when called inside hot loops, such as slot availability calculations.
+**Action:** Always cache and reuse `Intl.DateTimeFormat` instances (e.g., using a module-level `Map` keyed by timezone and format type) to prevent O(N) instantiation overhead.
