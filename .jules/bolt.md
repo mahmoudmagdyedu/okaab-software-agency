@@ -1,0 +1,3 @@
+## 2025-05-18 - Cache Intl.DateTimeFormat in Slot Calculation Hot Path
+**Learning:** Instantiating `Intl.DateTimeFormat` inside loop iterations or frequently called helper functions (such as `timeZoneOffsetMinutes`, `formatTime`, and `formatDateKey`) introduces noticeable object creation and CPU overhead when generating availability slots for calendar scheduling. Caching `Intl.DateTimeFormat` instances in module-level Map caches keyed by timeZone eliminates redundant instantiations while preserving thread/request safety.
+**Action:** Cache `Intl.DateTimeFormat` instances by timezone when formatting dates repeatedly in utility libraries or hot loops.
