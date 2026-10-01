@@ -1,19 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+import { getClientIp } from "./clerk-ip.ts";
+
 const CLERK_FRONTEND_API = "https://frontend-api.clerk.dev";
 const CLERK_PROXY_URL = "https://okaab.org/clerk-proxy";
 
-function getClientIp(request: Request) {
-  const forwardedFor = request.headers.get("x-forwarded-for");
-  if (forwardedFor) {
-    const addresses = forwardedFor
-      .split(",")
-      .map((value) => value.trim())
-      .filter(Boolean);
-    if (addresses.length > 0) return addresses[addresses.length - 1]!;
-  }
-  return request.headers.get("cf-connecting-ip") || "127.0.0.1";
-}
+export { getClientIp };
 
 async function proxyClerkRequest({
   request,

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { errorResponse, secureResponse } from "./lib/secure-response.ts";
+import { getClientIp } from "./routes/clerk-proxy/clerk-ip.ts";
 
 function nonceFrom(response: Response): string {
   const csp = response.headers.get("content-security-policy") ?? "";
@@ -86,4 +87,14 @@ test("uploaded slide HTML keeps its own policy and frame behavior", async () => 
   );
   assert.equal(secured.headers.get("x-frame-options"), "SAMEORIGIN");
   assert.equal(await secured.text(), "<script>bridge()</script>");
+});
+
+test("getClientIp prioritizes cf-connecting-ip over x-forwarded-for to prevent IP spoofing", () => {
+  const request = new Request("https://okaab.org/clerk-proxy/v1/client", {
+    headers: {
+      "cf-connecting-ip": "203.0.113.195",
+      "x-forwarded-for": "198.51.100.1, 127.0.0.1",
+    },
+  });
+  assert.equal(getClientIp(request), "203.0.113.195");
 });
