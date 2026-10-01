@@ -9,9 +9,16 @@ function validSignature(body: string, signature: string | null) {
   if (!secret || !signature?.startsWith("sha1=")) return false;
   const expected = createHmac("sha1", secret).update(body).digest("hex");
   const supplied = signature.slice(5);
+
+  const expectedBuffer = Buffer.from(expected);
+  const suppliedBuffer = Buffer.from(supplied);
+
+  // Security note: Always compare Buffer lengths before calling timingSafeEqual
+  // String lengths can match while Buffer byte lengths differ (e.g. multi-byte chars),
+  // which causes timingSafeEqual to throw an unhandled exception (DoS vulnerability).
   return (
-    expected.length === supplied.length &&
-    timingSafeEqual(Buffer.from(expected), Buffer.from(supplied))
+    expectedBuffer.length === suppliedBuffer.length &&
+    timingSafeEqual(expectedBuffer, suppliedBuffer)
   );
 }
 
