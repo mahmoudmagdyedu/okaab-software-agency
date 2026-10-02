@@ -388,16 +388,28 @@ function TasksContent() {
     const assignments = (assigneeResult.data ?? []) as TaskAssignee[];
     setTeams((teamResult.data ?? []) as Team[]);
     setProfiles((profileResult.data ?? []) as Profile[]);
+
+    // Performance optimization: Pre-group assignments by task_id to avoid O(Tasks * Assignments) array scans.
+    const assignmentsByTaskId = new Map<string, TaskAssignee[]>();
+    for (const item of assignments) {
+      const list = assignmentsByTaskId.get(item.task_id);
+      if (list) {
+        list.push(item);
+      } else {
+        assignmentsByTaskId.set(item.task_id, [item]);
+      }
+    }
+
     setTasks(
-      ((taskResult.data ?? []) as Task[]).map((task) => ({
-        ...task,
-        assigneeIds: assignments
-          .filter((item) => item.task_id === task.id)
-          .map((item) => item.profile_id),
-        personalStatus:
-          assignments.find((item) => item.task_id === task.id && item.profile_id === profile?.id)
-            ?.status ?? null,
-      })),
+      ((taskResult.data ?? []) as Task[]).map((task) => {
+        const taskAssignments = assignmentsByTaskId.get(task.id) ?? [];
+        return {
+          ...task,
+          assigneeIds: taskAssignments.map((item) => item.profile_id),
+          personalStatus:
+            taskAssignments.find((item) => item.profile_id === profile?.id)?.status ?? null,
+        };
+      }),
     );
     setLoading(false);
   }, [selectedDay, profile?.id]);
@@ -424,22 +436,58 @@ function TasksContent() {
       teamFilter === "all" ? visibleTeams : visibleTeams.filter((team) => team.id === teamFilter),
     [teamFilter, visibleTeams],
   );
+  // Performance optimization: Pre-index profiles and display teams into Map/Set for O(1) lookups during rendering.
+  const profileMap = useMemo(() => {
+    const map = new Map<string, Profile>();
+    for (const p of profiles) {
+      map.set(p.id, p);
+    }
+    return map;
+  }, [profiles]);
+
+  const displayTeamIdSet = useMemo(() => {
+    return new Set(displayTeams.map((t) => t.id));
+  }, [displayTeams]);
+
   const displayTasks = useMemo(() => {
     const normalized = searchQuery.trim().toLocaleLowerCase("ar");
     return tasks.filter(
       (task) =>
-        displayTeams.some((team) => team.id === task.team_id) &&
+        displayTeamIdSet.has(task.team_id) &&
         (!normalized ||
           task.title.toLocaleLowerCase("ar").includes(normalized) ||
           task.description.toLocaleLowerCase("ar").includes(normalized) ||
           task.assigneeIds.some((id) => {
-            const person = profiles.find((profile) => profile.id === id);
+            const person = profileMap.get(id);
             return (person?.display_name || person?.email || "")
               .toLocaleLowerCase("ar")
               .includes(normalized);
           })),
     );
-  }, [displayTeams, searchQuery, tasks, profiles]);
+  }, [displayTeamIdSet, searchQuery, tasks, profileMap]);
+
+  // Performance optimization: Pre-group display tasks and team member counts by team_id to avoid repeated .filter() scans in column rendering loops.
+  const tasksByTeamId = useMemo(() => {
+    const map = new Map<string, TaskWithPeople[]>();
+    for (const task of displayTasks) {
+      const list = map.get(task.team_id);
+      if (list) {
+        list.push(task);
+      } else {
+        map.set(task.team_id, [task]);
+      }
+    }
+    return map;
+  }, [displayTasks]);
+
+  const memberCountByTeamId = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const member of profiles) {
+      map.set(member.team_id, (map.get(member.team_id) ?? 0) + 1);
+    }
+    return map;
+  }, [profiles]);
+
   const emptyColumnCount = Math.max(0, DESKTOP_MIN_COLUMNS - displayTeams.length);
   const desktopColumnCount = displayTeams.length + emptyColumnCount;
   const desktopGridColumns = `70px repeat(${desktopColumnCount}, minmax(250px, 1fr))`;
@@ -506,10 +554,14 @@ function TasksContent() {
     }
   }
 
-  const personName = (id: string) =>
-    profiles.find((person) => person.id === id)?.display_name ||
-    profiles.find((person) => person.id === id)?.email ||
-    "عضو";
+  // Performance optimization: Use O(1) Map lookup instead of calling profiles.find(...) twice per assignee.
+  const personName = useCallback(
+    (id: string) => {
+      const person = profileMap.get(id);
+      return person?.display_name || person?.email || "عضو";
+    },
+    [profileMap],
+  );
 
   return (
     <div className="space-y-5">
@@ -667,7 +719,7 @@ function TasksContent() {
                 <Clock3 className="mx-auto" size={17} />
               </div>
               {displayTeams.map((team) => {
-                const teamTasks = displayTasks.filter((task) => task.team_id === team.id);
+                const teamTasks = tasksByTeamId.get(team.id) ?? [];
                 const scheduledMinutes = teamTasks.reduce(
                   (sum, task) =>
                     sum +
@@ -679,7 +731,7 @@ function TasksContent() {
                   0,
                 );
                 const utilization = Math.min(100, Math.round((scheduledMinutes / 480) * 100));
-                const memberCount = profiles.filter((member) => member.team_id === team.id).length;
+                const memberCount = memberCountByTeamId.get(team.id) ?? 0;
                 return (
                   <div key={team.id} className="border-r border-[var(--ok-ink)]/25 p-3">
                     <div className="flex items-center justify-between gap-3">
@@ -753,70 +805,68 @@ function TasksContent() {
                       "repeating-linear-gradient(to bottom, transparent 0, transparent 34px, color-mix(in srgb, var(--ok-ink) 13%, transparent) 35px, transparent 36px, transparent 69px, color-mix(in srgb, var(--ok-ink) 32%, transparent) 70px)",
                   }}
                 >
-                  {displayTasks
-                    .filter((task) => task.team_id === team.id)
-                    .map((task) => (
-                      <article
-                        key={task.id}
-                        draggable={canManage}
-                        onDragStart={(event) => event.dataTransfer.setData("text/task-id", task.id)}
-                        style={{ ...taskStyle(task), borderTopColor: team.color }}
-                        className={`absolute inset-x-1.5 z-10 overflow-hidden rounded-md border border-[var(--ok-ink)] border-t-[5px] bg-[var(--ok-paper-2)] p-2.5 shadow-sm transition hover:z-20 hover:shadow-lg ${canManage ? "cursor-grab active:cursor-grabbing" : "cursor-default"}`}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <strong className="line-clamp-1 text-sm">{task.title}</strong>
-                          <div className="flex shrink-0 items-center gap-1">
-                            <span className="rounded-full bg-[#E8A33D]/25 px-2 py-0.5 text-[10px] font-bold">
-                              {ROLE_LABELS[task.issuer_role_snapshot]}
-                            </span>
-                            {canManage && (
-                              <button
-                                type="button"
-                                aria-label={`تعديل ${task.title}`}
-                                onPointerDown={(event) => event.stopPropagation()}
-                                onClick={() => {
-                                  setEditingTask(task);
-                                  setComposerOpen(true);
-                                }}
-                                className="grid size-7 place-items-center rounded-lg border border-[var(--ok-ink)]/20 bg-[var(--ok-card)] transition hover:border-[#E8A33D]"
-                              >
-                                <Edit3 size={13} />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                        <p dir="ltr" className="mt-1 text-right text-[11px] opacity-60">
-                          {format(new Date(task.starts_at), "HH:mm")} –{" "}
-                          {format(new Date(task.ends_at), "HH:mm")}
-                        </p>
-                        {task.assigneeIds.length > 0 && (
-                          <p className="mt-1 line-clamp-1 text-[11px] opacity-65">
-                            {task.assigneeIds.map(personName).join("، ")}
-                          </p>
-                        )}
-                        {canManage ? (
-                          <select
-                            aria-label="حالة المهمة"
-                            value={task.status}
-                            onPointerDown={(event) => event.stopPropagation()}
-                            onChange={(event) =>
-                              void setTaskStatus(task, event.target.value as TaskStatus)
-                            }
-                            className="mt-2 max-w-full rounded-lg border border-[var(--ok-ink)]/25 bg-transparent px-1.5 py-1 text-[10px] font-bold"
-                          >
-                            {Object.entries(STATUS_LABELS).map(([value, label]) => (
-                              <option key={value} value={value}>
-                                {label}
-                              </option>
-                            ))}
-                          </select>
-                        ) : (
-                          <span className="mt-2 inline-block rounded-lg bg-[var(--ok-card)] px-2 py-1 text-[10px] font-bold">
-                            {STATUS_LABELS[task.status]}
+                  {(tasksByTeamId.get(team.id) ?? []).map((task) => (
+                    <article
+                      key={task.id}
+                      draggable={canManage}
+                      onDragStart={(event) => event.dataTransfer.setData("text/task-id", task.id)}
+                      style={{ ...taskStyle(task), borderTopColor: team.color }}
+                      className={`absolute inset-x-1.5 z-10 overflow-hidden rounded-md border border-[var(--ok-ink)] border-t-[5px] bg-[var(--ok-paper-2)] p-2.5 shadow-sm transition hover:z-20 hover:shadow-lg ${canManage ? "cursor-grab active:cursor-grabbing" : "cursor-default"}`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <strong className="line-clamp-1 text-sm">{task.title}</strong>
+                        <div className="flex shrink-0 items-center gap-1">
+                          <span className="rounded-full bg-[#E8A33D]/25 px-2 py-0.5 text-[10px] font-bold">
+                            {ROLE_LABELS[task.issuer_role_snapshot]}
                           </span>
-                        )}
-                      </article>
-                    ))}
+                          {canManage && (
+                            <button
+                              type="button"
+                              aria-label={`تعديل ${task.title}`}
+                              onPointerDown={(event) => event.stopPropagation()}
+                              onClick={() => {
+                                setEditingTask(task);
+                                setComposerOpen(true);
+                              }}
+                              className="grid size-7 place-items-center rounded-lg border border-[var(--ok-ink)]/20 bg-[var(--ok-card)] transition hover:border-[#E8A33D]"
+                            >
+                              <Edit3 size={13} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <p dir="ltr" className="mt-1 text-right text-[11px] opacity-60">
+                        {format(new Date(task.starts_at), "HH:mm")} –{" "}
+                        {format(new Date(task.ends_at), "HH:mm")}
+                      </p>
+                      {task.assigneeIds.length > 0 && (
+                        <p className="mt-1 line-clamp-1 text-[11px] opacity-65">
+                          {task.assigneeIds.map(personName).join("، ")}
+                        </p>
+                      )}
+                      {canManage ? (
+                        <select
+                          aria-label="حالة المهمة"
+                          value={task.status}
+                          onPointerDown={(event) => event.stopPropagation()}
+                          onChange={(event) =>
+                            void setTaskStatus(task, event.target.value as TaskStatus)
+                          }
+                          className="mt-2 max-w-full rounded-lg border border-[var(--ok-ink)]/25 bg-transparent px-1.5 py-1 text-[10px] font-bold"
+                        >
+                          {Object.entries(STATUS_LABELS).map(([value, label]) => (
+                            <option key={value} value={value}>
+                              {label}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className="mt-2 inline-block rounded-lg bg-[var(--ok-card)] px-2 py-1 text-[10px] font-bold">
+                          {STATUS_LABELS[task.status]}
+                        </span>
+                      )}
+                    </article>
+                  ))}
                 </div>
               ))}
               {Array.from({ length: emptyColumnCount }, (_, index) => (
