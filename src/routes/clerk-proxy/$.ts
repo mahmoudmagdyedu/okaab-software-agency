@@ -4,6 +4,10 @@ const CLERK_FRONTEND_API = "https://frontend-api.clerk.dev";
 const CLERK_PROXY_URL = "https://okaab.org/clerk-proxy";
 
 function getClientIp(request: Request) {
+  // Security: Prioritize CF-Connecting-IP over X-Forwarded-For to prevent IP spoofing behind Cloudflare
+  const cfIp = request.headers.get("cf-connecting-ip");
+  if (cfIp) return cfIp;
+
   const forwardedFor = request.headers.get("x-forwarded-for");
   if (forwardedFor) {
     const addresses = forwardedFor
@@ -12,7 +16,7 @@ function getClientIp(request: Request) {
       .filter(Boolean);
     if (addresses.length > 0) return addresses[addresses.length - 1]!;
   }
-  return request.headers.get("cf-connecting-ip") || "127.0.0.1";
+  return "127.0.0.1";
 }
 
 async function proxyClerkRequest({

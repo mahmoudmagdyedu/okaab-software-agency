@@ -33,6 +33,10 @@ function rejectAbusiveRequest(retryAfterSeconds?: number): never {
 }
 
 function trustedClientAddress() {
+  // Security: Prioritize CF-Connecting-IP over X-Forwarded-For to prevent IP spoofing behind Cloudflare
+  const cfIp = getRequestHeader("cf-connecting-ip");
+  if (cfIp) return cfIp;
+
   const forwardedFor = getRequestHeader("x-forwarded-for");
   if (process.env["DYNO"] && forwardedFor) {
     const addresses = forwardedFor
