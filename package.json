@@ -15,7 +15,7 @@
     "build:bun-pos": "npm run build --workspace=okaab-bun-al-deerah-pos",
     "build:mobile": "npm --prefix apps/okaab-learning-mobile run typecheck",
     "build:dev": "vite build --mode development",
-    "test:security": "node --experimental-strip-types --test src/lib/security-headers.test.ts src/lib/quote-security.test.ts src/server-security.test.ts",
+    "test:security": "node --experimental-strip-types --test src/lib/security-headers.test.ts src/lib/quote-security.test.ts src/lib/sql-like.test.ts src/server-security.test.ts",
     "test:learning": "node --experimental-strip-types --test packages/bridge/index.test.js src/lib/slide-quiz-score.test.ts src/lib/lesson-message.test.ts src/lib/lesson-completion.test.ts src/lib/roles.test.ts src/lib/invitation-url.test.ts src/lib/question-bank-validation.test.ts src/lib/learning-copy.test.ts",
     "start": "node scripts/start-production.mjs",
     "preview": "vite preview",
