@@ -506,10 +506,15 @@ function TasksContent() {
     }
   }
 
-  const personName = (id: string) =>
-    profiles.find((person) => person.id === id)?.display_name ||
-    profiles.find((person) => person.id === id)?.email ||
-    "عضو";
+  // Performance optimization (Bolt): Pre-process profiles into an O(1) Map
+  // to prevent O(N * M) repeated searches inside task render iterations.
+  const profileMap = useMemo(() => {
+    return new Map(
+      profiles.map((person) => [person.id, person.display_name || person.email || "عضو"]),
+    );
+  }, [profiles]);
+
+  const personName = useCallback((id: string) => profileMap.get(id) || "عضو", [profileMap]);
 
   return (
     <div className="space-y-5">
