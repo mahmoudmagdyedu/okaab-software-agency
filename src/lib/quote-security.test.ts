@@ -39,6 +39,15 @@ test("every forwarded quote field participates in idempotency", () => {
   assert.ok(variants.every((variant) => quoteIdempotencyKey(variant) !== original));
 });
 
+test("oversized quote inputs are capped to prevent DoS resource exhaustion", () => {
+  const normalDetails = "a".repeat(5000);
+  const oversizedDetails = "a".repeat(10000);
+  assert.equal(
+    quoteIdempotencyKey({ ...base, details: normalDetails }),
+    quoteIdempotencyKey({ ...base, details: oversizedDetails }),
+  );
+});
+
 test("rate-limit rejection preserves 429 and Retry-After", async () => {
   const response = quoteRejection(900);
   assert.equal(response.status, 429);

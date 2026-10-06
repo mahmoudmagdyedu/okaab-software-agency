@@ -11,17 +11,23 @@ export type QuoteIdempotencyInput = {
   formStartedAt: number;
 };
 
+// Security: Bounding string length prevents resource exhaustion (DoS) during JSON stringification
+// and crypto hashing when handling untrusted user input fields.
+function capLength(str: string, maxLen: number): string {
+  return str.length > maxLen ? str.slice(0, maxLen) : str;
+}
+
 export function quoteIdempotencyKey(data: QuoteIdempotencyInput): string {
   const fingerprint = createHash("sha256")
     .update(
       JSON.stringify([
-        data.name,
-        data.email.toLowerCase(),
-        data.phone,
-        data.service,
-        data.details,
-        data.locale ?? "",
-        data.pageUrl ?? "",
+        capLength(data.name, 500),
+        capLength(data.email.toLowerCase(), 500),
+        capLength(data.phone, 100),
+        capLength(data.service, 500),
+        capLength(data.details, 5000),
+        capLength(data.locale ?? "", 50),
+        capLength(data.pageUrl ?? "", 2000),
         data.formStartedAt,
       ]),
     )
