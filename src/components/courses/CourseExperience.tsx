@@ -127,6 +127,39 @@ export function CoursesCatalog({ locale = "ar" }: { locale?: string }) {
       .finally(() => setLoading(false));
   }, []);
 
+  // Bolt Optimization: Pre-process relational links and courses into O(1) Maps and Sets
+  // within useMemo placed before early returns (to comply with react-hooks/rules-of-hooks).
+  // This avoids O(N^2) linear traversals (`courses.find` inside `links.filter`) on every render.
+  const { standaloneCourses, roadmapCoursesMap } = useMemo(() => {
+    const courseMap = new Map<string, Course>(courses.map((course) => [course.id, course]));
+    const linkedCourseIds = new Set<string>();
+
+    const roadmapCoursesMap = new Map<string, Course[]>();
+    const linksByRoadmap = new Map<string, RoadmapCourse[]>();
+
+    for (const link of links) {
+      linkedCourseIds.add(link.course_id);
+      let list = linksByRoadmap.get(link.roadmap_id);
+      if (!list) {
+        list = [];
+        linksByRoadmap.set(link.roadmap_id, list);
+      }
+      list.push(link);
+    }
+
+    for (const [roadmapId, roadmapLinks] of linksByRoadmap.entries()) {
+      const sortedCourses = [...roadmapLinks]
+        .sort((a, b) => a.sort_order - b.sort_order)
+        .map((link) => courseMap.get(link.course_id))
+        .filter((c): c is Course => c !== undefined);
+      roadmapCoursesMap.set(roadmapId, sortedCourses);
+    }
+
+    const standaloneCourses = courses.filter((course) => !linkedCourseIds.has(course.id));
+
+    return { standaloneCourses, roadmapCoursesMap };
+  }, [courses, links]);
+
   if (loading)
     return (
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -141,17 +174,10 @@ export function CoursesCatalog({ locale = "ar" }: { locale?: string }) {
   if (!roadmaps.length && !courses.length && !latest.length)
     return <EmptyCourses error={error} locale={locale} />;
 
-  const linkedCourseIds = new Set(links.map((link) => link.course_id));
-  const standaloneCourses = courses.filter((course) => !linkedCourseIds.has(course.id));
-
   return (
     <div className="space-y-14">
       {roadmaps.map((roadmap, roadmapIndex) => {
-        const roadmapCourses = links
-          .filter((link) => link.roadmap_id === roadmap.id)
-          .sort((a, b) => a.sort_order - b.sort_order)
-          .map((link) => courses.find((course) => course.id === link.course_id))
-          .filter(Boolean) as Course[];
+        const roadmapCourses = roadmapCoursesMap.get(roadmap.id) || [];
         if (!roadmapCourses.length) return null;
         return (
           <section key={roadmap.id} aria-labelledby={`roadmap-${roadmap.id}`}>
