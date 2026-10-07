@@ -57,6 +57,26 @@ const DEFAULT_POINTS = {
   streak_30: 250,
 };
 
+// Performance optimization: Cache Intl.DateTimeFormat instances at module level
+// to avoid expensive repeated instantiation and ICU data initialization on every request.
+const cairoDateFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Africa/Cairo",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+const cairoClockFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Africa/Cairo",
+  hourCycle: "h23",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+});
+
 export async function getLearnerProfile(): Promise<LearnerProfile | null> {
   const account = await getAccountProfile();
   if (!account) return null;
@@ -283,12 +303,8 @@ async function unlockBadge(
 }
 
 async function touchDailyStreak(transaction: InstanceType<typeof sql.Transaction>, userId: string) {
-  const today = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Africa/Cairo",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
+  // Use cached module-level formatter to avoid repeated Intl instantiation overhead
+  const today = cairoDateFormatter.format(new Date());
   const rules = await pointsRules(transaction);
   const result = await new sql.Request(transaction)
     .input("user_id", sql.NVarChar(64), userId)
@@ -931,13 +947,9 @@ export async function getLeaderboard(period: "weekly" | "monthly" | "all") {
   const learner = await getLearnerProfile();
   const pool = await getDb();
   const now = new Date();
+  // Use cached module-level formatter to avoid repeated Intl instantiation overhead
   const cairoParts = Object.fromEntries(
-    new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Africa/Cairo",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    })
+    cairoDateFormatter
       .formatToParts(now)
       .filter((part) => part.type !== "literal")
       .map((part) => [part.type, Number(part.value)]),
@@ -963,19 +975,10 @@ export async function getLeaderboard(period: "weekly" | "monthly" | "all") {
   }
   const target = Date.UTC(boundary.year, boundary.month - 1, boundary.day);
   let sinceMs = target;
-  const cairoClock = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Africa/Cairo",
-    hourCycle: "h23",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
+  // Use cached module-level formatter to avoid repeated Intl instantiation overhead
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const local = Object.fromEntries(
-      cairoClock
+      cairoClockFormatter
         .formatToParts(new Date(sinceMs))
         .filter((part) => part.type !== "literal")
         .map((part) => [part.type, Number(part.value)]),
