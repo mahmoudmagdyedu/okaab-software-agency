@@ -9,10 +9,14 @@ function validSignature(body: string, signature: string | null) {
   if (!secret || !signature?.startsWith("sha1=")) return false;
   const expected = createHmac("sha1", secret).update(body).digest("hex");
   const supplied = signature.slice(5);
-  return (
-    expected.length === supplied.length &&
-    timingSafeEqual(Buffer.from(expected), Buffer.from(supplied))
-  );
+
+  // Security: Convert strings to Buffer objects first before comparing byte lengths.
+  // Comparing string.length before Buffer conversion can lead to RangeError exceptions
+  // and potential DoS in timingSafeEqual when dealing with multi-byte UTF-8 characters.
+  const expectedBuf = Buffer.from(expected);
+  const suppliedBuf = Buffer.from(supplied);
+
+  return expectedBuf.length === suppliedBuf.length && timingSafeEqual(expectedBuf, suppliedBuf);
 }
 
 export const Route = createFileRoute("/api/youtube/webhook")({
