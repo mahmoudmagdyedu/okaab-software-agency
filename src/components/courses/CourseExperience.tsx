@@ -127,6 +127,18 @@ export function CoursesCatalog({ locale = "ar" }: { locale?: string }) {
       .finally(() => setLoading(false));
   }, []);
 
+  // Pre-process courses into an O(1) Map lookup and compute derived course lists.
+  // Defined before early returns to follow React Rules of Hooks.
+  const { coursesById, standaloneCourses } = useMemo(() => {
+    const map = new Map<string, Course>();
+    for (const course of courses) {
+      map.set(course.id, course);
+    }
+    const linkedIds = new Set(links.map((link) => link.course_id));
+    const standalone = courses.filter((course) => !linkedIds.has(course.id));
+    return { coursesById: map, standaloneCourses: standalone };
+  }, [courses, links]);
+
   if (loading)
     return (
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -141,16 +153,14 @@ export function CoursesCatalog({ locale = "ar" }: { locale?: string }) {
   if (!roadmaps.length && !courses.length && !latest.length)
     return <EmptyCourses error={error} locale={locale} />;
 
-  const linkedCourseIds = new Set(links.map((link) => link.course_id));
-  const standaloneCourses = courses.filter((course) => !linkedCourseIds.has(course.id));
-
   return (
     <div className="space-y-14">
       {roadmaps.map((roadmap, roadmapIndex) => {
+        // Use O(1) Map lookup instead of searching through courses array O(N) times per roadmap link
         const roadmapCourses = links
           .filter((link) => link.roadmap_id === roadmap.id)
           .sort((a, b) => a.sort_order - b.sort_order)
-          .map((link) => courses.find((course) => course.id === link.course_id))
+          .map((link) => coursesById.get(link.course_id))
           .filter(Boolean) as Course[];
         if (!roadmapCourses.length) return null;
         return (
