@@ -11,6 +11,42 @@ const allowedOrigins = new Set([
 
 const minute = 60_000;
 
+const _dtfCache = new Map<string, Intl.DateTimeFormat>();
+function getCachedDtf(timeZone: string, type: "offset" | "time" | "date"): Intl.DateTimeFormat {
+  const key = timeZone + ":" + type;
+  let dtf = _dtfCache.get(key);
+  if (!dtf) {
+    if (type === "offset") {
+      dtf = new Intl.DateTimeFormat("en-US", {
+        timeZone,
+        hour12: false,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      });
+    } else if (type === "time") {
+      dtf = new Intl.DateTimeFormat("en-GB", {
+        timeZone,
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      });
+    } else if (type === "date") {
+      dtf = new Intl.DateTimeFormat("en-CA", {
+        timeZone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      });
+    }
+    _dtfCache.set(key, dtf!);
+  }
+  return dtf!;
+}
+
 function corsHeaders(req: Request) {
   const origin = req.headers.get("origin");
   return {
@@ -49,16 +85,7 @@ function uuid(value: unknown) {
 }
 
 function timeZoneOffsetMinutes(instant: Date, timeZone: string) {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    hour12: false,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  }).formatToParts(instant);
+  const parts = getCachedDtf(timeZone, "offset").formatToParts(instant);
   const pick = (type: string) => Number(parts.find((part) => part.type === type)?.value ?? "0");
   const asUtc = Date.UTC(
     pick("year"),
@@ -85,21 +112,15 @@ function weekdayOf(date: string) {
 }
 
 function formatTime(instant: Date | string, timeZone: string) {
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone,
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).format(typeof instant === "string" ? new Date(instant) : instant);
+  return getCachedDtf(timeZone, "time").format(
+    typeof instant === "string" ? new Date(instant) : instant,
+  );
 }
 
 function formatDateKey(instant: Date | string, timeZone: string) {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(typeof instant === "string" ? new Date(instant) : instant);
+  return getCachedDtf(timeZone, "date").format(
+    typeof instant === "string" ? new Date(instant) : instant,
+  );
 }
 
 function computeSlots(input: {
