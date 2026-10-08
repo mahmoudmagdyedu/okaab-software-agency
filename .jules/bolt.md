@@ -1,0 +1,3 @@
+## 2025-05-18 - Relational Data Pre-processing in React Components
+**Learning:** Finding items from an array inside nested render loops (e.g. `roadmaps.map` running `courses.find` for each link) creates an O(R * L * C) performance bottleneck when rendering relational datasets in React components. Pre-processing relational lookup tables into `Map` instances before rendering reduces lookup time from O(C) to O(1). Additionally, defining hooks like `useMemo` before early returns (e.g., `loading` state check) prevents React `rules-of-hooks` errors.
+**Action:** Always index relational backend data into `Map` lookups using `useMemo` placed at top-level component scope before conditional early returns.
