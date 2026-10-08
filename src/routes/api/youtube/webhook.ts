@@ -9,10 +9,12 @@ function validSignature(body: string, signature: string | null) {
   if (!secret || !signature?.startsWith("sha1=")) return false;
   const expected = createHmac("sha1", secret).update(body).digest("hex");
   const supplied = signature.slice(5);
-  return (
-    expected.length === supplied.length &&
-    timingSafeEqual(Buffer.from(expected), Buffer.from(supplied))
-  );
+  const expectedBuf = Buffer.from(expected);
+  const suppliedBuf = Buffer.from(supplied);
+
+  // Security: Always compare buffer byte lengths to prevent unhandled exceptions (DoS)
+  // when handling multi-byte strings in timingSafeEqual.
+  return expectedBuf.length === suppliedBuf.length && timingSafeEqual(expectedBuf, suppliedBuf);
 }
 
 export const Route = createFileRoute("/api/youtube/webhook")({
