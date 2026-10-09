@@ -31,6 +31,9 @@ type PendingInvite = {
   invitationUrl: string | null;
 };
 
+// Optimization: Cache DateTimeFormat to avoid slow re-instantiation in map
+const arEGDateFormat = new Intl.DateTimeFormat("ar-EG");
+
 export const Route = createFileRoute("/admin/team")({
   head: () => ({
     meta: [
@@ -377,7 +380,7 @@ function TeamContent() {
                   <p className="mt-1 text-xs opacity-55">
                     {ROLE_LABELS[invitation.role]}
                     {invitation.teamName ? ` · ${invitation.teamName}` : ""} · تنتهي في{" "}
-                    {new Date(invitation.expiresAt).toLocaleDateString("ar-EG")}
+                    {arEGDateFormat.format(new Date(invitation.expiresAt))}
                   </p>
                 </div>
                 <span className="w-fit rounded-full border border-[#E8A33D]/45 bg-[#E8A33D]/10 px-3 py-1.5 text-xs font-bold text-[#D88C20]">
