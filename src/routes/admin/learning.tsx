@@ -71,6 +71,16 @@ type Learner = {
   last_activity_at: string | null;
 };
 
+// Optimization: Cache DateTimeFormat to avoid slow re-instantiation in map
+const arEGDateTimeFormat = new Intl.DateTimeFormat("ar-EG", {
+  year: "numeric",
+  month: "numeric",
+  day: "numeric",
+  hour: "numeric",
+  minute: "numeric",
+  second: "numeric",
+});
+
 export const Route = createFileRoute("/admin/learning")({
   head: () => ({
     meta: [
@@ -640,7 +650,7 @@ function LearningAdminContent() {
                   <p className="mt-1 text-sm opacity-70">{item.body}</p>
                   <p className="mt-2 text-xs opacity-50">
                     {item.is_published ? "منشور" : "مسودة"} ·{" "}
-                    {new Date(item.starts_at).toLocaleString("ar-EG")}
+                    {arEGDateTimeFormat.format(new Date(item.starts_at))}
                   </p>
                 </div>
                 <button

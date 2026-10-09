@@ -21,6 +21,16 @@ import type {
   HealthStatus,
 } from "@/integrations/supabase/types";
 
+// Optimization: Cache DateTimeFormat to avoid slow re-instantiation in map
+const arEGDateTimeFormat = new Intl.DateTimeFormat("ar-EG", {
+  year: "numeric",
+  month: "numeric",
+  day: "numeric",
+  hour: "numeric",
+  minute: "numeric",
+  second: "numeric",
+});
+
 export const Route = createFileRoute("/admin/health")({
   head: () => ({
     meta: [{ title: "حالة النظام — إدارة عُقاب" }, { name: "robots", content: "noindex,nofollow" }],
@@ -261,7 +271,7 @@ function HealthContent() {
               {check && (
                 <p className="mt-4 flex items-center gap-1.5 text-xs opacity-45">
                   <Clock3 size={13} />
-                  آخر فحص: {new Date(check.checked_at).toLocaleString("ar-EG")}
+                  آخر فحص: {arEGDateTimeFormat.format(new Date(check.checked_at))}
                 </p>
               )}
             </article>
@@ -297,10 +307,10 @@ function HealthContent() {
                 </p>
               </div>
               <div className="text-xs opacity-50">
-                <p>بدأت: {new Date(incident.started_at).toLocaleString("ar-EG")}</p>
+                <p>بدأت: {arEGDateTimeFormat.format(new Date(incident.started_at))}</p>
                 {incident.resolved_at && (
                   <p className="mt-1">
-                    حُلّت: {new Date(incident.resolved_at).toLocaleString("ar-EG")}
+                    حُلّت: {arEGDateTimeFormat.format(new Date(incident.resolved_at))}
                   </p>
                 )}
               </div>
