@@ -127,6 +127,13 @@ export function CoursesCatalog({ locale = "ar" }: { locale?: string }) {
       .finally(() => setLoading(false));
   }, []);
 
+  // Performance Optimization: Map courses by ID in O(N) using useMemo
+  // Place hooks before any early returns to obey React Hooks rules.
+  const coursesById = useMemo(
+    () => new Map(courses.map((course) => [course.id, course])),
+    [courses],
+  );
+
   if (loading)
     return (
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -150,7 +157,7 @@ export function CoursesCatalog({ locale = "ar" }: { locale?: string }) {
         const roadmapCourses = links
           .filter((link) => link.roadmap_id === roadmap.id)
           .sort((a, b) => a.sort_order - b.sort_order)
-          .map((link) => courses.find((course) => course.id === link.course_id))
+          .map((link) => coursesById.get(link.course_id))
           .filter(Boolean) as Course[];
         if (!roadmapCourses.length) return null;
         return (
