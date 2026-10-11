@@ -1,0 +1,3 @@
+## 2026-10-11 - Caching Intl instances in React hot loops
+**Learning:** Repeatedly calling `toLocaleString()` or `toLocaleDateString()` inside map iterations or hot loops incurs significant performance overhead because each call implicitly instantiates a new `Intl.DateTimeFormat` object, which is an expensive operation.
+**Action:** Cache `Intl.DateTimeFormat` instances as module-level constants and reuse their `.format()` methods instead of relying on implicit string methods inside rendering loops. Pass explicit options (like `{ year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric", second: "numeric" }`) to match `.toLocaleString()`'s default date and time output.
