@@ -127,6 +127,30 @@ export function CoursesCatalog({ locale = "ar" }: { locale?: string }) {
       .finally(() => setLoading(false));
   }, []);
 
+  // Optimization: Pre-process courses into an O(1) lookup Map and pre-calculate linked/roadmap courses
+  // using useMemo before any conditional early returns to conform to Rules of Hooks while avoiding O(N*M) lookups on every render.
+  const courseMap = useMemo(() => new Map(courses.map((course) => [course.id, course])), [courses]);
+
+  const linkedCourseIds = useMemo(() => new Set(links.map((link) => link.course_id)), [links]);
+
+  const standaloneCourses = useMemo(
+    () => courses.filter((course) => !linkedCourseIds.has(course.id)),
+    [courses, linkedCourseIds],
+  );
+
+  const roadmapCoursesMap = useMemo(() => {
+    const map = new Map<string, Course[]>();
+    for (const roadmap of roadmaps) {
+      const roadmapCourses = links
+        .filter((link) => link.roadmap_id === roadmap.id)
+        .sort((a, b) => a.sort_order - b.sort_order)
+        .map((link) => courseMap.get(link.course_id))
+        .filter(Boolean) as Course[];
+      map.set(roadmap.id, roadmapCourses);
+    }
+    return map;
+  }, [roadmaps, links, courseMap]);
+
   if (loading)
     return (
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -141,17 +165,10 @@ export function CoursesCatalog({ locale = "ar" }: { locale?: string }) {
   if (!roadmaps.length && !courses.length && !latest.length)
     return <EmptyCourses error={error} locale={locale} />;
 
-  const linkedCourseIds = new Set(links.map((link) => link.course_id));
-  const standaloneCourses = courses.filter((course) => !linkedCourseIds.has(course.id));
-
   return (
     <div className="space-y-14">
       {roadmaps.map((roadmap, roadmapIndex) => {
-        const roadmapCourses = links
-          .filter((link) => link.roadmap_id === roadmap.id)
-          .sort((a, b) => a.sort_order - b.sort_order)
-          .map((link) => courses.find((course) => course.id === link.course_id))
-          .filter(Boolean) as Course[];
+        const roadmapCourses = roadmapCoursesMap.get(roadmap.id) || [];
         if (!roadmapCourses.length) return null;
         return (
           <section key={roadmap.id} aria-labelledby={`roadmap-${roadmap.id}`}>
