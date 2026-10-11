@@ -35,6 +35,16 @@ const STATUS: Record<HealthStatus, { label: string; color: string; icon: typeof 
   unknown: { label: "غير معروف", color: "#999087", icon: HelpCircle },
 };
 
+// Cache Intl formatters outside render loops to avoid expensive implicit instantiation
+const dateTimeFormatter = new Intl.DateTimeFormat("ar-EG", {
+  year: "numeric",
+  month: "numeric",
+  day: "numeric",
+  hour: "numeric",
+  minute: "numeric",
+  second: "numeric",
+});
+
 function HealthContent() {
   const { profile } = useAdminAuth();
   const [services, setServices] = useState<HealthService[]>([]);
@@ -261,7 +271,7 @@ function HealthContent() {
               {check && (
                 <p className="mt-4 flex items-center gap-1.5 text-xs opacity-45">
                   <Clock3 size={13} />
-                  آخر فحص: {new Date(check.checked_at).toLocaleString("ar-EG")}
+                  آخر فحص: {dateTimeFormatter.format(new Date(check.checked_at))}
                 </p>
               )}
             </article>
@@ -297,10 +307,10 @@ function HealthContent() {
                 </p>
               </div>
               <div className="text-xs opacity-50">
-                <p>بدأت: {new Date(incident.started_at).toLocaleString("ar-EG")}</p>
+                <p>بدأت: {dateTimeFormatter.format(new Date(incident.started_at))}</p>
                 {incident.resolved_at && (
                   <p className="mt-1">
-                    حُلّت: {new Date(incident.resolved_at).toLocaleString("ar-EG")}
+                    حُلّت: {dateTimeFormatter.format(new Date(incident.resolved_at))}
                   </p>
                 )}
               </div>

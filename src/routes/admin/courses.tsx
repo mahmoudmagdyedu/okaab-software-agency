@@ -30,6 +30,17 @@ export const Route = createFileRoute("/admin/courses")({
   component: CoursesAdminRoute,
 });
 
+// Cache Intl formatters outside render loops to avoid expensive implicit instantiation
+const dateTimeFormatter = new Intl.DateTimeFormat("ar-EG", {
+  year: "numeric",
+  month: "numeric",
+  day: "numeric",
+  hour: "numeric",
+  minute: "numeric",
+  second: "numeric",
+});
+const dateFormatter = new Intl.DateTimeFormat("ar-EG");
+
 type Playlist = {
   id: string;
   youtube_playlist_id: string;
@@ -316,7 +327,7 @@ function CourseAdminContent() {
             <h2 className="font-display text-2xl font-bold">قناة Okaab على YouTube</h2>
             <p className="mt-1 text-sm text-white/60">
               {syncState?.last_success_at
-                ? `آخر مزامنة ناجحة: ${new Date(syncState.last_success_at).toLocaleString("ar-EG")}`
+                ? `آخر مزامنة ناجحة: ${dateTimeFormatter.format(new Date(syncState.last_success_at))}`
                 : "لم تُنفذ أول مزامنة بعد"}
             </p>
             {syncState?.last_error_summary && (
@@ -541,7 +552,7 @@ function CourseAdminContent() {
                 <h3 className="line-clamp-2 text-sm font-bold">{video.title}</h3>
                 <p className="mt-1 text-xs opacity-50">
                   {video.published_at
-                    ? new Date(video.published_at).toLocaleDateString("ar-EG")
+                    ? dateFormatter.format(new Date(video.published_at))
                     : "بدون تاريخ"}
                 </p>
               </div>
@@ -590,8 +601,8 @@ function CourseAdminContent() {
                 })()}
               </p>
               <p className="mt-2 text-xs opacity-55">
-                تم الرفع {new Date(deck.created_at).toLocaleString("ar-EG")} · {deck.file_count} ملف
-                · {deck.is_published ? "منشور" : "مسودة"} ·{" "}
+                تم الرفع {dateTimeFormatter.format(new Date(deck.created_at))} · {deck.file_count}{" "}
+                ملف · {deck.is_published ? "منشور" : "مسودة"} ·{" "}
                 {deck.allow_download ? "التنزيل متاح" : "عرض فقط"}
               </p>
               <div className="mt-4 flex items-center gap-2">
