@@ -4,15 +4,16 @@ import { createFileRoute } from "@tanstack/react-router";
 import { getDb, sql } from "@/lib/db.server";
 import { OKAAB_CHANNEL_ID, syncYouTubeChannel } from "@/lib/youtube-sync.server";
 
-function validSignature(body: string, signature: string | null) {
+export function validSignature(body: string, signature: string | null) {
   const secret = process.env["YOUTUBE_WEBSUB_SECRET"];
   if (!secret || !signature?.startsWith("sha1=")) return false;
   const expected = createHmac("sha1", secret).update(body).digest("hex");
   const supplied = signature.slice(5);
-  return (
-    expected.length === supplied.length &&
-    timingSafeEqual(Buffer.from(expected), Buffer.from(supplied))
-  );
+  // Security concern: Compare byte lengths of instantiated Buffer objects (not original string lengths)
+  // before timingSafeEqual to avoid unhandled RangeError exceptions when handling multi-byte UTF-8 characters.
+  const expectedBuf = Buffer.from(expected);
+  const suppliedBuf = Buffer.from(supplied);
+  return expectedBuf.length === suppliedBuf.length && timingSafeEqual(expectedBuf, suppliedBuf);
 }
 
 export const Route = createFileRoute("/api/youtube/webhook")({
