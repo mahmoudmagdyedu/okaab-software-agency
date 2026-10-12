@@ -4,6 +4,10 @@ import * as RechartsPrimitive from "recharts";
 import { cn } from "@/lib/utils";
 import { getDocumentNonce } from "@/lib/csp-client";
 
+// Performance optimization: Cache Intl.NumberFormat instance to avoid recreating it
+// on every chart tooltip render, which can happen frequently during hover events.
+const defaultNumberFormat = new Intl.NumberFormat();
+
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: "", dark: ".dark" } as const;
 
@@ -224,7 +228,9 @@ const ChartTooltipContent = React.forwardRef<
                         </div>
                         {item.value && (
                           <span className="font-mono font-medium tabular-nums text-foreground">
-                            {item.value.toLocaleString()}
+                            {Number.isNaN(Number(item.value))
+                              ? item.value
+                              : defaultNumberFormat.format(Number(item.value))}
                           </span>
                         )}
                       </div>
