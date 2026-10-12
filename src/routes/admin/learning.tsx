@@ -5,6 +5,17 @@ import { toast } from "sonner";
 
 import { AdminLayout } from "@/components/admin/AdminShell";
 
+// Performance optimization: Cache Intl.DateTimeFormat instance to avoid recreating it
+// on every render and loop iteration, which is expensive.
+const arEgDateTimeFormat = new Intl.DateTimeFormat("ar-EG", {
+  year: "numeric",
+  month: "numeric",
+  day: "numeric",
+  hour: "numeric",
+  minute: "numeric",
+  second: "numeric",
+});
+
 type MobileConfig = {
   min_app_version: string;
   force_update: boolean;
@@ -640,7 +651,7 @@ function LearningAdminContent() {
                   <p className="mt-1 text-sm opacity-70">{item.body}</p>
                   <p className="mt-2 text-xs opacity-50">
                     {item.is_published ? "منشور" : "مسودة"} ·{" "}
-                    {new Date(item.starts_at).toLocaleString("ar-EG")}
+                    {arEgDateTimeFormat.format(new Date(item.starts_at))}
                   </p>
                 </div>
                 <button

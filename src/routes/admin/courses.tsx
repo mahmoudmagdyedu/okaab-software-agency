@@ -316,7 +316,7 @@ function CourseAdminContent() {
             <h2 className="font-display text-2xl font-bold">قناة Okaab على YouTube</h2>
             <p className="mt-1 text-sm text-white/60">
               {syncState?.last_success_at
-                ? `آخر مزامنة ناجحة: ${new Date(syncState.last_success_at).toLocaleString("ar-EG")}`
+                ? `آخر مزامنة ناجحة: ${arEgDateTimeFormat.format(new Date(syncState.last_success_at))}`
                 : "لم تُنفذ أول مزامنة بعد"}
             </p>
             {syncState?.last_error_summary && (
@@ -590,8 +590,8 @@ function CourseAdminContent() {
                 })()}
               </p>
               <p className="mt-2 text-xs opacity-55">
-                تم الرفع {new Date(deck.created_at).toLocaleString("ar-EG")} · {deck.file_count} ملف
-                · {deck.is_published ? "منشور" : "مسودة"} ·{" "}
+                تم الرفع {arEgDateTimeFormat.format(new Date(deck.created_at))} · {deck.file_count}{" "}
+                ملف · {deck.is_published ? "منشور" : "مسودة"} ·{" "}
                 {deck.allow_download ? "التنزيل متاح" : "عرض فقط"}
               </p>
               <div className="mt-4 flex items-center gap-2">
