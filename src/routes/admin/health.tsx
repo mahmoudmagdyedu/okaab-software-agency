@@ -14,6 +14,16 @@ import { toast } from "sonner";
 
 import { AdminLayout, useAdminAuth } from "@/components/admin/AdminShell";
 import { okaab as supabase } from "@/integrations/okaab/client";
+
+// Cache Intl formatter to prevent performance overhead in component render loops
+const dateTimeFormatter = new Intl.DateTimeFormat("ar-EG", {
+  year: "numeric",
+  month: "numeric",
+  day: "numeric",
+  hour: "numeric",
+  minute: "numeric",
+  second: "numeric",
+});
 import type {
   HealthCheck,
   HealthIncident,
@@ -261,7 +271,10 @@ function HealthContent() {
               {check && (
                 <p className="mt-4 flex items-center gap-1.5 text-xs opacity-45">
                   <Clock3 size={13} />
-                  آخر فحص: {new Date(check.checked_at).toLocaleString("ar-EG")}
+                  آخر فحص:{" "}
+                  {!isNaN(new Date(check.checked_at).getTime())
+                    ? dateTimeFormatter.format(new Date(check.checked_at))
+                    : "Invalid Date"}
                 </p>
               )}
             </article>
@@ -297,10 +310,18 @@ function HealthContent() {
                 </p>
               </div>
               <div className="text-xs opacity-50">
-                <p>بدأت: {new Date(incident.started_at).toLocaleString("ar-EG")}</p>
+                <p>
+                  بدأت:{" "}
+                  {!isNaN(new Date(incident.started_at).getTime())
+                    ? dateTimeFormatter.format(new Date(incident.started_at))
+                    : "Invalid Date"}
+                </p>
                 {incident.resolved_at && (
                   <p className="mt-1">
-                    حُلّت: {new Date(incident.resolved_at).toLocaleString("ar-EG")}
+                    حُلّت:{" "}
+                    {!isNaN(new Date(incident.resolved_at).getTime())
+                      ? dateTimeFormatter.format(new Date(incident.resolved_at))
+                      : "Invalid Date"}
                   </p>
                 )}
               </div>

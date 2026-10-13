@@ -5,6 +5,16 @@ import { toast } from "sonner";
 
 import { AdminLayout } from "@/components/admin/AdminShell";
 
+// Cache Intl formatter to prevent performance overhead in component render loops
+const dateTimeFormatter = new Intl.DateTimeFormat("ar-EG", {
+  year: "numeric",
+  month: "numeric",
+  day: "numeric",
+  hour: "numeric",
+  minute: "numeric",
+  second: "numeric",
+});
+
 type MobileConfig = {
   min_app_version: string;
   force_update: boolean;
@@ -640,7 +650,9 @@ function LearningAdminContent() {
                   <p className="mt-1 text-sm opacity-70">{item.body}</p>
                   <p className="mt-2 text-xs opacity-50">
                     {item.is_published ? "منشور" : "مسودة"} ·{" "}
-                    {new Date(item.starts_at).toLocaleString("ar-EG")}
+                    {!isNaN(new Date(item.starts_at).getTime())
+                      ? dateTimeFormatter.format(new Date(item.starts_at))
+                      : "Invalid Date"}
                   </p>
                 </div>
                 <button
