@@ -1,0 +1,3 @@
+## 2026-10-13 - Cache Intl Formatters for Performance
+**Learning:** Implicitly instantiating `Intl.DateTimeFormat` and `Intl.NumberFormat` via `.toLocaleString()` inside render loops or `.map()` iterations introduces significant performance overhead due to repeated object allocations.
+**Action:** Always extract and cache `Intl.DateTimeFormat` and `Intl.NumberFormat` instances as module-level constants or use `useMemo` (outside of render loops) to reuse them across iterations. Note that `toLocaleString()` defaults to both date and time, while `new Intl.DateTimeFormat()` defaults to date only, so pass explicit options to preserve time when substituting.

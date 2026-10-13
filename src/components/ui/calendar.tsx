@@ -7,6 +7,9 @@ import { DayButton, DayPicker, getDefaultClassNames } from "react-day-picker";
 import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
 
+// Cache Intl formatter to prevent performance overhead in component render loops
+const monthFormatter = new Intl.DateTimeFormat("default", { month: "short" });
+
 function Calendar({
   className,
   classNames,
@@ -32,7 +35,8 @@ function Calendar({
       )}
       captionLayout={captionLayout}
       formatters={{
-        formatMonthDropdown: (date) => date.toLocaleString("default", { month: "short" }),
+        formatMonthDropdown: (date) =>
+          !isNaN(date.getTime()) ? monthFormatter.format(date) : "Invalid Date",
         ...formatters,
       }}
       classNames={{

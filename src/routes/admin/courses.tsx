@@ -14,6 +14,16 @@ import { toast } from "sonner";
 
 import { AdminLayout, useAdminAuth } from "@/components/admin/AdminShell";
 import { SlideUploader } from "@/components/admin/SlideUploader";
+
+// Cache Intl formatter to prevent performance overhead in component render loops
+const dateTimeFormatter = new Intl.DateTimeFormat("ar-EG", {
+  year: "numeric",
+  month: "numeric",
+  day: "numeric",
+  hour: "numeric",
+  minute: "numeric",
+  second: "numeric",
+});
 import { okaab as supabase } from "@/integrations/okaab/client";
 import type {
   Course,
@@ -316,7 +326,7 @@ function CourseAdminContent() {
             <h2 className="font-display text-2xl font-bold">قناة Okaab على YouTube</h2>
             <p className="mt-1 text-sm text-white/60">
               {syncState?.last_success_at
-                ? `آخر مزامنة ناجحة: ${new Date(syncState.last_success_at).toLocaleString("ar-EG")}`
+                ? `آخر مزامنة ناجحة: ${!isNaN(new Date(syncState.last_success_at).getTime()) ? dateTimeFormatter.format(new Date(syncState.last_success_at)) : "Invalid Date"}`
                 : "لم تُنفذ أول مزامنة بعد"}
             </p>
             {syncState?.last_error_summary && (
@@ -590,8 +600,11 @@ function CourseAdminContent() {
                 })()}
               </p>
               <p className="mt-2 text-xs opacity-55">
-                تم الرفع {new Date(deck.created_at).toLocaleString("ar-EG")} · {deck.file_count} ملف
-                · {deck.is_published ? "منشور" : "مسودة"} ·{" "}
+                تم الرفع{" "}
+                {!isNaN(new Date(deck.created_at).getTime())
+                  ? dateTimeFormatter.format(new Date(deck.created_at))
+                  : "Invalid Date"}{" "}
+                · {deck.file_count} ملف · {deck.is_published ? "منشور" : "مسودة"} ·{" "}
                 {deck.allow_download ? "التنزيل متاح" : "عرض فقط"}
               </p>
               <div className="mt-4 flex items-center gap-2">
