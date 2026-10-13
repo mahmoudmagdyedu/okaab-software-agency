@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+import { safeSecretCompare } from "@/lib/safe-secret-compare";
 import { syncYouTubeChannel } from "@/lib/youtube-sync.server";
 
 export const Route = createFileRoute("/api/internal/youtube/sync")({
@@ -8,7 +9,8 @@ export const Route = createFileRoute("/api/internal/youtube/sync")({
       POST: async ({ request }) => {
         const expected = process.env["HEALTH_MONITOR_SECRET"];
         const supplied = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-        if (!expected || supplied !== expected)
+        // Prevent timing side-channel attacks by comparing secrets in constant time.
+        if (!expected || !safeSecretCompare(supplied, expected))
           return new Response("Unauthorized", { status: 401 });
         try {
           return Response.json(await syncYouTubeChannel());
