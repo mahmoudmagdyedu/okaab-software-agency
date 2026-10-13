@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { runDeepHealthCheck } from "@/lib/health.server";
+import { safeSecretCompare } from "@/lib/safe-secret-compare";
 
 export const Route = createFileRoute("/api/internal/health/deep")({
   server: {
@@ -10,7 +11,8 @@ export const Route = createFileRoute("/api/internal/health/deep")({
         const supplied =
           request.headers.get("x-health-secret") ||
           request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-        if (!expected || supplied !== expected)
+        // Prevent timing side-channel attacks by comparing secrets in constant time.
+        if (!expected || !safeSecretCompare(supplied, expected))
           return new Response("Unauthorized", { status: 401 });
         try {
           return Response.json(await runDeepHealthCheck());
