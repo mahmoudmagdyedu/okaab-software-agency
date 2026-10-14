@@ -1,0 +1,3 @@
+## 2026-10-14 - Cache Intl objects instead of toLocaleString in chart hot loops
+**Learning:** Calling `toLocaleString()` or creating new `Intl.NumberFormat` instances within a component's render loop (like Recharts payload mapping) causes O(N) performance overhead since a new formatter object is instantiated each time. `Intl` instantiation is expensive.
+**Action:** To prevent performance overhead in formatting hot loops, avoid repeatedly instantiating `Intl.DateTimeFormat` and `Intl.NumberFormat` objects (including implicitly via `toLocaleString`). Cache these instances once (e.g., as module-level constants or using `useMemo` outside mapping functions) and reuse them. Always verify the payload value is a number before calling `.format()`.
