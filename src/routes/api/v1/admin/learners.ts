@@ -20,7 +20,8 @@ export const Route = createFileRoute("/api/v1/admin/learners")({ server: { handl
     try {
       await requireAdminProfile(["super_admin", "admin"]);
       const search = new URL(request.url).searchParams.get("q")?.trim().slice(0, 100) || "";
-      const result = await (await getDb()).request().input("search", sql.NVarChar(110), `%${search.replaceAll("%", "[%]").replaceAll("_", "[_]")}%`).query(`
+      // SECURITY: When sanitizing for MS SQL LIKE, escape '[' first to prevent double-escaping
+      const result = await (await getDb()).request().input("search", sql.NVarChar(110), `%${search.replaceAll("[", "[[]").replaceAll("%", "[%]").replaceAll("_", "[_]")}%`).query(`
         select top (100) p.id,p.email,p.display_name,p.avatar_url,p.status,p.leaderboard_visible,p.created_at,p.updated_at,
           coalesce((select sum(amount) from okaab.points_ledger where user_id=p.id),0) points,
           (select count(*) from okaab.lesson_progress where user_id=p.id and status='completed') completed_lessons,
