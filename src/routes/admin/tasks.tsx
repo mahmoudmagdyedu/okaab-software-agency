@@ -388,15 +388,26 @@ function TasksContent() {
     const assignments = (assigneeResult.data ?? []) as TaskAssignee[];
     setTeams((teamResult.data ?? []) as Team[]);
     setProfiles((profileResult.data ?? []) as Profile[]);
+
+    // Pre-process assignments into O(1) lookups to avoid O(N^2) complexity in the .map() below
+    const assigneeIdsByTask = new Map<string, string[]>();
+    const personalStatusByTask = new Map<string, string>();
+    for (const assignment of assignments) {
+      if (!assigneeIdsByTask.has(assignment.task_id)) {
+        assigneeIdsByTask.set(assignment.task_id, []);
+      }
+      assigneeIdsByTask.get(assignment.task_id)!.push(assignment.profile_id);
+
+      if (profile && assignment.profile_id === profile.id) {
+        personalStatusByTask.set(assignment.task_id, assignment.status);
+      }
+    }
+
     setTasks(
       ((taskResult.data ?? []) as Task[]).map((task) => ({
         ...task,
-        assigneeIds: assignments
-          .filter((item) => item.task_id === task.id)
-          .map((item) => item.profile_id),
-        personalStatus:
-          assignments.find((item) => item.task_id === task.id && item.profile_id === profile?.id)
-            ?.status ?? null,
+        assigneeIds: assigneeIdsByTask.get(task.id) ?? [],
+        personalStatus: personalStatusByTask.get(task.id) ?? null,
       })),
     );
     setLoading(false);
