@@ -104,6 +104,10 @@ export function CoursesCatalog({ locale = "ar" }: { locale?: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // Pre-index courses by ID using useMemo before early returns to maintain React hook ordering
+  // and convert O(C) linear searches inside roadmap rendering into O(1) Map lookups.
+  const courseMap = useMemo(() => new Map(courses.map((course) => [course.id, course])), [courses]);
+
   useEffect(() => {
     void fetch("/api/v1/catalog", { credentials: "same-origin" })
       .then(async (response) => {
@@ -150,7 +154,7 @@ export function CoursesCatalog({ locale = "ar" }: { locale?: string }) {
         const roadmapCourses = links
           .filter((link) => link.roadmap_id === roadmap.id)
           .sort((a, b) => a.sort_order - b.sort_order)
-          .map((link) => courses.find((course) => course.id === link.course_id))
+          .map((link) => courseMap.get(link.course_id))
           .filter(Boolean) as Course[];
         if (!roadmapCourses.length) return null;
         return (
