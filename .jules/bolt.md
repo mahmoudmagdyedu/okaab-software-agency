@@ -1,0 +1,3 @@
+## 2026-10-16 - Pre-instantiate Intl formatters in hot paths
+**Learning:** Implicit or repeated instantiation of `Intl.DateTimeFormat` or `Intl.NumberFormat` (including via `toLocaleString()`) introduces significant performance overhead in hot paths like loops or React render cycles.
+**Action:** Pre-instantiate `Intl.*` formatters and reuse them. When replacing `toLocaleString()` on dates, pass explicit options to `Intl.DateTimeFormat` (like year, month, day, hour, minute, second) to preserve the time output. For `NumberFormat`, ensure the value is verified as a number (`typeof value === 'number'`) before calling `format` to avoid throwing errors.
