@@ -21,6 +21,16 @@ import type {
   HealthStatus,
 } from "@/integrations/supabase/types";
 
+// ⚡ Bolt: Cache Intl.DateTimeFormat to avoid recreating it on every render for multiple dates
+const dateTimeFormatter = new Intl.DateTimeFormat("ar-EG", {
+  year: "numeric",
+  month: "numeric",
+  day: "numeric",
+  hour: "numeric",
+  minute: "numeric",
+  second: "numeric",
+});
+
 export const Route = createFileRoute("/admin/health")({
   head: () => ({
     meta: [{ title: "حالة النظام — إدارة عُقاب" }, { name: "robots", content: "noindex,nofollow" }],
@@ -261,7 +271,11 @@ function HealthContent() {
               {check && (
                 <p className="mt-4 flex items-center gap-1.5 text-xs opacity-45">
                   <Clock3 size={13} />
-                  آخر فحص: {new Date(check.checked_at).toLocaleString("ar-EG")}
+                  آخر فحص:{" "}
+                  {(() => {
+                    const d = new Date(check.checked_at);
+                    return !isNaN(d.getTime()) ? dateTimeFormatter.format(d) : "Invalid Date";
+                  })()}
                 </p>
               )}
             </article>
@@ -297,10 +311,20 @@ function HealthContent() {
                 </p>
               </div>
               <div className="text-xs opacity-50">
-                <p>بدأت: {new Date(incident.started_at).toLocaleString("ar-EG")}</p>
+                <p>
+                  بدأت:{" "}
+                  {(() => {
+                    const d = new Date(incident.started_at);
+                    return !isNaN(d.getTime()) ? dateTimeFormatter.format(d) : "Invalid Date";
+                  })()}
+                </p>
                 {incident.resolved_at && (
                   <p className="mt-1">
-                    حُلّت: {new Date(incident.resolved_at).toLocaleString("ar-EG")}
+                    حُلّت:{" "}
+                    {(() => {
+                      const d = new Date(incident.resolved_at);
+                      return !isNaN(d.getTime()) ? dateTimeFormatter.format(d) : "Invalid Date";
+                    })()}
                   </p>
                 )}
               </div>
