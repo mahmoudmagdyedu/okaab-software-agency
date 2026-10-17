@@ -1,4 +1,4 @@
-import { getDb, sql } from "@/lib/db.server";
+import { getDb, sql } from "./db.server.ts";
 
 export const OKAAB_CHANNEL_ID = "UCBAEq8qb5_yvj6_Ef96agOg";
 const API_ROOT = "https://www.googleapis.com/youtube/v3";
@@ -32,11 +32,7 @@ async function youtube<T>(path: string, params: Record<string, string>) {
     // A brand-new channel can expose an uploads playlist ID before YouTube has
     // created the playlist itself. Treat that documented 404 as an empty page
     // so the sync still records a successful, zero-video result.
-    if (
-      response.status === 404 &&
-      path === "playlistItems" &&
-      body.includes("playlistNotFound")
-    ) {
+    if (response.status === 404 && path === "playlistItems" && body.includes("playlistNotFound")) {
       return { items: [] };
     }
     throw new Error(
