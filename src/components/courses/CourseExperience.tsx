@@ -127,6 +127,36 @@ export function CoursesCatalog({ locale = "ar" }: { locale?: string }) {
       .finally(() => setLoading(false));
   }, []);
 
+  // Performance optimization: Pre-process courses into an O(1) Map and memoize
+  // roadmap and standalone course relationships to prevent O(R * L * C) lookups on renders.
+  const { coursesById, standaloneCourses, roadmapCoursesMap } = useMemo(() => {
+    const map = new Map<string, Course>(courses.map((course) => [course.id, course]));
+    const linkedCourseIds = new Set<string>();
+
+    const roadmapMap = new Map<string, Course[]>();
+    for (const roadmap of roadmaps) {
+      const roadmapLinks = links
+        .filter((link) => link.roadmap_id === roadmap.id)
+        .sort((a, b) => a.sort_order - b.sort_order);
+
+      const mappedCourses: Course[] = [];
+      for (const link of roadmapLinks) {
+        linkedCourseIds.add(link.course_id);
+        const course = map.get(link.course_id);
+        if (course) mappedCourses.push(course);
+      }
+      roadmapMap.set(roadmap.id, mappedCourses);
+    }
+
+    const standalone = courses.filter((course) => !linkedCourseIds.has(course.id));
+
+    return {
+      coursesById: map,
+      standaloneCourses: standalone,
+      roadmapCoursesMap: roadmapMap,
+    };
+  }, [courses, links, roadmaps]);
+
   if (loading)
     return (
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -141,17 +171,10 @@ export function CoursesCatalog({ locale = "ar" }: { locale?: string }) {
   if (!roadmaps.length && !courses.length && !latest.length)
     return <EmptyCourses error={error} locale={locale} />;
 
-  const linkedCourseIds = new Set(links.map((link) => link.course_id));
-  const standaloneCourses = courses.filter((course) => !linkedCourseIds.has(course.id));
-
   return (
     <div className="space-y-14">
       {roadmaps.map((roadmap, roadmapIndex) => {
-        const roadmapCourses = links
-          .filter((link) => link.roadmap_id === roadmap.id)
-          .sort((a, b) => a.sort_order - b.sort_order)
-          .map((link) => courses.find((course) => course.id === link.course_id))
-          .filter(Boolean) as Course[];
+        const roadmapCourses = roadmapCoursesMap.get(roadmap.id) || [];
         if (!roadmapCourses.length) return null;
         return (
           <section key={roadmap.id} aria-labelledby={`roadmap-${roadmap.id}`}>
