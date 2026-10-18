@@ -46,18 +46,50 @@ export interface Slot {
 
 const MINUTE = 60_000;
 
+// Cache for Intl.DateTimeFormat instances to prevent performance overhead in formatting hot loops.
+// Repeatedly instantiating Intl.DateTimeFormat inside hot loops causes significant performance degradation.
+const FORMATTERS_CACHE = new Map<string, Intl.DateTimeFormat>();
+
+function getFormatter(timeZone: string, type: "offset" | "time" | "date"): Intl.DateTimeFormat {
+  const key = `${timeZone}-${type}`;
+  let formatter = FORMATTERS_CACHE.get(key);
+  if (!formatter) {
+    if (type === "offset") {
+      formatter = new Intl.DateTimeFormat("en-US", {
+        timeZone,
+        hour12: false,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      });
+    } else if (type === "time") {
+      formatter = new Intl.DateTimeFormat("en-GB", {
+        timeZone,
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      });
+    } else {
+      formatter = new Intl.DateTimeFormat("en-CA", {
+        timeZone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      });
+    }
+    FORMATTERS_CACHE.set(key, formatter);
+  }
+  return formatter;
+}
+
 /** إزاحة المنطقة الزمنية بالدقائق عند لحظة معيّنة. */
 export function timeZoneOffsetMinutes(instant: Date, timeZone: string): number {
-  const dtf = new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    hour12: false,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
+  if (isNaN(instant.getTime())) return 0;
+
+  const dtf = getFormatter(timeZone, "offset");
   const parts = dtf.formatToParts(instant);
   const pick = (type: string): number => Number(parts.find((p) => p.type === type)?.value ?? "0");
   const asUTC = Date.UTC(
@@ -90,23 +122,15 @@ export function weekdayOf(date: string): number {
 /** تنسيق الوقت LTR بتوقيت الفرع مثل 10:30 */
 export function formatTime(instant: Date | string, timeZone: string): string {
   const dt = typeof instant === "string" ? new Date(instant) : instant;
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone,
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).format(dt);
+  if (isNaN(dt.getTime())) return "Invalid Date";
+  return getFormatter(timeZone, "time").format(dt);
 }
 
 /** التاريخ بصيغة YYYY-MM-DD بتوقيت الفرع. */
 export function formatDateKey(instant: Date | string, timeZone: string): string {
   const dt = typeof instant === "string" ? new Date(instant) : instant;
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(dt);
+  if (isNaN(dt.getTime())) return "Invalid Date";
+  return getFormatter(timeZone, "date").format(dt);
 }
 
 /** دقائق من منتصف ليل يوم الفرع للحظة UTC. */
