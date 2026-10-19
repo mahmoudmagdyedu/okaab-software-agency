@@ -424,6 +424,12 @@ function TasksContent() {
       teamFilter === "all" ? visibleTeams : visibleTeams.filter((team) => team.id === teamFilter),
     [teamFilter, visibleTeams],
   );
+  // Cache profiles into an O(1) lookup Map to prevent O(N * M) performance degradation during filtering and rendering.
+  const profilesMap = useMemo(
+    () => new Map(profiles.map((profile) => [profile.id, profile])),
+    [profiles],
+  );
+
   const displayTasks = useMemo(() => {
     const normalized = searchQuery.trim().toLocaleLowerCase("ar");
     return tasks.filter(
@@ -433,13 +439,13 @@ function TasksContent() {
           task.title.toLocaleLowerCase("ar").includes(normalized) ||
           task.description.toLocaleLowerCase("ar").includes(normalized) ||
           task.assigneeIds.some((id) => {
-            const person = profiles.find((profile) => profile.id === id);
+            const person = profilesMap.get(id);
             return (person?.display_name || person?.email || "")
               .toLocaleLowerCase("ar")
               .includes(normalized);
           })),
     );
-  }, [displayTeams, searchQuery, tasks, profiles]);
+  }, [displayTeams, searchQuery, tasks, profilesMap]);
   const emptyColumnCount = Math.max(0, DESKTOP_MIN_COLUMNS - displayTeams.length);
   const desktopColumnCount = displayTeams.length + emptyColumnCount;
   const desktopGridColumns = `70px repeat(${desktopColumnCount}, minmax(250px, 1fr))`;
@@ -506,10 +512,11 @@ function TasksContent() {
     }
   }
 
-  const personName = (id: string) =>
-    profiles.find((person) => person.id === id)?.display_name ||
-    profiles.find((person) => person.id === id)?.email ||
-    "عضو";
+  // O(1) lookup for person display name or email using the cached profilesMap
+  const personName = (id: string) => {
+    const person = profilesMap.get(id);
+    return person?.display_name || person?.email || "عضو";
+  };
 
   return (
     <div className="space-y-5">
