@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import { createFileRoute } from "@tanstack/react-router";
 
 import { syncYouTubeChannel } from "@/lib/youtube-sync.server";
@@ -8,7 +9,13 @@ export const Route = createFileRoute("/api/internal/youtube/sync")({
       POST: async ({ request }) => {
         const expected = process.env["HEALTH_MONITOR_SECRET"];
         const supplied = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-        if (!expected || supplied !== expected)
+        // Prevent timing attacks by comparing Buffer lengths and using timingSafeEqual
+        if (
+          !expected ||
+          !supplied ||
+          Buffer.from(supplied).length !== Buffer.from(expected).length ||
+          !timingSafeEqual(Buffer.from(supplied), Buffer.from(expected))
+        )
           return new Response("Unauthorized", { status: 401 });
         try {
           return Response.json(await syncYouTubeChannel());
