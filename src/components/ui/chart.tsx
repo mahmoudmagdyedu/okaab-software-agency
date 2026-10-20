@@ -4,6 +4,9 @@ import * as RechartsPrimitive from "recharts";
 import { cn } from "@/lib/utils";
 import { getDocumentNonce } from "@/lib/csp-client";
 
+// Module-level cached number formatter to avoid creating Intl.NumberFormat instances repeatedly on chart mousemove tooltip renders
+const numberFormatter = new Intl.NumberFormat();
+
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: "", dark: ".dark" } as const;
 
@@ -222,9 +225,12 @@ const ChartTooltipContent = React.forwardRef<
                             {itemConfig?.label || item.name}
                           </span>
                         </div>
-                        {item.value && (
+                        {item.value !== undefined && item.value !== null && (
                           <span className="font-mono font-medium tabular-nums text-foreground">
-                            {item.value.toLocaleString()}
+                            {/* Bolt performance optimization: reuse cached Intl.NumberFormat instance to avoid allocation overhead during chart tooltip hover render loops */}
+                            {typeof item.value === "number"
+                              ? numberFormatter.format(item.value)
+                              : item.value}
                           </span>
                         )}
                       </div>
