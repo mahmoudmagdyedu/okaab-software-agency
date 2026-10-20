@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import { createFileRoute } from "@tanstack/react-router";
 
 import { runDeepHealthCheck } from "@/lib/health.server";
@@ -10,7 +11,13 @@ export const Route = createFileRoute("/api/internal/health/deep")({
         const supplied =
           request.headers.get("x-health-secret") ||
           request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-        if (!expected || supplied !== expected)
+        // Prevent timing attacks by comparing Buffer lengths and using timingSafeEqual
+        if (
+          !expected ||
+          !supplied ||
+          Buffer.from(supplied).length !== Buffer.from(expected).length ||
+          !timingSafeEqual(Buffer.from(supplied), Buffer.from(expected))
+        )
           return new Response("Unauthorized", { status: 401 });
         try {
           return Response.json(await runDeepHealthCheck());
