@@ -1,0 +1,3 @@
+## 2026-10-26 - Cache Intl.NumberFormat in chart component
+**Learning:** Calling `.toLocaleString()` on dynamic data inside React hot loops (like Recharts tooltips) introduces performance overhead by implicitly instantiating a new `Intl.NumberFormat` object on every call.
+**Action:** Always cache `Intl.NumberFormat` instances (e.g., as module-level constants) and reuse them. When replacing `.toLocaleString()`, instantiate without locale arguments to preserve the system defaults, verify the value is a number using `typeof value === 'number'`, and retain `.toLocaleString()` as a fallback for non-numeric types to prevent UI breakage.
