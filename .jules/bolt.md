@@ -1,0 +1,3 @@
+## 2026-10-27 - Cache Intl.NumberFormat in Recharts hot loops
+**Learning:** Calling `.toLocaleString()` in React render loops (especially inside Recharts Tooltips which re-render often during hover) implicitly instantiates a new `Intl.NumberFormat` every time, causing noticeable performance overhead and frame drops.
+**Action:** Cache a module-level `new Intl.NumberFormat()` without locale arguments to preserve the system default, and use `.format(value)` instead. Since Recharts payloads can have dynamic types, check `typeof value === 'number'` and fallback to `.toLocaleString()` to prevent UI breakage with strings or non-numeric types.
