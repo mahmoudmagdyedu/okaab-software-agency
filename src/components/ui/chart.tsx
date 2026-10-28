@@ -7,6 +7,9 @@ import { getDocumentNonce } from "@/lib/csp-client";
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: "", dark: ".dark" } as const;
 
+// Cache Intl.NumberFormat instance at module level to avoid repeated instantiation overhead in render/tooltip loops
+const numberFormatter = new Intl.NumberFormat();
+
 export type ChartConfig = {
   [k in string]: {
     label?: React.ReactNode;
@@ -224,7 +227,10 @@ const ChartTooltipContent = React.forwardRef<
                         </div>
                         {item.value && (
                           <span className="font-mono font-medium tabular-nums text-foreground">
-                            {item.value.toLocaleString()}
+                            {/* Use cached Intl.NumberFormat instance for fast formatting in hot tooltip render loop */}
+                            {typeof item.value === "number"
+                              ? numberFormatter.format(item.value)
+                              : item.value.toLocaleString()}
                           </span>
                         )}
                       </div>
