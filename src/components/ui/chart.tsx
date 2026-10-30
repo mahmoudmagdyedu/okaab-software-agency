@@ -4,6 +4,8 @@ import * as RechartsPrimitive from "recharts";
 import { cn } from "@/lib/utils";
 import { getDocumentNonce } from "@/lib/csp-client";
 
+const numberFormatter = new Intl.NumberFormat();
+
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: "", dark: ".dark" } as const;
 
@@ -224,7 +226,10 @@ const ChartTooltipContent = React.forwardRef<
                         </div>
                         {item.value && (
                           <span className="font-mono font-medium tabular-nums text-foreground">
-                            {item.value.toLocaleString()}
+                            {/* ⚡ Bolt: Cache Intl.NumberFormat to avoid slow implicit instantiation in hot render loop */}
+                            {typeof item.value === "number"
+                              ? numberFormatter.format(item.value)
+                              : item.value.toLocaleString()}
                           </span>
                         )}
                       </div>
