@@ -9,10 +9,13 @@ function validSignature(body: string, signature: string | null) {
   if (!secret || !signature?.startsWith("sha1=")) return false;
   const expected = createHmac("sha1", secret).update(body).digest("hex");
   const supplied = signature.slice(5);
-  return (
-    expected.length === supplied.length &&
-    timingSafeEqual(Buffer.from(expected), Buffer.from(supplied))
-  );
+  // Security Note: Compare Buffer byte lengths rather than string .length prior to timingSafeEqual.
+  // String .length returns UTF-16 code units, while Buffer .length returns byte count in UTF-8.
+  // Comparing string length allows multi-byte UTF-8 inputs to reach timingSafeEqual with unequal byte lengths,
+  // throwing an unhandled ERR_CRYPTO_TIMING_SAFE_EQUAL_LENGTH exception causing Denial of Service (DoS).
+  const bufExpected = Buffer.from(expected);
+  const bufSupplied = Buffer.from(supplied);
+  return bufExpected.length === bufSupplied.length && timingSafeEqual(bufExpected, bufSupplied);
 }
 
 export const Route = createFileRoute("/api/youtube/webhook")({
