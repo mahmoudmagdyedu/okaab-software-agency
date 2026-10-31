@@ -1,4 +1,4 @@
-## 2024-05-18 - Prevent SSRF in Node.js URL resolution
-**Vulnerability:** Node.js URL constructor evaluates paths starting with `//` or `/\` as protocol-relative URLs, leading to Server-Side Request Forgery (SSRF) when used with `new URL(path, base)`.
-**Learning:** Path strings provided by user input must be sanitized before passing as the path segment in `new URL(path, base)` to prevent malicious domain redirection.
-**Prevention:** Prevent SSRF by aggressively stripping leading slashes and backslashes (e.g., `path.replace(/^[/\\]+/, '')`) before URL construction.
+## 2026-10-31 - MS SQL Server LIKE Query Wildcard Injection
+**Vulnerability:** User input for a `LIKE` SQL query escaped `%` and `_` but failed to escape `[`, which is a character set wildcard in MS SQL Server. Also, the order of escaping is critical to avoid double escaping.
+**Learning:** When sanitizing user input for MS SQL Server `LIKE` clauses, `[` must be escaped into `[[]` BEFORE escaping `%` or `_`. If `[` is escaped after, the brackets added during `%` escaping (i.e. `[%]`) will be incorrectly escaped again.
+**Prevention:** Always escape `[` first, followed by `%` and `_`, when using `LIKE` with MS SQL Server (e.g. `value.replaceAll("[", "[[]").replaceAll("%", "[%]").replaceAll("_", "[_]")`).
