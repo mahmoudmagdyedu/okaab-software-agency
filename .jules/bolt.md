@@ -1,0 +1,3 @@
+## 2026-11-02 - Cache Intl.NumberFormat in Recharts hot loops
+**Learning:** Calling `.toLocaleString()` on dynamic data inside Recharts tooltips/hot loops creates a new `Intl.NumberFormat` instance every time, which introduces measurable performance overhead. Additionally, Recharts payload values can be strings or arrays, which will crash `Intl.NumberFormat.format()` if not strictly type-checked as a number.
+**Action:** Always cache `new Intl.NumberFormat()` at the module level. Before formatting dynamic data, verify `typeof value === 'number'`, and fallback to `.toLocaleString()` for non-numeric types to safely handle them.
