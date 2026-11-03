@@ -7,6 +7,9 @@ import { getDocumentNonce } from "@/lib/csp-client";
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: "", dark: ".dark" } as const;
 
+// ⚡ Bolt: Cache Intl.NumberFormat to avoid O(N) instantiations inside Recharts hot render loops
+const numberFormatter = new Intl.NumberFormat();
+
 export type ChartConfig = {
   [k in string]: {
     label?: React.ReactNode;
@@ -224,7 +227,10 @@ const ChartTooltipContent = React.forwardRef<
                         </div>
                         {item.value && (
                           <span className="font-mono font-medium tabular-nums text-foreground">
-                            {item.value.toLocaleString()}
+                            {/* ⚡ Bolt: Use cached formatter if numeric, fallback to toLocaleString() for dynamic data to prevent rendering errors */}
+                            {typeof item.value === "number"
+                              ? numberFormatter.format(item.value)
+                              : item.value.toLocaleString()}
                           </span>
                         )}
                       </div>

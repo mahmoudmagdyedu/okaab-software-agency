@@ -1,0 +1,3 @@
+## 2026-11-03 - Cache Intl.NumberFormat in hot render loops
+**Learning:** Calling `.toLocaleString()` on variables repeatedly within hot loops (like Recharts tooltips in `src/components/ui/chart.tsx`) is a performance bottleneck because it implicitly creates a new `Intl.NumberFormat` instance on every call.
+**Action:** When replacing `.toLocaleString()` with cached formatters, instantiate them as module-level constants (e.g., `new Intl.NumberFormat()`) and reuse them. Always fallback to `.toLocaleString()` when dealing with dynamic typed values (e.g., `{typeof value === 'number' ? formatter.format(value) : value.toLocaleString()}`) to prevent rendering errors.
