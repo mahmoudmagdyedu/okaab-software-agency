@@ -94,6 +94,8 @@ ${colorConfig
 
 const ChartTooltip = RechartsPrimitive.Tooltip;
 
+const numberFormatter = new Intl.NumberFormat();
+
 const ChartTooltipContent = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
@@ -224,7 +226,10 @@ const ChartTooltipContent = React.forwardRef<
                         </div>
                         {item.value && (
                           <span className="font-mono font-medium tabular-nums text-foreground">
-                            {item.value.toLocaleString()}
+                            {/* Cache Intl.NumberFormat instance to prevent repeated instantiations in hot rendering loop */}
+                            {typeof item.value === "number"
+                              ? numberFormatter.format(item.value)
+                              : item.value.toLocaleString()}
                           </span>
                         )}
                       </div>
