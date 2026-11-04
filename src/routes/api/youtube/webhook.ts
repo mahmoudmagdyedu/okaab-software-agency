@@ -4,14 +4,19 @@ import { createFileRoute } from "@tanstack/react-router";
 import { getDb, sql } from "@/lib/db.server";
 import { OKAAB_CHANNEL_ID, syncYouTubeChannel } from "@/lib/youtube-sync.server";
 
-function validSignature(body: string, signature: string | null) {
+export function validSignature(body: string, signature: string | null) {
   const secret = process.env["YOUTUBE_WEBSUB_SECRET"];
   if (!secret || !signature?.startsWith("sha1=")) return false;
   const expected = createHmac("sha1", secret).update(body).digest("hex");
   const supplied = signature.slice(5);
+  // Security: Compare Buffer byte lengths rather than string lengths before calling timingSafeEqual.
+  // Multi-byte UTF-8 characters can cause string lengths to match while Buffer byte lengths differ,
+  // throwing an unhandled ERR_CRYPTO_TIMING_SAFE_EQUAL_LENGTH RangeError (DoS) or leaking timing info.
+  const expectedBuffer = Buffer.from(expected);
+  const suppliedBuffer = Buffer.from(supplied);
   return (
-    expected.length === supplied.length &&
-    timingSafeEqual(Buffer.from(expected), Buffer.from(supplied))
+    expectedBuffer.length === suppliedBuffer.length &&
+    timingSafeEqual(expectedBuffer, suppliedBuffer)
   );
 }
 
