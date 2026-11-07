@@ -1,0 +1,3 @@
+## 2026-11-07 - Optimize number formatting in React components handling dynamic Recharts payloads
+**Learning:** Recharts tooltips trigger frequent re-renders on mouse move, meaning implicit `Intl.NumberFormat` instantiation via `toLocaleString()` creates significant overhead in hot loops. Because Recharts payload values can be strings or arrays, strict type checking is required before using the `Intl.NumberFormat` API (which strictly expects a number or bigint).
+**Action:** When replacing `toLocaleString()` in charts, extract `new Intl.NumberFormat()` to a module-level constant and implement a type-check fallback (e.g., `typeof value === 'number' ? formatter.format(value) : value.toLocaleString()^{}`) to preserve application stability.
