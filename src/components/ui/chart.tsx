@@ -4,6 +4,10 @@ import * as RechartsPrimitive from "recharts";
 import { cn } from "@/lib/utils";
 import { getDocumentNonce } from "@/lib/csp-client";
 
+// Cache Intl.NumberFormat instance at module level to avoid expensive repeated instantiations
+// during Recharts tooltip rendering hot loops (e.g. mouse move events across data points).
+const numberFormatter = new Intl.NumberFormat();
+
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: "", dark: ".dark" } as const;
 
@@ -224,7 +228,10 @@ const ChartTooltipContent = React.forwardRef<
                         </div>
                         {item.value && (
                           <span className="font-mono font-medium tabular-nums text-foreground">
-                            {item.value.toLocaleString()}
+                            {/* Use cached Intl.NumberFormat to avoid per-render instantiation overhead while falling back safely */}
+                            {typeof item.value === "number"
+                              ? numberFormatter.format(item.value)
+                              : item.value.toLocaleString()}
                           </span>
                         )}
                       </div>
