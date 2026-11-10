@@ -4,14 +4,17 @@ import { createFileRoute } from "@tanstack/react-router";
 import { getDb, sql } from "@/lib/db.server";
 import { OKAAB_CHANNEL_ID, syncYouTubeChannel } from "@/lib/youtube-sync.server";
 
-function validSignature(body: string, signature: string | null) {
+export function validSignature(body: string, signature: string | null) {
   const secret = process.env["YOUTUBE_WEBSUB_SECRET"];
   if (!secret || !signature?.startsWith("sha1=")) return false;
   const expected = createHmac("sha1", secret).update(body).digest("hex");
   const supplied = signature.slice(5);
+  const expectedBuffer = Buffer.from(expected);
+  const suppliedBuffer = Buffer.from(supplied);
+  // Comparing buffer lengths prevents DoS runtime exceptions from timingSafeEqual when processing multi-byte inputs
   return (
-    expected.length === supplied.length &&
-    timingSafeEqual(Buffer.from(expected), Buffer.from(supplied))
+    expectedBuffer.length === suppliedBuffer.length &&
+    timingSafeEqual(expectedBuffer, suppliedBuffer)
   );
 }
 
